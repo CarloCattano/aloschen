@@ -105,7 +105,8 @@ void log(const char *message, ...)
 	}
 
 	FILE* f;
-	f = fopen("/root/alo.log", "a+");
+	// f = fopen("/home/carlo/dev/aloschen/source/alo.log", "a+");
+    f = fopen("/tmp/alo.log", "a+");
 
 	char buffer[2048];
 	va_list argumentList;
@@ -482,7 +483,7 @@ update_position(Alo* self, const LV2_Atom_Object* obj)
 			if (self->current_lb == self->loop_beats) {
 				self->current_lb = 0;
 			}
-			log("Beat:[%d][%d] index[%d] beat[%G]\n", self->current_bb, self->current_lb, self->loop_index, self->current_position);
+			// log("Beat:[%d][%d] index[%d] beat[%G]\n", self->current_bb, self->current_lb, self->loop_index, self->current_position);
 			self->current_lb += 1;
 		}
 	}
@@ -491,66 +492,60 @@ update_position(Alo* self, const LV2_Atom_Object* obj)
 /**
    Adjust self->state based on button presses.
 */
-static void
-button_logic(LV2_Handle instance, bool new_button_state, int i)
-{
-	Alo* self = (Alo*)instance;
+static void button_logic(LV2_Handle instance, bool new_button_state, int button) {
+    Alo* self = (Alo*)instance;
+    struct timeval te;
+    gettimeofday(&te, NULL);
+    long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;
 
-	struct timeval te;
-	gettimeofday(&te, NULL); // get current time
-	long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;
+    // Update button state and time
+    // log("[Button %d] Button logic", button);
+    self->button_state[button] = new_button_state;
+    int difference = milliseconds - self->button_time[button];
+    self->button_time[button] = milliseconds;
 
-	log("[%d] Button logic", i);
-	self->button_state[i] = new_button_state;
+    // if (new_button_state) {
+    //     log("[Button %d] Button ON", button);
+    // } else {
+    //     log("[Button %d] Button OFF", button);
+    // }
 
 
-	int difference = milliseconds - self->button_time[i];
-	self->button_time[i] = milliseconds;
-	if (new_button_state == true) {
-		log("[%d] Button ON", i);
-	} else {
-		log("[%d] Button OFF", i);
-	}
-
-	// Free running mode: when a button is pressed,
-	// if there is a button recording, set loop size and start based on its loop
-	if (self->loop_samples == LOOP_SIZE) {
-		for (int j = 0; j < NUM_LOOPS; j++) {
-			if (self->phrase_start[j] != 0) {
-				self->loop_samples = LOOP_SIZE + self->loop_index - self->phrase_start[j];
-				self->loop_samples = self->loop_samples % LOOP_SIZE;
-				self->loop_start = self->phrase_start[j];
-			}
-		}
-	}
-
-	int on_loops = 0;
-	for (int j = 0; j < NUM_LOOPS; j++) {
-		if (self->button_state[j] == true) {
-			on_loops += 1;
-		}
-	}
-
-	if (on_loops == 0 && *(self->ports.reset_mode) == 1.0) {
-		// reset if all loops are off
-		reset(self);
-		log("[%d] STATE: RESET mode 0", i);
-	}
-
-	if (difference < 1000) {
-		if (*(self->ports.reset_mode) == 2.0 || on_loops == 1) {
-			reset(self);
-			log("[%d] STATE: RESET mode 2", i);
-		}
-		if (*(self->ports.reset_mode) == 3.0) {
-			self->state[i] = STATE_RECORDING;
-			self->phrase_start[i] = 0;
-			log("[%d] STATE: RECORDING (button reset)", i);
-		}
-	}
-	log("[%d] Button logic ends", i);
+    // Handle button actions
+    if (button == 0) { // Record button
+        if (new_button_state) {
+            // Find the next available looper
+            for (int i = 0; i < NUM_LOOPS; ++i) {
+                if (self->state[i] == STATE_RECORDING) {
+                    self->state[i] = STATE_LOOP_ON;
+                    log("[Looper %d] RECORDING", i);
+                    break;
+                }
+            }
+        }
+    } else if (button == 1) { // Stop button
+        if (!new_button_state) {
+            if (difference > 700) {
+                for (int i = NUM_LOOPS - 1; i >= 0; --i) {
+                    if (self->state[i] == STATE_LOOP_ON) {
+                        self->state[i] = STATE_RECORDING;
+                        log("[Looper %d] LOOP OFF", i );
+                        log("[Loop index] %d", self->loop_index);
+                        // delete the loop
+                        for (int j = 0; (size_t)j < LOOP_SIZE; ++j) {
+                            self->loops[i][j] = 0.0f;
+                        }
+                        self->phrase_start[i] = 0;
+                        break;
+                    }
+                }
+            } else if(difference <= 700) {
+                reset(self);
+            }
+        }
+    }
+    // log("[Button %d] Button logic ends", button);
 }
-
 /**
    ** Taken directly from metro.c **
    Play back audio for the range [begin..end) relative to this cycle.  This is
@@ -674,86 +669,47 @@ run_events(Alo* self)
 	}
 }
 
-static void
-run_loops(Alo* self, uint32_t n_samples)
-{
-	const float* const input_l  = self->ports.input_l;
-	const float* const input_r  = self->ports.input_r;
-	float* const output_l = self->ports.output_l;
-	float* const output_r = self->ports.output_r;
-	float sample_l = 0.0;
-	float sample_r = 0.0;
-	float* const recording = self->recording;
-	self->threshold = dbToFloat(*self->ports.threshold);
+static void 
+run_loops(Alo* self, uint32_t n_samples) {
+    const float* const input_l = self->ports.input_l;
+    const float* const input_r = self->ports.input_r;
+    float* const output_l = self->ports.output_l;
+    float* const output_r = self->ports.output_r;
+    float* const recording = self->recording;
+    self->threshold = dbToFloat(*self->ports.threshold);
 
-	self->loopmix = fmin(1.0, *self->ports.mix / 50);
-	self->inmix = fmin(1, (100 - *self->ports.mix) / 50);
+    self->loopmix = fmin(1.0, *self->ports.mix / 50);
+    self->inmix = fmin(1, (100 - *self->ports.mix) / 50);
 
-	for (uint32_t pos = 0; pos < n_samples; pos++) {
-		// recording always happens
-		sample_l = input_l[pos];
-		sample_r = input_r[pos];
-		output_l[pos] = self->inmix * input_l[pos];
-		output_r[pos] = self->inmix * input_r[pos];
-		recording[self->loop_index] = sample_l;
-		recording[self->loop_index + LOOP_SIZE] = sample_r;
+    for (uint32_t pos = 0; pos < n_samples; ++pos) {
+        float sample_l = input_l[pos];
+        float sample_r = input_r[pos];
+        output_l[pos] = self->inmix * sample_l;
+        output_r[pos] = self->inmix * sample_r;
+        recording[self->loop_index] = sample_l;
+        recording[self->loop_index + LOOP_SIZE] = sample_r;
 
-		for (uint32_t i = 0; i < NUM_LOOPS; i++) {
+        for (uint32_t i = 0; i < NUM_LOOPS; ++i) {
+            float* const loop = self->loops[i];
+            if (self->state[i] == STATE_LOOP_ON) {
+                output_l[pos] += loop[self->loop_index];
+                output_r[pos] += loop[self->loop_index + LOOP_SIZE];
+            }
+            if (self->state[i] == STATE_RECORDING) {
+                loop[self->loop_index] = self->loopmix * sample_l;
+                loop[self->loop_index + LOOP_SIZE] = self->loopmix * sample_r;
+                if (self->phrase_start[i] == 0 && (fabs(sample_l) > self->threshold || fabs(sample_r) > self->threshold)) {
+                    self->phrase_start[i] = self->loop_index;
+                    log("[Looper %d] DETECTED PHRASE START [%d]", i, self->loop_index);
+                }
+            }
+        }
 
-			if (self->phrase_start[i] && self->phrase_start[i] == self->loop_index) {
-				if (self->button_state[i]) {
-					self->state[i] = STATE_LOOP_ON;
-					log("[%d]PHRASE: LOOP ON [%d]", i, self->loop_index);
-				} else {
-					if (self->state[i] == STATE_RECORDING) {
-						self->phrase_start[i] = 0;
-						log("[%d]PHRASE: Abandon phrase [%d]", i, self->loop_index);
-					} else {
-						self->state[i] = STATE_LOOP_OFF;
-						log("[%d]PHRASE: LOOP OFF [%d]", i, self->loop_index);
-					}
-				}
-			}
-
-            // Per-beat loops mode
-			if (self->loop_index % (self->loop_samples / self->loop_beats) == 0) {
-				if (self->pb_loops > i && self->state[i] != STATE_RECORDING) {
-					if (self->button_state[i]) {
-						self->state[i] = STATE_LOOP_ON;
-						log("[%d]BEAT: LOOP ON [%d]", i, self->loop_index);
-					} else {
-						self->state[i] = STATE_LOOP_OFF;
-						log("[%d]BEAT: LOOP OFF [%d]", i, self->loop_index);
-					}
-				}
-			}
-
-			float* const loop = self->loops[i];
-			if (self->state[i] == STATE_RECORDING && self->button_state[i]) {
-				loop[self->loop_index] = self->loopmix * sample_l;
-				loop[self->loop_index + LOOP_SIZE] = self->loopmix * sample_r;
-				if (self->phrase_start[i] == 0) {
-					if (fabs(sample_l) > self->threshold || fabs(sample_r) > self->threshold) {
-						self->phrase_start[i] = self->loop_index;
-						log("[%d]>>> DETECTED PHRASE START [%d]<<<", i, self->loop_index);
-					}
-				}
-			}
-
-			if (self->state[i] == STATE_LOOP_ON) {
-				output_l[pos] += loop[self->loop_index];
-				output_r[pos] += loop[self->loop_index + LOOP_SIZE];
-				if (i == 5) {
-					loop[self->loop_index] = sample_l;
-					loop[self->loop_index + LOOP_SIZE] = sample_r;
-				}
-			}
-		}
-		self->loop_index += 1;
-		if (self->loop_index >= self->loop_start + self->loop_samples) {
-			self->loop_index = self->loop_start;
-		}
-	}
+        self->loop_index++;
+        if (self->loop_index >= self->loop_start + self->loop_samples) {
+            self->loop_index = self->loop_start;
+        }
+    }
 }
 
 /**
