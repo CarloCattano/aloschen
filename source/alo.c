@@ -505,10 +505,11 @@ static void button_logic(LV2_Handle instance, bool new_button_state, int button)
     //     log("[Button %d] Button OFF", button);
     // }
 
-
     // Handle button actions
-    if (button == 0) { // Record button
-        if (new_button_state) {
+    if (button == 0) // Record button
+    { 
+        if (new_button_state) 
+        {
             // Find the next available looper
             for (int i = 0; i < NUM_LOOPS; ++i) {
                 if (self->state[i] == STATE_RECORDING) {
@@ -518,23 +519,32 @@ static void button_logic(LV2_Handle instance, bool new_button_state, int button)
                 }
             }
         }
-    } else if (button == 1) { // Stop button
-        if (!new_button_state) {
-            if (difference > 700) {
-                for (int i = NUM_LOOPS - 1; i >= 0; --i) {
-                    if (self->state[i] == STATE_LOOP_ON) {
+    } 
+    else if (button == 1) // stop button
+    { 
+        if (!new_button_state)
+        {
+            if (difference > 700) 
+            {
+                for (int i = NUM_LOOPS - 1; i >= 0; --i)
+                {
+                    if (self->state[i] == STATE_LOOP_ON)
+                    {
                         self->state[i] = STATE_RECORDING;
                         log("[Looper %d] LOOP OFF", i );
                         log("[Loop index] %d", self->loop_index);
-                        // delete the loop
+                        
+                        // delete the loop - Wrong approach, causes a crackling sound
                         for (int j = 0; (size_t)j < LOOP_SIZE; ++j) {
                             self->loops[i][j] = 0.0f;
                         }
+
                         self->phrase_start[i] = 0;
                         break;
                     }
                 }
-            } else if(difference <= 700) {
+            }
+            else if(difference <= 700) {
                 reset(self);
             }
         }
