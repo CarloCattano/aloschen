@@ -74,16 +74,16 @@ typedef enum {
 
 typedef enum {
 	// NB: for all states, we are always recording in the background
-	STATE_LOOP_OFF, // the loop is not playing
-	STATE_LOOP_ON, // the loop is playing
-	STATE_RECORDING // no loop is set, we are only recording
+	STATE_LOOP_OFF,     // the loop is not playing
+	STATE_LOOP_ON,      // the loop is playing
+	STATE_RECORDING     // no loop is set, we are only recording
 } State;
 
 typedef enum {
     STATE_OFF,      // No click
-    STATE_ATTACK,  // Envelope rising
-    STATE_DECAY,   // Envelope lowering
-    STATE_SILENT  // Silent
+    STATE_ATTACK,   // Envelope rising
+    STATE_DECAY,    // Envelope lowering
+    STATE_SILENT    // Silent
 } ClickState;
 
 static const size_t LOOP_SIZE = 2880000;
@@ -147,9 +147,9 @@ typedef struct {
 		float* loops[NUM_LOOPS];
 		float* bars;
 		float* threshold;
-		float* midi_base;	// start note for midi control of loops
-		float* pb_loops;		// number of loops in instant mode
-		float* click;		// click volume
+		float* midi_base;   // start note for midi control of loops
+		float* pb_loops;    // number of loops in instant mode
+		float* click;       // click volume
 		float* mix;
 		float* reset_mode;
 		int*   enabled;
@@ -158,18 +158,18 @@ typedef struct {
 	} ports;
 
 	// Variables to keep track of the tempo information sent by the host
-	double rate;		// Sample rate
-	float  bpm;		// Beats per minute (tempo)
-	float  bpb;		// Beats per bar
-	float  speed;		// Transport speed (usually 0=stop, 1=play)
-	float threshold;	// minimum level to trigger loop start
+	double rate;            // Sample rate
+	float  bpm;             // Beats per minute (tempo)
+	float  bpb;             // Beats per bar
+	float  speed;           // Transport speed (usually 0=stop, 1=play)
+	float threshold;        // minimum level to trigger loop start
 	uint32_t loop_beats;	// loop length in beats
 	uint32_t loop_samples;	// loop length in samples
 	uint32_t current_bb;	// which beat of the bar we are on (1, 2, 3, 0)
 	uint32_t current_lb;	// which beat of the loop we are on (1, 2, ...)
 	float current_position;
 
-	uint32_t pb_loops;	// number of loops in instant mode
+	uint32_t pb_loops;          // number of loops in instant mode
 
 	State state[NUM_LOOPS];	   // we're recording, playing or not playing
 
@@ -177,25 +177,25 @@ typedef struct {
 	bool midi_control;
 	uint32_t  button_time[NUM_LOOPS]; // last time button was pressed
 
-	float* loops[NUM_LOOPS]; // pointers to memory for playing loops
-	uint32_t phrase_start[NUM_LOOPS]; // index into recording/loop
-	float* recording;    // pointer to memory for recording - for all loops
-	uint32_t loop_start; // non-zero for free-running loops
-	uint32_t loop_index; // index into loop for current play point
+	float*      loops[NUM_LOOPS];           // pointers to memory for playing loops
+	uint32_t    phrase_start[NUM_LOOPS];    // index into recording/loop
+	float*      recording;                  // pointer to memory for recording - for all loops
+	uint32_t    loop_start;                 // non-zero for free-running loops
+	uint32_t    loop_index;                 // index into loop for current play point
 
-	ClickState clickstate;
+	ClickState  clickstate;
 
-	uint32_t elapsed_len;  // Frames since the start of the last click
-	uint32_t wave_offset;  // Current play offset in the wave
+	uint32_t    elapsed_len;                // Frames since the start of the last click
+	uint32_t    wave_offset;                // Current play offset in the wave
 
 	// Click beats
-	float*   high_beat;
-	float*   low_beat;
-	uint32_t beat_len;
-	uint32_t high_beat_offset;
-	uint32_t low_beat_offset;
-	float inmix;
-	float loopmix;
+	float*      high_beat;
+	float*      low_beat;
+	uint32_t    beat_len;
+	uint32_t    high_beat_offset;
+	uint32_t    low_beat_offset;
+	float       inmix;
+	float       loopmix;
 } Alo;
 
 void
@@ -209,12 +209,12 @@ sine_pulse(float* target, double frequency, double sample_rate, uint32_t num_sam
 	for (uint32_t i = 0; i < half_length; ++i) {
 		amplitude = fmin(amplitude + amplitude_step, 1.0f);
 		target[i] = 0.5f * amplitude * sin(i * sample_sin_step);
-	} 
+	}
 
 	for (uint32_t i = half_length; i < num_samples; ++i) {
 		amplitude = fmax(amplitude - amplitude_step, 0.0f);
 		target[i] = 0.5f * amplitude * sin(i * sample_sin_step);
-	} 
+	}
 }
 
 /**
@@ -283,7 +283,7 @@ instantiate(const LV2_Descriptor*     descriptor,
 	uris->time_Position	  = map->map(map->handle, LV2_TIME__Position);
 	uris->time_barBeat	  = map->map(map->handle, LV2_TIME__barBeat);
 	uris->time_beatsPerMinute = map->map(map->handle, LV2_TIME__beatsPerMinute);
-	uris->time_speed	  = map->map(map->handle, LV2_TIME__speed);
+	uris->time_speed      = map->map(map->handle, LV2_TIME__speed);
 	uris->time_beatsPerBar = map->map(map->handle, LV2_TIME__beatsPerBar);
 	uris->midi_MidiEvent   = map->map (map->handle, LV2_MIDI__MidiEvent);
 
@@ -309,9 +309,7 @@ instantiate(const LV2_Descriptor*     descriptor,
    context as run().
 */
 static void
-connect_port(LV2_Handle instance,
-	     uint32_t	port,
-	     void*	data)
+connect_port(LV2_Handle instance, uint32_t	port, void*	data)
 {
 	log("Connect");
 	Alo* self = (Alo*)instance;
@@ -381,8 +379,7 @@ connect_port(LV2_Handle instance,
 	log("Connect end");
 }
 
-static void
-reset(Alo* self)
+static void reset(Alo* self)
 {
 	log("Reset");
 	self->pb_loops = (uint32_t)floorf(*(self->ports.pb_loops));
@@ -415,8 +412,7 @@ reset(Alo* self)
    This method is in the ``instantiation'' threading class, so no other
    methods on this instance will be called concurrently with it.
 */
-static void
-activate(LV2_Handle instance)
+static void activate(LV2_Handle instance)
 {
 	log("Activate");
 }
@@ -425,8 +421,7 @@ activate(LV2_Handle instance)
    Update the current (midi) position based on a host message.	This is called
    by run() when a time:Position is received.
 */
-static void
-update_position(Alo* self, const LV2_Atom_Object* obj)
+static void update_position(Alo* self, const LV2_Atom_Object* obj)
 {
 	AloURIs* const uris = &self->uris;
 
@@ -551,8 +546,7 @@ static void button_logic(LV2_Handle instance, bool new_button_state, int button)
    Play back audio for the range [begin..end) relative to this cycle.  This is
    called by run() in-between events to output audio up until the current time.
 */
-static void
-click(Alo* self, uint32_t begin, uint32_t end)
+static void click(Alo* self, uint32_t begin, uint32_t end)
 {
 	float* const output_l = self->ports.output_l;
 	float* const output_r = self->ports.output_r;
@@ -574,8 +568,7 @@ click(Alo* self, uint32_t begin, uint32_t end)
 	}
 }
 
-static void
-run_clicks(Alo* self, uint32_t n_samples)
+static void run_clicks(Alo* self, uint32_t n_samples)
 {
 	bool play_click = true;
 
@@ -612,8 +605,7 @@ run_clicks(Alo* self, uint32_t n_samples)
 	}
 }
 
-static void
-run_events(Alo* self)
+static void run_events(Alo* self)
 {
 	const LV2_Atom_Sequence* midiin = self->ports.midiin;
 
@@ -669,8 +661,7 @@ run_events(Alo* self)
 	}
 }
 
-static void 
-run_loops(Alo* self, uint32_t n_samples) {
+static void run_loops(Alo* self, uint32_t n_samples) {
     const float* const input_l = self->ports.input_l;
     const float* const input_r = self->ports.input_r;
     float* const output_l = self->ports.output_l;
@@ -718,8 +709,7 @@ run_loops(Alo* self, uint32_t n_samples) {
    `lv2:hardRTCapable`, `run()` must be real-time safe, so blocking (e.g. with
    a mutex) or memory allocation are not allowed.
 */
-static void
-run(LV2_Handle instance, uint32_t n_samples)
+static void run(LV2_Handle instance, uint32_t n_samples)
 {
 	Alo* self = (Alo*)instance;
 
@@ -744,8 +734,7 @@ run(LV2_Handle instance, uint32_t n_samples)
    methods on this instance will be called concurrently with it.
 */
 
-static void
-deactivate(LV2_Handle instance)
+static void deactivate(LV2_Handle instance)
 {
 	log("Deactivate");
 }
@@ -756,8 +745,7 @@ deactivate(LV2_Handle instance)
    This method is in the ``instantiation'' threading class, so no other
    methods on this instance will be called concurrently with it.
 */
-static void
-cleanup(LV2_Handle instance)
+static void cleanup(LV2_Handle instance)
 {
 	log("Cleanup");
 
@@ -782,8 +770,7 @@ cleanup(LV2_Handle instance)
    This method is in the ``discovery'' threading class, so no other functions
    or methods in this plugin library will be called concurrently with it.
 */
-static const void*
-extension_data(const char* uri)
+static const void* extension_data(const char* uri)
 {
 	return NULL;
 }
