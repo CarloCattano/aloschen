@@ -88,7 +88,7 @@ typedef enum {
 
 static const size_t LOOP_SIZE = 2880000;
 static const int NUM_LOOPS = 6;
-static const bool LOG_ENABLED = false;
+static const bool LOG_ENABLED = true;
 
 #define DEFAULT_BEATS_PER_BAR 4
 #define DEFAULT_NUM_BARS 4
@@ -105,7 +105,7 @@ void log(const char *message, ...)
 	}
 
 	FILE* f;
-	f = fopen("/root/alo.log", "a+");
+	f = fopen("/tmp/alo.log", "a+");
 
 	char buffer[2048];
 	va_list argumentList;
@@ -167,6 +167,8 @@ typedef struct {
 	uint32_t current_bb;	// which beat of the bar we are on (1, 2, 3, 0)
 	uint32_t current_lb;	// which beat of the loop we are on (1, 2, ...)
 	float current_position;
+
+  int32_t current_loop;
 
 	uint32_t pb_loops;	// number of loops in instant mode
 
@@ -245,6 +247,8 @@ instantiate(const LV2_Descriptor*     descriptor,
 	self->current_position = 0.0f;
 	self->pb_loops = DEFAULT_INSTANT_LOOPS;
 	
+  self->current_loop = 0;
+
 	self->midi_control = false;
 
 	self->recording = (float *)calloc(LOOP_SIZE * 2, sizeof(float));
@@ -295,7 +299,6 @@ instantiate(const LV2_Descriptor*     descriptor,
 	self->high_beat_offset = self->beat_len;
 	self->low_beat_offset = self->beat_len;
 
-	log("Instantiate end");
 	return (LV2_Handle)self;
 }
 
@@ -482,7 +485,7 @@ update_position(Alo* self, const LV2_Atom_Object* obj)
 			if (self->current_lb == self->loop_beats) {
 				self->current_lb = 0;
 			}
-			log("Beat:[%d][%d] index[%d] beat[%G]\n", self->current_bb, self->current_lb, self->loop_index, self->current_position);
+			// log("Beat:[%d][%d] index[%d] beat[%G]\n", self->current_bb, self->current_lb, self->loop_index, self->current_position);
 			self->current_lb += 1;
 		}
 	}
@@ -492,7 +495,7 @@ update_position(Alo* self, const LV2_Atom_Object* obj)
    Adjust self->state based on button presses.
 */
 static void
-button_logic(LV2_Handle instance, bool new_button_state, int i)
+button_logic(LV2_Handle instance, bool btn_state, int i)
 {
 	Alo* self = (Alo*)instance;
 
@@ -500,17 +503,27 @@ button_logic(LV2_Handle instance, bool new_button_state, int i)
 	gettimeofday(&te, NULL); // get current time
 	long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;
 
-	log("[%d] Button logic", i);
-	self->button_state[i] = new_button_state;
+	// log("[%d] Button logic", i);
+	// self->button_state[i] = new_button_state;
 
+	int difference = milliseconds - self->button_time[self->current_loop];
+	
+  // self->button_time[i] = milliseconds;
+	
+  static bool last_record_state = false;
 
-	int difference = milliseconds - self->button_time[i];
-	self->button_time[i] = milliseconds;
-	if (new_button_state == true) {
-		log("[%d] Button ON", i);
-	} else {
-		log("[%d] Button OFF", i);
-	}
+  if (btn_state == true && i == 0 && last_record_state == false){
+      self->button_state[self->current_loop] = true;
+      self->button_time[self->current_loop] = milliseconds;
+      last_record_state = true;
+      log("[%d] Button ON", i);
+	} else if(btn_state == false && i == 0 && last_record_state == true) {
+      self->state[self->current_loop] = STATE_LOOP_ON;
+      self->current_loop++;
+      log("[%d] Button OFF", i);
+      log("Current loop: %d", self->current_loop);
+      last_record_state = false;
+  }
 
 	// Free running mode: when a button is pressed,
 	// if there is a button recording, set loop size and start based on its loop
@@ -531,24 +544,42 @@ button_logic(LV2_Handle instance, bool new_button_state, int i)
 		}
 	}
 
-	if (on_loops == 0 && *(self->ports.reset_mode) == 1.0) {
-		// reset if all loops are off
-		reset(self);
-		log("[%d] STATE: RESET mode 0", i);
-	}
 
-	if (difference < 1000) {
-		if (*(self->ports.reset_mode) == 2.0 || on_loops == 1) {
-			reset(self);
-			log("[%d] STATE: RESET mode 2", i);
-		}
-		if (*(self->ports.reset_mode) == 3.0) {
-			self->state[i] = STATE_RECORDING;
-			self->phrase_start[i] = 0;
-			log("[%d] STATE: RECORDING (button reset)", i);
-		}
-	}
-	log("[%d] Button logic ends", i);
+  static bool last_stopbtn_state = false;
+
+  if (btn_state == true && i == 1 && last_stopbtn_state == false){
+    self->button_state[self->current_loop] = false;
+    last_stopbtn_state = true;
+	} else if(btn_state == false && i == 1 && last_stopbtn_state == true) {
+    self->state[self->current_loop] = STATE_RECORDING;
+    self->current_loop--;
+    log("Stop button OFF");
+    last_stopbtn_state = false;
+  }
+	// if (on_loops == 0 && *(self->ports.reset_mode) == 1.0) {
+	// 	// reset if all loops are off
+	// 	reset(self);
+	// 	log("[%d] STATE: RESET mode 0", i);
+	// }
+
+	// if (difference < 1000) {
+		// if (*(self->ports.reset_mode) == 2.0 || on_loops == 1) {
+      // log("Difference: %d", difference);
+			// reset(self);
+			// log("[%d] STATE: RESET mode 2", i);
+		// }
+		// if (*(self->ports.reset_mode) == 3.0) {
+		// 	self->state[i] = STATE_RECORDING;
+		// 	self->phrase_start[i] = 0;
+		// 	log("[%d] STATE: RECORDING (button reset)", i);
+		// }
+	// }
+
+  if (self->current_loop >= NUM_LOOPS - 1) {
+    self->current_loop = NUM_LOOPS - 1;
+  } else if (self->current_loop < 0) {
+    self->current_loop = 0;
+  }
 }
 
 /**
@@ -645,9 +676,9 @@ run_events(Alo* self)
 	if (self->midi_control == false) {
 		for (int i = 0; i < NUM_LOOPS; i++) {
 			bool new_button_state = (*self->ports.loops[i]) > 0.0f ? true : false;
-			if (new_button_state != self->button_state[i]) {
+			// if (new_button_state != self->button_state[i]) {
 				button_logic(self, new_button_state, i);
-			}
+			// }
 		}
 	}
 
