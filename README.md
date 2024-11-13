@@ -1,4 +1,10 @@
-# A LOoper
+# An Alo Looper fork
+aims to be controlled with 2 buttons only.
+[REC/OVERDUB] [UNDO/CLEAR]
+
+WIP
+
+Tested on amd64 and aaarch64 ( mod )
 
 ![screenshot](/source/alo.lv2/modgui/screenshot-alo.png)
 
