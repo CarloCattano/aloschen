@@ -523,12 +523,13 @@ button_logic(LV2_Handle instance, bool btn_state, int i)
 
   if (btn_state == true && i == 1 && last_stop_state == false){
     self->button_time[1] = milliseconds;
+    if (!last_record_state) self->current_loop--;
     self->button_state[self->current_loop] = false;
+    self->state[self->current_loop] = STATE_RECORDING;
+    // self->current_loop--;
     last_stop_state = true;
 	} else if(btn_state == false && i == 1 && last_stop_state == true) {
     self->button_time[1] = milliseconds;
-    self->state[self->current_loop] = STATE_RECORDING;
-    self->current_loop--;
     last_stop_state = false;
     if (difference < 500) {
       reset(self);
