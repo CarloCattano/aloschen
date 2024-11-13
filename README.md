@@ -1,4 +1,4 @@
-# An Alo Looper fork
+# An [Alo Looper fork](https://github.com/devcurmudgeon/alo)
 aims to be controlled with 2 buttons only.
 [REC/OVERDUB] [UNDO/CLEAR]
 
