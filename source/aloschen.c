@@ -503,14 +503,10 @@ button_logic(LV2_Handle instance, bool btn_state, int i)
 	gettimeofday(&te, NULL); // get current time
 	long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;
 
-	// log("[%d] Button logic", i);
-	// self->button_state[i] = new_button_state;
-
-	int difference = milliseconds - self->button_time[self->current_loop];
-	
-  // self->button_time[i] = milliseconds;
+	int difference = milliseconds - self->button_time[1];
 	
   static bool last_record_state = false;
+  static bool last_stop_state = false;
 
   if (btn_state == true && i == 0 && last_record_state == false){
       self->button_state[self->current_loop] = true;
@@ -523,6 +519,20 @@ button_logic(LV2_Handle instance, bool btn_state, int i)
       log("[%d] Button OFF", i);
       log("Current loop: %d", self->current_loop);
       last_record_state = false;
+  }
+
+  if (btn_state == true && i == 1 && last_stop_state == false){
+    self->button_time[1] = milliseconds;
+    self->button_state[self->current_loop] = false;
+    last_stop_state = true;
+	} else if(btn_state == false && i == 1 && last_stop_state == true) {
+    self->button_time[1] = milliseconds;
+    self->state[self->current_loop] = STATE_RECORDING;
+    self->current_loop--;
+    last_stop_state = false;
+    if (difference < 500) {
+      reset(self);
+    }
   }
 
 	// Free running mode: when a button is pressed,
@@ -543,37 +553,6 @@ button_logic(LV2_Handle instance, bool btn_state, int i)
 			on_loops += 1;
 		}
 	}
-
-
-  static bool last_stopbtn_state = false;
-
-  if (btn_state == true && i == 1 && last_stopbtn_state == false){
-    self->button_state[self->current_loop] = false;
-    last_stopbtn_state = true;
-	} else if(btn_state == false && i == 1 && last_stopbtn_state == true) {
-    self->state[self->current_loop] = STATE_RECORDING;
-    self->current_loop--;
-    log("Stop button OFF");
-    last_stopbtn_state = false;
-  }
-	// if (on_loops == 0 && *(self->ports.reset_mode) == 1.0) {
-	// 	// reset if all loops are off
-	// 	reset(self);
-	// 	log("[%d] STATE: RESET mode 0", i);
-	// }
-
-	// if (difference < 1000) {
-		// if (*(self->ports.reset_mode) == 2.0 || on_loops == 1) {
-      // log("Difference: %d", difference);
-			// reset(self);
-			// log("[%d] STATE: RESET mode 2", i);
-		// }
-		// if (*(self->ports.reset_mode) == 3.0) {
-		// 	self->state[i] = STATE_RECORDING;
-		// 	self->phrase_start[i] = 0;
-		// 	log("[%d] STATE: RECORDING (button reset)", i);
-		// }
-	// }
 
   if (self->current_loop >= NUM_LOOPS - 1) {
     self->current_loop = NUM_LOOPS - 1;
