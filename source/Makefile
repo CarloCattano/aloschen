@@ -1,5 +1,5 @@
 #!/usr/bin/make -f
-# Makefile for alo.lv2 #
+# Makefile for aloschen.lv2 #
 # ----------------------- #
 #
 
@@ -16,29 +16,29 @@ DESTDIR ?=
 all: build
 
 # --------------------------------------------------------------
-# alo build rules
+# aloschen build rules
 
-build: alo.lv2/alo$(LIB_EXT) alo.lv2/manifest.ttl
+build: aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/manifest.ttl
 
-alo.lv2/alo$(LIB_EXT): alo.c
+aloschen.lv2/aloschen$(LIB_EXT): aloschen.c
 	$(CXX) $^ $(BUILD_CXX_FLAGS) $(LINK_FLAGS) -lm $(SHARED) -o $@
 
-alo.lv2/manifest.ttl: alo.lv2/manifest.ttl.in
+aloschen.lv2/manifest.ttl: aloschen.lv2/manifest.ttl.in
 	sed -e "s|@LIB_EXT@|$(LIB_EXT)|" $< > $@
 
 # --------------------------------------------------------------
 
 clean:
-	rm -f alo.lv2/alo$(LIB_EXT) alo.lv2/manifest.ttl
+	rm -f aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/manifest.ttl
 
 # --------------------------------------------------------------
 
 install: build
-	install -d $(DESTDIR)$(PREFIX)/lib/lv2/alo.lv2
-	install -d $(DESTDIR)$(PREFIX)/lib/lv2/alo.lv2/modgui
+	install -d $(DESTDIR)$(PREFIX)/lib/lv2/aloschen.lv2
+	install -d $(DESTDIR)$(PREFIX)/lib/lv2/aloschen.lv2/modgui
 
-	install -m 644 alo.lv2/*.so  $(DESTDIR)$(PREFIX)/lib/lv2/alo.lv2/
-	install -m 644 alo.lv2/*.ttl $(DESTDIR)$(PREFIX)/lib/lv2/alo.lv2/
-	install -m 644 alo.lv2/modgui/* $(DESTDIR)$(PREFIX)/lib/lv2/alo.lv2/modgui
+	install -m 644 aloschen.lv2/*.so  $(DESTDIR)$(PREFIX)/lib/lv2/aloschen.lv2/
+	install -m 644 aloschen.lv2/*.ttl $(DESTDIR)$(PREFIX)/lib/lv2/aloschen.lv2/
+	install -m 644 aloschen.lv2/modgui/* $(DESTDIR)$(PREFIX)/lib/lv2/aloschen.lv2/modgui
 
 # --------------------------------------------------------------

@@ -32,7 +32,7 @@
 #include "lv2/lv2plug.in/ns/lv2core/lv2.h"
 #include <lv2/lv2plug.in/ns/ext/midi/midi.h>
 
-#define ALO_URI "http://devcurmudgeon.com/alo"
+#define ALO_URI "http://ktano-studio.com/aloschen"
 
 typedef struct {
 	LV2_URID atom_Blank;

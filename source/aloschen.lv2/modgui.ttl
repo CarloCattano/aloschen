@@ -1,7 +1,7 @@
 @prefix modgui: <http://moddevices.com/ns/modgui#> .
 @prefix lv2:    <http://lv2plug.in/ns/lv2core#> .
 
-<http://devcurmudgeon.com/alo>
+<http://ktano-studio.com/aloschen>
     modgui:gui [
     modgui:resourcesDirectory <modgui> ;
     modgui:iconTemplate <modgui/icon-alo.html> ;
@@ -9,7 +9,7 @@
     modgui:screenshot <modgui/screenshot-alo.png> ;
     modgui:thumbnail <modgui/thumbnail-alo.png> ;
     modgui:brand "devcurmudgeon" ;
-    modgui:label "ALO" ;
+    modgui:label "ALOSCHEN" ;
     modgui:model "combo-model-001" ;
     modgui:panel "0600" ;
     modgui:port [
