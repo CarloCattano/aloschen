@@ -1,4 +1,8 @@
 *.log
 .cache
 *.so
+tags
+compile_commands.json
+Doxyfile
+.cache
 
