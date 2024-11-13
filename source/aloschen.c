@@ -476,9 +476,7 @@ update_position(Alo* self, const LV2_Atom_Object* obj)
 	}
 	if (beat && beat->type == uris->atom_Float) {
 		// Received a beat position, synchronise
-//		const float frames_per_beat = 60.0f / self->bpm * self->rate;
 		self->current_position = ((LV2_Atom_Float*)beat)->body;
-//		const float beat_beats	    = bar_beats - floorf(bar_beats);
 		if (self->current_bb != (uint32_t)self->current_position) {
 			// we are onto the next beat
 			self->current_bb = (uint32_t)self->current_position;
@@ -492,46 +490,57 @@ update_position(Alo* self, const LV2_Atom_Object* obj)
 }
 
 /**
-   Adjust self->state based on button presses.
+   WIP - button 0 records/overdubs up to NUM_LOOPS , button 1 undo/clears
 */
+
 static void
 button_logic(LV2_Handle instance, bool btn_state, int i)
 {
 	Alo* self = (Alo*)instance;
 
 	struct timeval te;
-	gettimeofday(&te, NULL); // get current time
+	gettimeofday(&te, NULL); 
 	long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;
 
+  // stop button time diff for undo/clear
 	int difference = milliseconds - self->button_time[1];
 	
   static bool last_record_state = false;
   static bool last_stop_state = false;
 
-  if (btn_state == true && i == 0 && last_record_state == false){
+  if (btn_state == true && i == 0 && last_record_state == false)
+  {
       self->button_state[self->current_loop] = true;
       self->button_time[self->current_loop] = milliseconds;
       last_record_state = true;
-      log("[%d] Button ON", i);
-	} else if(btn_state == false && i == 0 && last_record_state == true) {
+      log("[[ Recording into %d ]]", self->current_loop);
+	} 
+  else if(btn_state == false && i == 0 && last_record_state == true) {
       self->state[self->current_loop] = STATE_LOOP_ON;
       self->current_loop++;
-      log("[%d] Button OFF", i);
-      log("Current loop: %d", self->current_loop);
+      log(" -->>  Moving to loop %d -----", self->current_loop);
       last_record_state = false;
+      log("current loop %d", self->current_loop);
   }
 
-  if (btn_state == true && i == 1 && last_stop_state == false){
+  if (btn_state == true && i == 1 && last_stop_state == false)
+  {
     self->button_time[1] = milliseconds;
-    if (!last_record_state) self->current_loop--;
+    self->current_loop--;
+    log("[[   UNDOING LOOP %d   ]]", self->current_loop);
+    self->phrase_start[self->current_loop] = self->loop_index;
     self->button_state[self->current_loop] = false;
     self->state[self->current_loop] = STATE_RECORDING;
-    // self->current_loop--;
     last_stop_state = true;
-	} else if(btn_state == false && i == 1 && last_stop_state == true) {
+    log("current loop %d", self->current_loop);
+	} 
+  else if(btn_state == false && i == 1 && last_stop_state == true) 
+  {
+    log("current loop %d", self->current_loop);
     self->button_time[1] = milliseconds;
     last_stop_state = false;
     if (difference < 500) {
+      self->current_loop = 0;
       reset(self);
     }
   }
@@ -555,7 +564,7 @@ button_logic(LV2_Handle instance, bool btn_state, int i)
 		}
 	}
 
-  if (self->current_loop >= NUM_LOOPS - 1) {
+  if (self->current_loop > NUM_LOOPS - 1) {
     self->current_loop = NUM_LOOPS - 1;
   } else if (self->current_loop < 0) {
     self->current_loop = 0;
@@ -656,9 +665,7 @@ run_events(Alo* self)
 	if (self->midi_control == false) {
 		for (int i = 0; i < NUM_LOOPS; i++) {
 			bool new_button_state = (*self->ports.loops[i]) > 0.0f ? true : false;
-			// if (new_button_state != self->button_state[i]) {
 				button_logic(self, new_button_state, i);
-			// }
 		}
 	}
 
