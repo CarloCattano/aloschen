@@ -30,16 +30,13 @@ There are six loops. Press a loop button to:
 - stop playing the loop
 - resume the loop
 
-[THRESHOLD] sets the input level in dB that will trigger loop recording.
+
 
 [BARS] sets the loop length in sync mode (when Global BPM is running). In free running mode, loop length is set at the end of recording the first loop, by activating a different loop button.
 
 [MIDI Base] optionally allows loops to be controlled from a connected MIDI device sending MIDI note on/off messages ([MIDI Base]..[MIDI Base + 5]).
 
-[INSTANT LOOPS] changes the behaviour so some or all loops will stop and resume instantly:
-- 0 sets all loops to play from start to finish
-- 3 sets loops 1,2 and 3 to play and stop when their loop buttons are pressed
-- 6 sets all loops to play and stop when loop buttons are pressed
+
 
 [CLICK] sets the volume of the click in sync mode, when no loop is playing.
 
@@ -48,11 +45,7 @@ There are six loops. Press a loop button to:
 - 50 for matched input and loop levels
 - 100 for only loops
 
-[RESET MODE] controls when loops are wiped:
-- 0 wipe when ALO is turned off, bpm tempo changes, when `bars` changes
-- 1 same as 0, and wipe when all loops are off
-- 2 same as 0, and wipe when a button is double-pressed within one second
-- 3 same as 2, but only the double-pressed loop is wiped
+
 
 Loop6 behaves differently - it outputs the loop while replacing it with the input signal for next time. So if the output is looped back to the input, it works as an overdub. If the loopback goes via an effect, then the effect will be applied each time the loop passes through.
 
@@ -144,26 +137,16 @@ lv2:port
 	lv2:portProperty lv2:integer, lv2:toggled;
 ],
 [
-	a lv2:InputPort, lv2:ControlPort;
-	lv2:index 10;
-	lv2:symbol "threshold";
-	lv2:name "Threshold";
-	lv2:default -40;
-	lv2:minimum -90;
-	lv2:maximum 24;
-	lv2:portProperty lv2:integer;
-],
-[
 	a atom:AtomPort, lv2:InputPort;
 	atom:bufferType atom:Sequence;
 	atom:supports midi:MidiEvent;
-	lv2:index 11;
+	lv2:index 10;
 	lv2:symbol "midiin";
 	lv2:name "MIDI In";
 ],
 [
 	a lv2:ControlPort, lv2:InputPort;
-	lv2:index 12;
+	lv2:index 11;
 	lv2:symbol "midi_base";
 	lv2:name "MIDI Base";
 	lv2:default 60;
@@ -173,17 +156,7 @@ lv2:port
 ],
 [
 	a lv2:ControlPort, lv2:InputPort;
-	lv2:index 13;
-	lv2:symbol "instant_loops";
-	lv2:name "Instant Loops";
-	lv2:default 0;
-	lv2:minimum 0;
-	lv2:maximum 6;
-	lv2:portProperty lv2:integer;
-],
-[
-	a lv2:ControlPort, lv2:InputPort;
-	lv2:index 14;
+	lv2:index 12;
 	lv2:symbol "click";
 	lv2:name "Click";
 	lv2:default 1;
@@ -193,7 +166,7 @@ lv2:port
 ],
 [
 	a lv2:ControlPort, lv2:InputPort;
-	lv2:index 15;
+	lv2:index 13;
 	lv2:symbol "bars";
 	lv2:name "Bars";
 	lv2:default 2;
@@ -205,13 +178,13 @@ lv2:port
 	a lv2:InputPort, atom:AtomPort ;
 	atom:bufferType atom:Sequence ;
 	atom:supports time:Position ;
-	lv2:index 16;
+	lv2:index 14;
 	lv2:symbol "control" ;
 	lv2:name "Control" ;
 ],
 [
 	a lv2:ControlPort, lv2:InputPort;
-	lv2:index 17;
+	lv2:index 15;
 	lv2:symbol "mix";
 	lv2:name "Mix";
 	lv2:default 50;
@@ -220,19 +193,9 @@ lv2:port
 	lv2:portProperty lv2:integer;
 ],
 [
-	a lv2:ControlPort, lv2:InputPort;
-	lv2:index 18;
-	lv2:symbol "reset_mode";
-	lv2:name "Reset Mode";
-	lv2:default 3;
-	lv2:minimum 0;
-	lv2:maximum 3;
-	lv2:portProperty lv2:integer;
-],
-[
     a lv2:InputPort ,
     lv2:ControlPort ;
-    lv2:index 19;
+    lv2:index 16;
     lv2:symbol "ENABLED" ;
     lv2:name "ENABLED" ;
     lv2:default 1.0 ;
@@ -243,7 +206,7 @@ lv2:port
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;
-	lv2:index 20;
+	lv2:index 17;
 	lv2:symbol "loop1_state";
 	lv2:name "Loop1 State";
 	lv2:minimum 0;
@@ -252,7 +215,7 @@ lv2:port
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;
-	lv2:index 21;
+	lv2:index 18;
 	lv2:symbol "loop2_state";
 	lv2:name "Loop2 State";
 	lv2:minimum 0;
@@ -261,12 +224,22 @@ lv2:port
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;
-	lv2:index 22;
+	lv2:index 19;
 	lv2:symbol "loop3_state";
 	lv2:name "Loop3 State";
 	lv2:minimum 0;
 	lv2:maximum 1;
 	lv2:portProperty lv2:integer, lv2:toggled;
+],
+[
+	a lv2:ControlPort, lv2:OutputPort;
+	lv2:index 20;
+	lv2:symbol "bar_step";
+	lv2:name "Bar Step";
+	lv2:default -1;
+	lv2:minimum -1;
+	lv2:maximum 3;
+	lv2:portProperty lv2:integer;
 ].
 
 <http://ktano-studio.com/aloschen#ui>
@@ -293,16 +266,13 @@ lv2:port
 		ui:portIndex 9
 	] , [
 		ui:plugin <http://ktano-studio.com/aloschen> ;
-		ui:portIndex 10
+		ui:portIndex 11
 	] , [
 		ui:plugin <http://ktano-studio.com/aloschen> ;
 		ui:portIndex 12
 	] , [
 		ui:plugin <http://ktano-studio.com/aloschen> ;
 		ui:portIndex 13
-	] , [
-		ui:plugin <http://ktano-studio.com/aloschen> ;
-		ui:portIndex 14
 	] , [
 		ui:plugin <http://ktano-studio.com/aloschen> ;
 		ui:portIndex 15
@@ -312,14 +282,10 @@ lv2:port
 	] , [
 		ui:plugin <http://ktano-studio.com/aloschen> ;
 		ui:portIndex 18
-		] , [
-			ui:plugin <http://ktano-studio.com/aloschen> ;
-			ui:portIndex 20
-		] , [
-			ui:plugin <http://ktano-studio.com/aloschen> ;
-			ui:portIndex 21
-		] , [
-			ui:plugin <http://ktano-studio.com/aloschen> ;
-			ui:portIndex 22
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 19
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 20
 	] .
-

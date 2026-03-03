@@ -20,11 +20,11 @@ all: build
 
 build: aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/aloschen_ui$(LIB_EXT) aloschen.lv2/manifest.ttl
 
-aloschen.lv2/aloschen$(LIB_EXT): aloschen.c
-	$(CXX) $^ $(BUILD_CXX_FLAGS) $(LINK_FLAGS) -lm $(SHARED) -o $@
+aloschen.lv2/aloschen$(LIB_EXT): aloschen.c loop_engine.c
+	$(CC) $^ $(BUILD_C_FLAGS) $(LINK_FLAGS) -lm $(SHARED) -o $@ -Wall -Wextra
 
 aloschen.lv2/aloschen_ui$(LIB_EXT): aloschen_ui.c
-	$(CC) $^ $(BUILD_C_FLAGS) $(LINK_FLAGS) -lX11 $(SHARED) -o $@
+	$(CC) $^ $(BUILD_C_FLAGS) $(LINK_FLAGS) -lX11 $(SHARED) -o $@ -Wall -Wextra
 
 aloschen.lv2/manifest.ttl: aloschen.lv2/manifest.ttl.in
 	sed -e "s|@LIB_EXT@|$(LIB_EXT)|" $< > $@

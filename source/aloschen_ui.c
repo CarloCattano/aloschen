@@ -5,6 +5,11 @@
   DSP only via LV2 UI callbacks (write_function / port_event).
 */
 
+/* For clock_gettime / CLOCK_MONOTONIC on glibc. */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <lv2/ui/ui.h>
 
 #include <X11/Xlib.h>
@@ -12,12 +17,16 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-#define ALO_URI "http://ktano-studio.com/aloschen"
 #define ALO_UI_URI "http://ktano-studio.com/aloschen#ui"
+
+/* Reuse the DSP's canonical port indices + plugin URI. */
+#include "alo_engine.h"
 
 /*
  * UI scaling (integer geometry only).
@@ -30,33 +39,6 @@
 
 #define UI_SI(v) ((int)((float)(v) * (UI_SCALE)))
 #define UI_SUI(v) ((unsigned int)UI_SI(v))
-
-typedef enum {
-  ALO_INPUT_L = 0,
-  ALO_INPUT_R = 1,
-  ALO_OUTPUT_L = 2,
-  ALO_OUTPUT_R = 3,
-  ALO_LOOP1 = 4,
-  ALO_UNDO1 = 5,
-  ALO_LOOP2 = 6,
-  ALO_UNDO2 = 7,
-  ALO_LOOP3 = 8,
-  ALO_UNDO3 = 9,
-  ALO_THRESHOLD = 10,
-  ALO_MIDIIN = 11,
-  ALO_MIDI_BASE = 12,
-  ALO_INSTANT_LOOPS = 13,
-  ALO_CLICK = 14,
-  ALO_BARS = 15,
-  ALO_CONTROL = 16,
-  ALO_MIX = 17,
-  ALO_RESET_MODE = 18,
-  ALO_ENABLED = 19,
-  ALO_LOOP1_STATE = 20,
-  ALO_LOOP2_STATE = 21,
-  ALO_LOOP3_STATE = 22,
-  ALO_PORT_COUNT = 23
-} PortIndex;
 
 typedef enum {
   CTL_TOGGLE,
@@ -73,22 +55,22 @@ typedef struct {
   float max;
 } Control;
 
+#define CTL_TRIGGER_(port_, label_) {port_, port_, label_, CTL_TRIGGER, 0.0f, 1.0f}
+#define CTL_LOOP_(port_, state_port_, label_) {port_, state_port_, label_, CTL_TRIGGER, 0.0f, 1.0f}
+#define CTL_SLIDER_INT_(port_, label_, min_, max_) {port_, port_, label_, CTL_SLIDER_INT, min_, max_}
+
 static const Control kControls[] = {
-  {ALO_LOOP1, ALO_LOOP1_STATE, "Loop1", CTL_TOGGLE, 0.0f, 1.0f},
-  {ALO_UNDO1, ALO_UNDO1, "Undo1", CTL_TRIGGER, 0.0f, 1.0f},
-  {ALO_LOOP2, ALO_LOOP2_STATE, "Loop2", CTL_TOGGLE, 0.0f, 1.0f},
-  {ALO_UNDO2, ALO_UNDO2, "Undo2", CTL_TRIGGER, 0.0f, 1.0f},
-  {ALO_LOOP3, ALO_LOOP3_STATE, "Loop3", CTL_TOGGLE, 0.0f, 1.0f},
-  {ALO_UNDO3, ALO_UNDO3, "Undo3", CTL_TRIGGER, 0.0f, 1.0f},
+  CTL_LOOP_(ALO_LOOP1, ALO_LOOP1_STATE, "Loop1"),
+  CTL_TRIGGER_(ALO_UNDO1, "Undo1"),
+  CTL_LOOP_(ALO_LOOP2, ALO_LOOP2_STATE, "Loop2"),
+  CTL_TRIGGER_(ALO_UNDO2, "Undo2"),
+  CTL_LOOP_(ALO_LOOP3, ALO_LOOP3_STATE, "Loop3"),
+  CTL_TRIGGER_(ALO_UNDO3, "Undo3"),
 
-    {ALO_BARS, ALO_BARS, "Bars", CTL_SLIDER_INT, 1.0f, 32.0f},
-    {ALO_CLICK, ALO_CLICK, "Click", CTL_SLIDER_INT, 0.0f, 10.0f},
-    {ALO_THRESHOLD, ALO_THRESHOLD, "Threshold", CTL_SLIDER_INT, -90.0f, 24.0f},
-    {ALO_MIX, ALO_MIX, "Mix", CTL_SLIDER_INT, 0.0f, 100.0f},
-    {ALO_INSTANT_LOOPS, ALO_INSTANT_LOOPS, "Instant", CTL_SLIDER_INT, 0.0f, 6.0f},
-    {ALO_RESET_MODE, ALO_RESET_MODE, "Reset", CTL_SLIDER_INT, 0.0f, 3.0f},
-
-    {ALO_MIDI_BASE, ALO_MIDI_BASE, "MIDI Base", CTL_SLIDER_INT, 1.0f, 120.0f},
+  CTL_SLIDER_INT_(ALO_BARS, "Bars", 1.0f, 32.0f),
+  CTL_SLIDER_INT_(ALO_CLICK, "Click", 0.0f, 10.0f),
+  CTL_SLIDER_INT_(ALO_MIX, "Mix", 0.0f, 100.0f),
+  CTL_SLIDER_INT_(ALO_MIDI_BASE, "MIDI Base", 1.0f, 120.0f),
 };
 
 typedef enum {
@@ -113,9 +95,72 @@ typedef struct {
   float port_values[ALO_PORT_COUNT];
   bool needs_redraw;
 
+  bool last_blink_on;
+
   int active_control; /* index into kControls */
   HitType active_hit;
 } AloUI;
+
+typedef struct {
+  int pad;
+  int header_h;
+  int btn_w;
+  int btn_h;
+  int btn_gap;
+  int slider_h;
+  int row_h;
+  int slider_y0;
+  int buttons_y0;
+} UILayout;
+
+static UILayout ui_layout(const AloUI* ui) {
+  (void)ui;
+  UILayout l;
+  l.pad = UI_SI(10);
+  l.header_h = UI_SI(22);
+  l.btn_w = UI_SI(96);
+  l.btn_h = UI_SI(32);
+  l.btn_gap = UI_SI(10);
+  l.slider_h = UI_SI(18);
+  l.row_h = UI_SI(40);
+  l.buttons_y0 = l.pad + l.header_h;
+  l.slider_y0 = l.buttons_y0 + l.btn_h + UI_SI(16);
+  return l;
+}
+
+static void ui_draw_bar_steps(AloUI* ui, int x, int y) {
+  if (!ui) {
+    return;
+  }
+
+  /* A lightweight beat indicator: 4 steps, filled at current step. */
+  const int steps = 4;
+  const int box = UI_SI(14);
+  const int gap = UI_SI(6);
+
+  int cur = -1;
+  if (ALO_BAR_STEP < ALO_PORT_COUNT) {
+    const float v = ui->port_values[ALO_BAR_STEP];
+    if (v >= -0.5f) {
+      cur = (int)lrintf(v);
+    }
+  }
+
+  for (int i = 0; i < steps; ++i) {
+    const int bx = x + i * (box + gap);
+    XDrawRectangle(ui->dpy, ui->win, ui->gc, bx, y, (unsigned int)box, (unsigned int)box);
+    if (i == cur) {
+      XFillRectangle(ui->dpy, ui->win, ui->gc, bx + 1, y + 1, (unsigned int)(box - 1),
+                     (unsigned int)(box - 1));
+    }
+  }
+}
+
+static uint64_t monotonic_ms(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (uint64_t)ts.tv_sec * 1000ull + (uint64_t)ts.tv_nsec / 1000000ull;
+}
 
 static float clampf(const float v, const float lo, const float hi) {
   return (v < lo) ? lo : (v > hi) ? hi : v;
@@ -146,21 +191,23 @@ static void ui_redraw(AloUI* ui) {
     return;
   }
 
+  const bool blink_on = ((monotonic_ms() / 250ull) % 2ull) == 0ull;
+
   XClearWindow(ui->dpy, ui->win);
 
-  const int pad = UI_SI(10);
-  int x = pad;
-  int y = pad;
+  const UILayout l = ui_layout(ui);
+
+  int x = l.pad;
+  int y = l.pad;
 
   /* Header */
-  draw_string(ui, pad, UI_SI(18), "ALO (native UI)");
-
-  y += UI_SI(22);
+  draw_string(ui, l.pad, UI_SI(18), "ALO (native UI)");
+  y += l.header_h;
 
   /* Trigger buttons row */
-  const int btn_w = UI_SI(96);
-  const int btn_h = UI_SI(32);
-  const int btn_gap = UI_SI(10);
+  const int btn_w = l.btn_w;
+  const int btn_h = l.btn_h;
+  const int btn_gap = l.btn_gap;
 
   for (int i = 0; i < (int)(sizeof(kControls) / sizeof(kControls[0])); ++i) {
     const Control* c = &kControls[i];
@@ -175,7 +222,20 @@ static void ui_redraw(AloUI* ui) {
 
     const float state_v = ui->port_values[c->display_port_index];
     const float in_v = ui->port_values[c->port_index];
-    const bool on = (state_v >= 0.5f) || (in_v >= 0.5f);
+
+    const bool is_loop_button = (c->display_port_index != c->port_index);
+    const bool is_armed_waiting = is_loop_button && (state_v >= 0.20f) && (state_v < 0.75f);
+    const bool is_recording = is_loop_button && (state_v >= 0.75f);
+
+    /*
+     * Loop buttons:
+     * - idle: 0
+     * - armed (waiting): ~0.25 (blink)
+     * - recording: 1 (solid)
+     * Other triggers (Undo) just reflect the incoming press.
+     */
+    const bool on = is_loop_button ? (is_recording || (is_armed_waiting && blink_on))
+                     : (in_v >= 0.5f);
 
     if (on) {
       XFillRectangle(ui->dpy, ui->win, ui->gc, bx + 1, by + 1, btn_w - 1, btn_h - 1);
@@ -189,13 +249,13 @@ static void ui_redraw(AloUI* ui) {
     x += btn_w + btn_gap;
   }
 
-  x = pad;
+  x = l.pad;
   y += btn_h + UI_SI(16);
 
   /* Sliders */
-  const int slider_w = (int)ui->width - 2 * pad;
-  const int slider_h = UI_SI(18);
-  const int row_h = UI_SI(40);
+  const int slider_w = (int)ui->width - 2 * l.pad;
+  const int slider_h = l.slider_h;
+  const int row_h = l.row_h;
 
   int slider_index = 0;
   for (int i = 0; i < (int)(sizeof(kControls) / sizeof(kControls[0])); ++i) {
@@ -223,6 +283,13 @@ static void ui_redraw(AloUI* ui) {
     slider_index++;
   }
 
+  /* Bar step indicator row (bottom). */
+  {
+    const int box = UI_SI(14);
+    const int steps_y = (int)ui->height - l.pad - box;
+    ui_draw_bar_steps(ui, l.pad, steps_y);
+  }
+
   XFlush(ui->dpy);
   ui->needs_redraw = false;
 }
@@ -233,13 +300,13 @@ static bool point_in_rect(const int px, const int py, const int x, const int y, 
 }
 
 static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type) {
-  const int pad = UI_SI(10);
-  int x = pad;
-  int y = pad + UI_SI(22);
+  const UILayout l = ui_layout(ui);
+  int x = l.pad;
+  int y = l.buttons_y0;
 
-  const int btn_w = UI_SI(96);
-  const int btn_h = UI_SI(32);
-  const int btn_gap = UI_SI(10);
+  const int btn_w = l.btn_w;
+  const int btn_h = l.btn_h;
+  const int btn_gap = l.btn_gap;
 
   /* Toggles */
   for (int i = 0; i < (int)(sizeof(kControls) / sizeof(kControls[0])); ++i) {
@@ -257,12 +324,12 @@ static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type) {
   }
 
   /* Sliders */
-  x = pad;
-  y = pad + UI_SI(22) + btn_h + UI_SI(16);
+  x = l.pad;
+  y = l.slider_y0;
 
-  const int slider_w = (int)ui->width - 2 * pad;
-  const int slider_h = UI_SI(18);
-  const int row_h = UI_SI(40);
+  const int slider_w = (int)ui->width - 2 * l.pad;
+  const int slider_h = l.slider_h;
+  const int row_h = l.row_h;
 
   int slider_index = 0;
   for (int i = 0; i < (int)(sizeof(kControls) / sizeof(kControls[0])); ++i) {
@@ -289,10 +356,10 @@ static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type) {
 
 static void update_slider_from_x(AloUI* ui, const int control_index, const int px) {
   const Control* c = &kControls[control_index];
-  const int pad = UI_SI(10);
-  const int slider_w = (int)ui->width - 2 * pad;
+  const UILayout l = ui_layout(ui);
+  const int slider_w = (int)ui->width - 2 * l.pad;
 
-  const float t = clampf(((float)(px - pad) / (float)slider_w), 0.0f, 1.0f);
+  const float t = clampf(((float)(px - l.pad) / (float)slider_w), 0.0f, 1.0f);
   float v = c->min + t * (c->max - c->min);
   v = round_int_value(v);
   v = clampf(v, c->min, c->max);
@@ -366,6 +433,26 @@ static int ui_idle(LV2UI_Handle handle) {
   AloUI* ui = (AloUI*)handle;
   if (!ui || !ui->dpy) {
     return 0;
+  }
+
+  /* Force periodic redraw while any loop is armed (waiting-to-record) to blink. */
+  bool any_armed_waiting = false;
+  for (int t = 0; t < 3; ++t) {
+    const uint32_t p = (uint32_t)(ALO_LOOP1_STATE + t);
+    if (p < ALO_PORT_COUNT) {
+      const float v = ui->port_values[p];
+      if (v >= 0.20f && v < 0.75f) {
+        any_armed_waiting = true;
+        break;
+      }
+    }
+  }
+  if (any_armed_waiting) {
+    const bool blink_on = ((monotonic_ms() / 250ull) % 2ull) == 0ull;
+    if (blink_on != ui->last_blink_on) {
+      ui->last_blink_on = blink_on;
+      ui->needs_redraw = true;
+    }
   }
 
   while (XPending(ui->dpy) > 0) {
@@ -540,10 +627,7 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   /* Sensible defaults in case host doesn't send initial values */
   ui->port_values[ALO_BARS] = 2.0f;
   ui->port_values[ALO_CLICK] = 1.0f;
-  ui->port_values[ALO_THRESHOLD] = -40.0f;
   ui->port_values[ALO_MIX] = 50.0f;
-  ui->port_values[ALO_INSTANT_LOOPS] = 0.0f;
-  ui->port_values[ALO_RESET_MODE] = 3.0f;
   ui->port_values[ALO_MIDI_BASE] = 60.0f;
 
   ui->needs_redraw = true;
