@@ -128,15 +128,57 @@ static UILayout ui_layout(const AloUI* ui) {
   return l;
 }
 
+static int ui_get_bars_i(const AloUI* ui) {
+  float bars_f = (ui && ALO_BARS < ALO_PORT_COUNT) ? ui->port_values[ALO_BARS]
+                                                   : (float)DEFAULT_NUM_BARS;
+  if (bars_f < 1.0f) {
+    bars_f = 1.0f;
+  }
+  if (bars_f > 32.0f) {
+    bars_f = 32.0f;
+  }
+  int bars_i = (int)lrintf(bars_f);
+  return (bars_i > 0) ? bars_i : 1;
+}
+
 static void ui_draw_bar_steps(AloUI* ui, int x, int y) {
   if (!ui) {
     return;
   }
 
-  /* A lightweight beat indicator: 4 steps, filled at current step. */
-  const int steps = 4;
-  const int box = UI_SI(14);
-  const int gap = UI_SI(6);
+  /* A lightweight loop-position indicator: one step per beat (4 per bar). */
+  const int bars_i = ui_get_bars_i(ui);
+  const int steps = bars_i * DEFAULT_BEATS_PER_BAR;
+  if (steps <= 0) {
+    return;
+  }
+
+  const int avail_w = (int)ui->width - 2 * x;
+  const int box_max = UI_SI(14);
+  const int box_min = 1;
+  int gap = UI_SI(4);
+  if (gap < 1) {
+    gap = 1;
+  }
+
+  int box = box_max;
+  if (avail_w > 0) {
+    const int denom = steps;
+    const int numer = avail_w - (steps - 1) * gap;
+    int fit = (denom > 0) ? (numer / denom) : box_max;
+    if (fit > box_max) {
+      fit = box_max;
+    }
+    if (fit < box_min) {
+      gap = 1;
+      const int numer2 = avail_w - (steps - 1) * gap;
+      fit = (denom > 0) ? (numer2 / denom) : box_min;
+      if (fit < box_min) {
+        fit = box_min;
+      }
+    }
+    box = fit;
+  }
 
   int cur = -1;
   if (ALO_BAR_STEP < ALO_PORT_COUNT) {
@@ -144,6 +186,10 @@ static void ui_draw_bar_steps(AloUI* ui, int x, int y) {
     if (v >= -0.5f) {
       cur = (int)lrintf(v);
     }
+  }
+
+  if (cur < 0 || cur >= steps) {
+    cur = -1;
   }
 
   for (int i = 0; i < steps; ++i) {
@@ -224,17 +270,19 @@ static void ui_redraw(AloUI* ui) {
     const float in_v = ui->port_values[c->port_index];
 
     const bool is_loop_button = (c->display_port_index != c->port_index);
-    const bool is_armed_waiting = is_loop_button && (state_v >= 0.20f) && (state_v < 0.75f);
+    const bool is_armed_waiting = is_loop_button && (state_v >= 0.20f) && (state_v < 0.45f);
+    const bool is_playing = is_loop_button && (state_v >= 0.45f) && (state_v < 0.75f);
     const bool is_recording = is_loop_button && (state_v >= 0.75f);
 
     /*
      * Loop buttons:
-     * - idle: 0
-     * - armed (waiting): ~0.25 (blink)
-     * - recording: 1 (solid)
+    * - idle: 0
+    * - armed (waiting): ~0.25 (blink)
+    * - playing: ~0.5 (solid)
+    * - recording: 1 (solid)
      * Other triggers (Undo) just reflect the incoming press.
      */
-    const bool on = is_loop_button ? (is_recording || (is_armed_waiting && blink_on))
+      const bool on = is_loop_button ? (is_recording || is_playing || (is_armed_waiting && blink_on))
                      : (in_v >= 0.5f);
 
     if (on) {
@@ -441,7 +489,7 @@ static int ui_idle(LV2UI_Handle handle) {
     const uint32_t p = (uint32_t)(ALO_LOOP1_STATE + t);
     if (p < ALO_PORT_COUNT) {
       const float v = ui->port_values[p];
-      if (v >= 0.20f && v < 0.75f) {
+      if (v >= 0.20f && v < 0.45f) {
         any_armed_waiting = true;
         break;
       }

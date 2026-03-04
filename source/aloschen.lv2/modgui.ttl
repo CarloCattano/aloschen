@@ -6,12 +6,22 @@
     modgui:resourcesDirectory <modgui> ;
     modgui:iconTemplate <modgui/icon-alo.html> ;
     modgui:stylesheet <modgui/stylesheet-alo.css> ;
+    modgui:javascript <modgui/script-alo.js> ;
     modgui:screenshot <modgui/screenshot-alo.png> ;
     modgui:thumbnail <modgui/thumbnail-alo.png> ;
     modgui:brand "devcurmudgeon" ;
     modgui:label "ALOSCHEN" ;
     modgui:model "combo-model-001" ;
     modgui:panel "0600" ;
+    modgui:monitoredOutputs [
+        lv2:symbol "loop1_state" ;
+    ] , [
+        lv2:symbol "loop2_state" ;
+    ] , [
+        lv2:symbol "loop3_state" ;
+    ] , [
+        lv2:symbol "bar_step" ;
+    ] ;
     modgui:port [
         lv2:index 4 ;
         lv2:symbol "loop1" ;
@@ -44,6 +54,10 @@
         lv2:index 12 ;
         lv2:symbol "click" ;
         lv2:name "Click" ;
+    ] , [
+        lv2:index 11 ;
+        lv2:symbol "midi_base" ;
+        lv2:name "MIDI Base" ;
     ] , [
         lv2:index 15 ;
         lv2:symbol "mix" ;

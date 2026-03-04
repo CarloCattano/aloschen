@@ -100,7 +100,7 @@ typedef struct {
   int *enabled;
   /** Loop phase origin in host beats (set at first base start). */
   float *loop_state_out[NUM_TRACKS];
-  /** Current beat-step within the bar (-1 = unknown). */
+  /** Current beat-step within the Bars-length cycle (0..Bars*4-1). */
   float *bar_step_out;
   /** Whether loop_origin_beats has been set. */
   LV2_Atom_Sequence *control;
@@ -181,6 +181,18 @@ typedef struct {
   uint32_t click_bar_in_cycle;
   /** Last bar-step value sent to the UI output port (throttle UI updates). */
   int8_t ui_last_bar_step;
+  /** Last Bars value observed by the engine for UI/cycle resync. */
+  uint32_t ui_last_bars_i;
+  /** When set, force the UI step indicator to restart at step 0 on the next downbeat. */
+  bool ui_cycle_resync_pending;
+  /** Track transport stop/run transitions (when time:speed is available). */
+  bool ui_transport_was_stopped;
+  /** Host beat position of the Bars-cycle origin (set on the first downbeat after resync). */
+  double ui_cycle_origin_beats;
+  bool ui_have_cycle_origin;
+  /** Track barBeat wrap to detect downbeats at block boundaries. */
+  float ui_prev_bar_beat;
+  bool ui_have_prev_bar_beat;
   float inmix;
   float loopmix;
 } Alo;

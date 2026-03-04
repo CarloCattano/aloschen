@@ -65,6 +65,64 @@
     top: 4px;
 }
 
+.alo{{{cns}}} .alo-hidden {
+    display: none;
+}
+
+/* Bars-cycle step indicator (bars * 4) */
+.alo{{{cns}}} .alo-stepbar {
+    position: absolute;
+    left: 40px;
+    right: 40px;
+    bottom: 10px;
+    height: 12px;
+    display: flex;
+    gap: 2px;
+}
+
+.alo{{{cns}}} .alo-stepbar .alo-step {
+    flex: 1 1 0;
+    border: 1px solid #000;
+    background: transparent;
+}
+
+.alo{{{cns}}} .alo-stepbar .alo-step.alo-active {
+    background: #3c3;
+}
+
+@keyframes aloBlink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* Force loop light visuals from DSP loop*_state output */
+.alo{{{cns}}} .mod-green-light .mod-green-light-image.alo-loop-light.alo-off {
+    background-position: left 0px !important;
+    opacity: 1;
+    filter: none;
+}
+
+.alo{{{cns}}} .mod-green-light .mod-green-light-image.alo-loop-light.alo-playing {
+    background-position: right 0px !important;
+    opacity: 1;
+    filter: none;
+}
+
+.alo{{{cns}}} .mod-green-light .mod-green-light-image.alo-loop-light.alo-armed {
+    background-position: right 0px !important;
+    animation: aloBlink 0.5s step-end infinite;
+    /* Tint the green light to orange while armed/waiting. */
+    filter: hue-rotate(-90deg) saturate(250%);
+}
+
+.alo{{{cns}}} .mod-green-light .mod-green-light-image.alo-loop-light.alo-rec {
+    background-position: right 0px !important;
+    animation: none;
+    /* Tint the green light to red while recording. */
+    filter: hue-rotate(-120deg) saturate(200%);
+}
+
 /* SWITCH ON/OFF GENERAL */
 .alo{{{cns}}} .mod-switch {
     cursor: pointer;

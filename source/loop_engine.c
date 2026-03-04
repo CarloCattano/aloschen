@@ -69,7 +69,8 @@ void update_loop_state_ports(Alo* self) {
           break;
         case TRACK_IDLE:
         default:
-          v = 0.0f;
+          /* Idle: show playback state if this track has a loop. */
+          v = self->have_loop[t] ? 0.5f : 0.0f;
           break;
       }
       *(self->ports.loop_state_out[t]) = v;
@@ -207,6 +208,13 @@ void reset(Alo* self) {
   self->click_bar_in_cycle = 0;
 
   self->ui_last_bar_step = -2;
+  self->ui_last_bars_i = get_bars_i(self);
+  self->ui_cycle_resync_pending = true;
+  self->ui_transport_was_stopped = true;
+  self->ui_cycle_origin_beats = 0.0;
+  self->ui_have_cycle_origin = false;
+  self->ui_prev_bar_beat = 0.0f;
+  self->ui_have_prev_bar_beat = false;
 
   update_loop_state_ports(self);
 }
@@ -216,32 +224,77 @@ static void update_bar_step_out(Alo* self) {
     return;
   }
 
-  /* When transport is stopped, explicitly reset the UI indicator. */
   const bool transport_stopped = (self->have_speed && self->speed == 0.0f);
 
-  int step = -1;
-  if (self->have_transport && !transport_stopped && self->bpb > 0.0f) {
-    /* 4-step indicator within the current bar (quarters of a bar).
-     * This stays aligned to the bar downbeat even when the user changes Bars.
-     */
+  /* If Bars changed, restart the cycle on the next downbeat. */
+  const uint32_t bars_i = get_bars_i(self);
+  if (bars_i != self->ui_last_bars_i) {
+    self->ui_last_bars_i = bars_i;
+    self->click_bar_in_cycle = 0;
+    self->ui_cycle_resync_pending = true;
+    self->ui_have_cycle_origin = false;
+    self->ui_have_prev_bar_beat = false;
+  }
+
+  /* Default to showing the first position when stopped / not yet synced. */
+  int step = 0;
+
+  if (transport_stopped || !self->have_transport || !self->have_last_transport_beats) {
+    /* Stopped/unknown: show step 0 and force next start to resync. */
+    self->click_bar_in_cycle = 0;
+    self->ui_cycle_resync_pending = true;
+    self->ui_have_cycle_origin = false;
+    self->ui_have_prev_bar_beat = false;
+    step = 0;
+  } else {
     float bar_beat = self->current_position;
     if (!(bar_beat >= 0.0f)) {
       bar_beat = 0.0f;
     }
-    /* bar_beat is in beats within the bar: [0, bpb). */
-    float frac = bar_beat / self->bpb;
-    if (frac < 0.0f) {
-      frac = 0.0f;
-    } else if (frac >= 1.0f) {
-      frac = 0.999999f;
+
+    bool downbeat_edge = false;
+    if (self->ui_have_prev_bar_beat) {
+      /* Detect wrap (e.g. 3.9 -> 0.1) at bar boundary. */
+      if (bar_beat + 0.25f < self->ui_prev_bar_beat) {
+        downbeat_edge = true;
+      }
     }
-    int s = (int)floorf(frac * 4.0f);
-    if (s < 0) {
-      s = 0;
-    } else if (s > 3) {
-      s = 3;
+    self->ui_prev_bar_beat = bar_beat;
+    self->ui_have_prev_bar_beat = true;
+
+    if (self->ui_cycle_resync_pending && !self->ui_have_cycle_origin) {
+      /* Set cycle origin on the first downbeat after (re)sync. */
+      if (downbeat_edge || bar_beat < 1e-3f) {
+        self->ui_cycle_origin_beats = self->last_transport_beats - (double)bar_beat;
+        self->ui_have_cycle_origin = true;
+        self->ui_cycle_resync_pending = false;
+      }
     }
-    step = s;
+
+    if (self->ui_cycle_resync_pending || !self->ui_have_cycle_origin) {
+      step = 0;
+    } else {
+      const uint32_t steps_u = bars_i * (uint32_t)DEFAULT_BEATS_PER_BAR;
+      if (steps_u > 0) {
+        double phase = self->last_transport_beats - self->ui_cycle_origin_beats;
+        if (phase < 0.0) {
+          phase = 0.0;
+        }
+        phase = fmod(phase, (double)steps_u);
+        if (phase < 0.0) {
+          phase += (double)steps_u;
+        }
+        int s = (int)floor(phase);
+        if (s < 0) {
+          s = 0;
+        } else if (s >= (int)steps_u) {
+          s = (int)steps_u - 1;
+        }
+        step = s;
+      } else {
+        step = 0;
+      }
+    }
   }
 
   if (step != (int)self->ui_last_bar_step) {
@@ -552,23 +605,22 @@ void run_clicks(Alo* self, uint32_t n_samples) {
   self->current_position = fmodf(self->current_position, self->bpb);
   const float beat = floorf(self->current_position);
 
-  if (play_click && *self->ports.click && self->speed) {
-    if (new_beat != old_beat) {
-      const uint32_t sample_offset =
-          (uint32_t)((self->current_position - beat) * self->rate);
+  if (new_beat != old_beat) {
+    const uint32_t sample_offset =
+        (uint32_t)((self->current_position - beat) * self->rate);
 
-      /*
-       * Accent rule:
-       * - Beat 1 of every bar uses the normal accent (high click).
-       * - Beat 1 of the first bar of the Bars-length cycle uses a distinct
-       *   extra high-pitched click (start click).
-       */
-      const uint32_t bars_i = get_bars_i(self);
-      if (self->click_bar_in_cycle >= bars_i) {
-        self->click_bar_in_cycle = 0;
-      }
-      const bool is_cycle_start = (beat == 0.0f) && (self->click_bar_in_cycle == 0u);
+    /*
+     * Advance the Bars-cycle phase on every bar downbeat, even when the click
+     * is muted or suppressed (e.g. loops present). The UI step indicator and
+     * the START click both reference this cycle.
+     */
+    const uint32_t bars_i = get_bars_i(self);
+    if (self->click_bar_in_cycle >= bars_i) {
+      self->click_bar_in_cycle = 0;
+    }
+    const bool is_cycle_start = (beat == 0.0f) && (self->click_bar_in_cycle == 0u);
 
+    if (play_click && *self->ports.click && self->speed) {
       click_mix(self, 0, sample_offset);
 
       if (beat == 0.0f) {
@@ -576,12 +628,6 @@ void run_clicks(Alo* self, uint32_t n_samples) {
         self->high_beat_offset = is_cycle_start ? self->beat_len : 0;
         self->low_beat_offset = self->beat_len;
         self->start_beat_offset = is_cycle_start ? 0 : self->beat_len;
-
-        /* Advance bar within cycle after scheduling the downbeat click. */
-        self->click_bar_in_cycle++;
-        if (self->click_bar_in_cycle >= bars_i) {
-          self->click_bar_in_cycle = 0;
-        }
       } else {
         /* Other beats: low click only. */
         self->low_beat_offset = 0;
@@ -590,7 +636,17 @@ void run_clicks(Alo* self, uint32_t n_samples) {
       }
 
       click_mix(self, sample_offset, n_samples);
-    } else {
+    }
+
+    if (beat == 0.0f) {
+      /* Advance bar within cycle on the downbeat. */
+      self->click_bar_in_cycle++;
+      if (self->click_bar_in_cycle >= bars_i) {
+        self->click_bar_in_cycle = 0;
+      }
+    }
+  } else {
+    if (play_click && *self->ports.click && self->speed) {
       click_mix(self, 0, n_samples);
     }
   }
@@ -617,6 +673,19 @@ void run_events(Alo* self) {
           update_position_from_atom(self, obj);
         }
       }
+    }
+  }
+
+  /* Transport stop/start resync: make the next downbeat be cycle start. */
+  if (self->have_speed) {
+    const bool stopped = (self->speed == 0.0f);
+    if (stopped != self->ui_transport_was_stopped) {
+      self->ui_transport_was_stopped = stopped;
+      self->click_bar_in_cycle = 0;
+      self->ui_cycle_resync_pending = true;
+      self->ui_have_cycle_origin = false;
+      self->ui_have_prev_bar_beat = false;
+      self->ui_last_bar_step = -2;
     }
   }
 
@@ -718,10 +787,36 @@ void run_loops(Alo* self, uint32_t n_samples) {
     const double bpb = (self->bpb > 1e-6f) ? (double)self->bpb : (double)DEFAULT_BEATS_PER_BAR;
     const double global_beats0 = self->last_transport_beats;
 
+    /*
+     * Quantize the very first base recording to the next bar downbeat.
+     *
+     * Control-port changes (UI button presses) are typically applied at the
+     * next audio block boundary. If the user presses right before a downbeat,
+     * the host may deliver the armed state in the *following* block, when the
+     * transport position is already slightly past the downbeat. Without a
+     * guard, we can miss that downbeat and schedule one full bar later.
+     *
+     * Grace window: if we are very near the downbeat at the start of this
+     * block, treat it as the downbeat and start immediately (offset 0).
+     */
+    const float bar_beat0_f = self->current_position;
+    double bar_beat0 = (bar_beat0_f >= 0.0f) ? (double)bar_beat0_f : 0.0;
+    if (bar_beat0 < 0.0) {
+      bar_beat0 = 0.0;
+    }
+    const double kDownbeatGraceBeats = 0.25; /* quarter-beat */
+
     const double k = floor(global_beats0 / bpb);
     double target_beats = k * bpb;
-    if (global_beats0 - target_beats > 1e-6) {
-      target_beats += bpb;
+
+    if (bar_beat0 <= kDownbeatGraceBeats) {
+      /* Start at the current bar downbeat (block boundary). */
+      target_beats = global_beats0 - bar_beat0;
+    } else {
+      /* Start at the next bar downbeat. */
+      if (global_beats0 - target_beats > 1e-6) {
+        target_beats += bpb;
+      }
     }
 
     const double beats_until = fmax(0.0, target_beats - global_beats0);

@@ -3,96 +3,92 @@
     <div class="mod-plugin-brand"><h1>{{brand}}</h1></div>
     <div class="mod-plugin-name"><h1>{{label}}</h1></div>
     <div class="mod-control-group clearfix">
-        {{#controls.0}}
-        <div class="mod-green-light" title="{{comment}}">
-            <div class="mod-green-light-image" mod-role="input-control-port" mod-port-symbol="{{symbol}}"></div>
-            <span class="mod-green-light-title">{{name}}</span>
+        <div class="mod-green-light" title="Loop1">
+            <div class="mod-green-light-image alo-loop-light" data-state-symbol="loop1_state" mod-role="input-control-port" mod-port-symbol="loop1" mod-widget="switch"></div>
+            <span class="mod-green-light-title">Loop1</span>
         </div>
-        {{/controls.0}}
-        {{#controls.1}}
-        <div class="mod-green-light" title="{{comment}}">
-            <div class="mod-green-light-image" mod-role="input-control-port" mod-port-symbol="{{symbol}}"></div>
-            <span class="mod-green-light-title">{{name}}</span>
+        <div class="mod-green-light" title="Undo1">
+            <div class="mod-black-light-image" mod-role="input-control-port" mod-port-symbol="Undo1" mod-widget="switch"></div>
+            <span class="mod-green-light-title">Undo1</span>
         </div>
-        {{/controls.1}}
-        {{#controls.2}}
-        <div class="mod-green-light" title="{{comment}}">
-            <div class="mod-green-light-image" mod-role="input-control-port" mod-port-symbol="{{symbol}}"></div>
-            <span class="mod-green-light-title">{{name}}</span>
+        <div class="mod-green-light" title="Loop2">
+            <div class="mod-green-light-image alo-loop-light" data-state-symbol="loop2_state" mod-role="input-control-port" mod-port-symbol="loop2" mod-widget="switch"></div>
+            <span class="mod-green-light-title">Loop2</span>
         </div>
-        {{/controls.2}}
-        {{#controls.3}}
-        <div class="mod-green-light" title="{{comment}}">
-            <div class="mod-green-light-image" mod-role="input-control-port" mod-port-symbol="{{symbol}}"></div>
-            <span class="mod-green-light-title">{{name}}</span>
+        <div class="mod-green-light" title="Undo2">
+            <div class="mod-black-light-image" mod-role="input-control-port" mod-port-symbol="Undo2" mod-widget="switch"></div>
+            <span class="mod-green-light-title">Undo2</span>
         </div>
-        {{/controls.3}}
-        {{#controls.4}}
-        <div class="mod-green-light" title="{{comment}}">
-            <div class="mod-green-light-image" mod-role="input-control-port" mod-port-symbol="{{symbol}}"></div>
-            <span class="mod-green-light-title">{{name}}</span>
+        <div class="mod-green-light" title="Loop3">
+            <div class="mod-green-light-image alo-loop-light" data-state-symbol="loop3_state" mod-role="input-control-port" mod-port-symbol="loop3" mod-widget="switch"></div>
+            <span class="mod-green-light-title">Loop3</span>
         </div>
-        {{/controls.4}}
-        {{#controls.5}}
-        <div class="mod-green-light" title="{{comment}}">
-            <div class="mod-black-light-image" mod-role="input-control-port" mod-port-symbol="{{symbol}}"></div>
-            <span class="mod-green-light-title">{{name}}</span>
+        <div class="mod-green-light" title="Undo3">
+            <div class="mod-black-light-image" mod-role="input-control-port" mod-port-symbol="Undo3" mod-widget="switch"></div>
+            <span class="mod-green-light-title">Undo3</span>
         </div>
-        {{/controls.5}}
-        {{#controls.6}}
+
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
             <div class="mod-knob-image-wrapper">
                 <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="bars"></div>
             </div>
         </div>
         <div class="mod-knob">
-                <div class="mod-knob-title">{{name}}</div>
-                <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="bars">2.000</div>
-         </div>
-        {{/controls.6}}
+            <div class="mod-knob-title">Bars</div>
+            <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="bars">2.000</div>
+        </div>
+
         <div class="mod-separator"></div>
-        {{#controls.7}}
+
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
             <div class="mod-knob-image-wrapper">
                 <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="click"></div>
             </div>
         </div>
         <div class="mod-knob">
-                <div class="mod-knob-title">{{name}}</div>
-                <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="click">1.000</div>
-         </div>
-        {{/controls.7}}
+            <div class="mod-knob-title">Click</div>
+            <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="click">1.000</div>
+        </div>
+
         <div class="mod-separator"></div>
-        {{#controls.8}}
+
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
-             <div class="mod-knob-image-wrapper">
-                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="threshold"></div>
+            <div class="mod-knob-image-wrapper">
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="midi_base"></div>
             </div>
         </div>
         <div class="mod-knob">
-                <div class="mod-knob-title">{{name}}</div>
-                <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="threshold">40.000</div>
+            <div class="mod-knob-title">MIDI Base</div>
+            <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="midi_base">60.000</div>
         </div>
-        {{/controls.8}}
+
         <div class="mod-separator"></div>
-        {{#controls.9}}
+
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
             <div class="mod-knob-image-wrapper">
                 <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="mix"></div>
             </div>
         </div>
         <div class="mod-knob">
-            <div class="mod-knob-image-wrapper">
-                <div class="mod-knob-title">{{name}}</div>
-                <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="mix">50.000</div>
-            </div>
+            <div class="mod-knob-title">Mix</div>
+            <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="mix">50.000</div>
         </div>
-        {{/controls.9}}
+
         <div class="mod-separator"></div>
         <div class="mod-switch" mod-role="bypass">
             <div class="mod-switch-image" mod-role="bypass-light"></div>
         </div>
     </div>
+
+    <!-- Bind output ports so MOD streams values to JS (even if not visible) -->
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="loop1_state">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="loop2_state">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="loop3_state">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="bar_step">0</div>
+
+        <!-- Bars-cycle step indicator (bars * 4 steps), driven by bar_step output port -->
+        <div class="alo-stepbar" aria-hidden="true"></div>
+
     <div class="mod-pedal-input">
         {{#effect.ports.audio.input}}
         <div class="mod-input mod-input-disconnected" title="{{name}}" mod-role="input-audio-port" mod-port-symbol="{{symbol}}">
