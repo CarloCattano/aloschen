@@ -67,42 +67,53 @@ static inline void request_ui_cycle_resync(Alo* self) {
   self->ui_last_bar_step = -2;
 }
 
+static inline float loop_state_value(const Alo* self, const int t, const bool transport_stopped) {
+  /* Encoded states (used by native + MOD UIs):
+   * 0.0  = off/empty
+   * 0.25 = armed (blink)
+   * 0.5  = playing (solid)
+   * 1.0  = recording (solid)
+   */
+  switch (self->track_state[t]) {
+    case TRACK_ARM_BASE:
+    case TRACK_ARM_OVERDUB:
+      return 0.25f;
+    case TRACK_REC_BASE:
+    case TRACK_REC_OVERDUB:
+      return 1.0f;
+    case TRACK_IDLE:
+    default:
+      return (self->have_loop[t] && !transport_stopped) ? 0.5f : 0.0f;
+  }
+}
+
+static inline float undo_state_value(const Alo* self, const int t) {
+  /* 0=off, 0.25=queued (blink in UI) */
+  const bool queued = (self->pending_clear_all[t] || self->pending_undo[t] > 0);
+  return queued ? 0.25f : 0.0f;
+}
+
+static inline float has_audio_value(const Alo* self, const int t) {
+  return self->have_loop[t] ? 1.0f : 0.0f;
+}
+
 void update_loop_state_ports(Alo* self) {
   if (!self) {
     return;
   }
 
-  const bool transport_stopped = self->have_transport && self->have_speed && self->speed == 0.0f;
+  const bool transport_stopped =
+      self->have_transport && self->have_speed && (self->speed == 0.0f);
 
   for (int t = 0; t < NUM_TRACKS; ++t) {
     if (self->ports.loop_state_out[t]) {
-      float v = 0.0f;
-      switch (self->track_state[t]) {
-        case TRACK_ARM_BASE:
-        case TRACK_ARM_OVERDUB:
-          v = 0.25f; /* armed, waiting for quantized start */
-          break;
-        case TRACK_REC_BASE:
-        case TRACK_REC_OVERDUB:
-          v = 1.0f; /* actively recording */
-          break;
-        case TRACK_IDLE:
-        default:
-          /* Idle: show playback state if this track has a loop. */
-          v = (self->have_loop[t] && !transport_stopped) ? 0.5f : 0.0f;
-          break;
-      }
-      *(self->ports.loop_state_out[t]) = v;
+      *(self->ports.loop_state_out[t]) = loop_state_value(self, t, transport_stopped);
     }
-
     if (self->ports.undo_state_out[t]) {
-      /* 0=off, 0.25=queued (blink in UI) */
-      const bool queued = (self->pending_clear_all[t] || self->pending_undo[t] > 0);
-      *(self->ports.undo_state_out[t]) = queued ? 0.25f : 0.0f;
+      *(self->ports.undo_state_out[t]) = undo_state_value(self, t);
     }
-
     if (self->ports.has_audio_out[t]) {
-      *(self->ports.has_audio_out[t]) = self->have_loop[t] ? 1.0f : 0.0f;
+      *(self->ports.has_audio_out[t]) = has_audio_value(self, t);
     }
   }
 }
@@ -406,6 +417,57 @@ static void update_bar_step_out(Alo* self) {
   if (step != (int)self->ui_last_bar_step) {
     *(self->ports.bar_step_out) = (float)step;
     self->ui_last_bar_step = (int8_t)step;
+  }
+
+  /* Continuous debug phases (used by MOD GUI transport rings). */
+  if (self->ports.host_bar_phase_out || self->ports.cycle_phase_out) {
+    const bool transport_stopped2 = (self->have_speed && self->speed == 0.0f);
+
+    float host_bar_phase = 0.0f;
+    float cycle_phase = 0.0f;
+
+    if (!transport_stopped2 && self->have_transport && self->have_last_transport_beats) {
+      /* Host bar phase: current beat within bar / beatsPerBar. */
+      if (self->bpb > 0.0f) {
+        float bb = self->current_position;
+        if (!(bb >= 0.0f)) {
+          bb = 0.0f;
+        }
+        host_bar_phase = bb / self->bpb;
+        if (host_bar_phase < 0.0f) {
+          host_bar_phase = 0.0f;
+        } else if (host_bar_phase > 1.0f) {
+          host_bar_phase = 1.0f;
+        }
+      }
+
+      /* Bars-cycle phase: based on the same origin used for bar_step. */
+      const uint32_t bars_i2 = get_bars_i(self);
+      const uint32_t steps_u = bars_i2 * (uint32_t)DEFAULT_BEATS_PER_BAR;
+      if (steps_u > 0 && self->ui_have_cycle_origin && !self->ui_cycle_resync_pending) {
+        double phase_beats = self->last_transport_beats - self->ui_cycle_origin_beats;
+        if (phase_beats < 0.0) {
+          phase_beats = 0.0;
+        }
+        phase_beats = fmod(phase_beats, (double)steps_u);
+        if (phase_beats < 0.0) {
+          phase_beats += (double)steps_u;
+        }
+        cycle_phase = (float)(phase_beats / (double)steps_u);
+        if (cycle_phase < 0.0f) {
+          cycle_phase = 0.0f;
+        } else if (cycle_phase > 1.0f) {
+          cycle_phase = 1.0f;
+        }
+      }
+    }
+
+    if (self->ports.host_bar_phase_out) {
+      *(self->ports.host_bar_phase_out) = host_bar_phase;
+    }
+    if (self->ports.cycle_phase_out) {
+      *(self->ports.cycle_phase_out) = cycle_phase;
+    }
   }
 }
 
@@ -921,8 +983,9 @@ void run_loops(Alo* self, uint32_t n_samples) {
     track_gain[t] = v;
   }
 
-    const bool transport_running = self->have_transport && self->have_last_transport_beats &&
-                        (self->transport_moving || !self->have_speed || self->speed != 0.0f);
+  const bool transport_running =
+      self->have_transport && self->have_last_transport_beats &&
+      (self->transport_moving || !self->have_speed || self->speed != 0.0f);
 
   /* If transport stops, do not advance or record; keep arms latched. */
   if (!transport_running) {
@@ -990,6 +1053,60 @@ void run_loops(Alo* self, uint32_t n_samples) {
   const float inmix = self->inmix;
   const float loopmix = self->loopmix;
 
+  /*
+   * Optimization pass:
+   * Pre-sum playback contribution for this block into scratch arrays, so the
+   * per-sample hot loop doesn't iterate tracks × layers.
+   *
+   * Note: This uses C99 VLA stack allocation; it's RT-safe (no malloc) and
+   * bounded by the host block size.
+   */
+  float play_l[n_samples];
+  float play_r[n_samples];
+  memset(play_l, 0, sizeof(play_l));
+  memset(play_r, 0, sizeof(play_r));
+
+  /* Only compute playback if we have at least one active slot. */
+  bool any_play = false;
+  for (int t = 0; t < NUM_TRACKS; ++t) {
+    if (self->have_loop[t] && self->loop_buf[t]) {
+      any_play = true;
+      break;
+    }
+  }
+
+  if (any_play) {
+    uint32_t idx = self->loop_index;
+    for (uint32_t pos = 0; pos < n_samples; ++pos) {
+      const uint32_t idx_r = idx + LOOP_SIZE;
+
+      for (int t = 0; t < NUM_TRACKS; ++t) {
+        if (!self->have_loop[t] || !self->loop_buf[t]) {
+          continue;
+        }
+
+        const float g = track_gain[t];
+        play_l[pos] += g * self->loop_buf[t][idx];
+        play_r[pos] += g * self->loop_buf[t][idx_r];
+
+        const uint8_t n_layers = self->od_count[t];
+        for (uint8_t l = 0; l < n_layers; ++l) {
+          float* const buf = self->od_buf[t][l];
+          if (!buf) {
+            continue;
+          }
+          play_l[pos] += g * buf[idx];
+          play_r[pos] += g * buf[idx_r];
+        }
+      }
+
+      idx++;
+      if (idx >= self->loop_start + self->loop_samples) {
+        idx = self->loop_start;
+      }
+    }
+  }
+
   for (uint32_t pos = 0; pos < n_samples; ++pos) {
     /* Apply pending undo at bar downbeat. */
     const uint32_t phase = (self->loop_index - self->loop_start);
@@ -1004,29 +1121,9 @@ void run_loops(Alo* self, uint32_t n_samples) {
     const float in_l = input_l[pos];
     const float in_r = input_r[pos];
 
-    /* Dry input */
-    output_l[pos] = inmix * in_l;
-    output_r[pos] = inmix * in_r;
-
-    /* Playback (sum tracks). */
-    for (int t = 0; t < NUM_TRACKS; ++t) {
-      if (!self->have_loop[t] || !self->loop_buf[t]) {
-        continue;
-      }
-      const float g = track_gain[t];
-      output_l[pos] += g * self->loop_buf[t][idx];
-      output_r[pos] += g * self->loop_buf[t][idx_r];
-
-      const uint8_t n_layers = self->od_count[t];
-      for (uint8_t l = 0; l < n_layers; ++l) {
-        float* const buf = self->od_buf[t][l];
-        if (!buf) {
-          continue;
-        }
-        output_l[pos] += g * buf[idx];
-        output_r[pos] += g * buf[idx_r];
-      }
-    }
+    /* Dry input + precomputed playback */
+    output_l[pos] = inmix * in_l + play_l[pos];
+    output_r[pos] = inmix * in_r + play_r[pos];
 
     /* Prevent clipping when summing multiple tracks / heavy overdubs. */
     output_l[pos] = soft_clip_unit(output_l[pos]);

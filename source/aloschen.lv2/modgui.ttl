@@ -33,5 +33,9 @@
         lv2:symbol "undo3_state" ;
     ] , [
         lv2:symbol "bar_step" ;
+    ] , [
+        lv2:symbol "cycle_phase" ;
+    ] , [
+        lv2:symbol "host_bar_phase" ;
     ] ;
 ] .

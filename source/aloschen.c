@@ -327,6 +327,14 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
     self->ports.bar_step_out = (float *)data;
     break;
 
+  case ALO_CYCLE_PHASE:
+    self->ports.cycle_phase_out = (float *)data;
+    break;
+
+  case ALO_HOST_BAR_PHASE:
+    self->ports.host_bar_phase_out = (float *)data;
+    break;
+
   default:
     break;
   }

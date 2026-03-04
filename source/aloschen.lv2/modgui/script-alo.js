@@ -1,9 +1,62 @@
 function (event, funcs) {
+    function clamp01(v) {
+        if (!(v > -Infinity)) return 0;
+        if (v < 0) return 0;
+        if (v > 1) return 1;
+        return v;
+    }
+
     function clampBars(bars) {
         if (!(bars > 0)) return 1;
         if (bars < 1) return 1;
         if (bars > 32) return 32;
         return Math.round(bars);
+    }
+
+    function ensureRings(icon, data) {
+        if (data.rings_ready) return;
+
+        data.ring_cycle = icon.find('.alo-ring-cycle');
+        data.ring_host = icon.find('.alo-ring-host');
+
+        // Radii must match icon-alo.html: cycle r=42, host r=30
+        data.ring_cycle_c = 2 * Math.PI * 42;
+        data.ring_host_c = 2 * Math.PI * 30;
+
+        if (data.ring_cycle && data.ring_cycle.length) {
+            data.ring_cycle.css('stroke-dasharray', String(data.ring_cycle_c));
+            data.ring_cycle.css('stroke-dashoffset', String(data.ring_cycle_c));
+        }
+        if (data.ring_host && data.ring_host.length) {
+            data.ring_host.css('stroke-dasharray', String(data.ring_host_c));
+            data.ring_host.css('stroke-dashoffset', String(data.ring_host_c));
+        }
+
+        data.rings_ready = true;
+    }
+
+    function setRing(el, circ, phase01) {
+        if (!el || !el.length || !(circ > 0)) return;
+        var p = clamp01(phase01);
+        var off = (1.0 - p) * circ;
+        el.css('stroke-dashoffset', String(off));
+    }
+
+    function setAnyRecordingClass(icon, data) {
+        if (!icon || !data) return;
+
+        var s = data.loopStates;
+        if (!s) {
+            s = { loop1_state: 0, loop2_state: 0, loop3_state: 0 };
+            data.loopStates = s;
+        }
+
+        var any = (s.loop1_state >= 0.75) || (s.loop2_state >= 0.75) || (s.loop3_state >= 0.75);
+        if (any === data.anyRecording) return;
+
+        data.anyRecording = any;
+        if (any) icon.addClass('alo-recording');
+        else icon.removeClass('alo-recording');
     }
 
     function setLoopLight(icon, stateSymbol, value) {
@@ -102,6 +155,7 @@ function (event, funcs) {
 
         var icon = event.icon;
         var data = icon.data('alo') || { bars: 2, steps: 8, bar_step: 0 };
+        ensureRings(icon, data);
 
         if (symbol === 'bars') {
             data.bars = clampBars(value);
@@ -120,12 +174,25 @@ function (event, funcs) {
             } else {
                 setActiveStep(icon, data.bar_step);
             }
+        } else if (symbol === 'cycle_phase') {
+            setRing(data.ring_cycle, data.ring_cycle_c, value);
+        } else if (symbol === 'host_bar_phase') {
+            setRing(data.ring_host, data.ring_host_c, value);
         } else if (symbol === 'loop1_state') {
+            data.loopStates = data.loopStates || { loop1_state: 0, loop2_state: 0, loop3_state: 0 };
+            data.loopStates.loop1_state = value;
             setLoopLight(icon, 'loop1_state', value);
+            setAnyRecordingClass(icon, data);
         } else if (symbol === 'loop2_state') {
+            data.loopStates = data.loopStates || { loop1_state: 0, loop2_state: 0, loop3_state: 0 };
+            data.loopStates.loop2_state = value;
             setLoopLight(icon, 'loop2_state', value);
+            setAnyRecordingClass(icon, data);
         } else if (symbol === 'loop3_state') {
+            data.loopStates = data.loopStates || { loop1_state: 0, loop2_state: 0, loop3_state: 0 };
+            data.loopStates.loop3_state = value;
             setLoopLight(icon, 'loop3_state', value);
+            setAnyRecordingClass(icon, data);
         } else if (symbol === 'loop1_has_audio') {
             setUndoEnabled(icon, 'undo1_state', value >= 0.5);
         } else if (symbol === 'loop2_has_audio') {
@@ -159,6 +226,8 @@ function (event, funcs) {
         // (Some hosts may not send initial values for every port.)
         var icon = event.icon;
         var data = icon.data('alo') || { bars: 2, steps: 8, bar_step: 0 };
+        ensureRings(icon, data);
+        setAnyRecordingClass(icon, data);
         if (!icon.find('.alo-stepbar .alo-step').length) {
             rebuildStepbar(icon, data.steps);
             setActiveStep(icon, (data.bar_step >= 0 && data.bar_step < data.steps) ? data.bar_step : -1);

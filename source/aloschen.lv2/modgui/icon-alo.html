@@ -2,6 +2,16 @@
     <div mod-role="drag-handle" class="mod-drag-handle"></div>
     <div class="mod-plugin-brand"><h1>{{brand}}</h1></div>
     <div class="mod-plugin-name"><h1>{{label}}</h1></div>
+
+    <!-- Transport rings (debug): cycle phase + host bar phase -->
+    <div class="alo-transport-row" aria-hidden="true">
+        <svg class="alo-transport" viewBox="0 0 100 100" role="img" aria-label="Transport">
+            <circle class="alo-ring-bg" cx="50" cy="50" r="42"></circle>
+            <circle class="alo-ring-cycle" cx="50" cy="50" r="42"></circle>
+            <circle class="alo-ring-host" cx="50" cy="50" r="30"></circle>
+        </svg>
+    </div>
+
     <!-- Global controls (top row) -->
     <div class="mod-control-group alo-global-group clearfix" aria-label="Global Controls">
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
@@ -120,6 +130,8 @@
     <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="undo2_state">0</div>
     <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="undo3_state">0</div>
     <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="bar_step">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="cycle_phase">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="host_bar_phase">0</div>
 
     <!-- Bars-cycle step indicator (bars * 4 steps), driven by bar_step output port -->
     <div class="alo-stepbar-row" aria-hidden="true">

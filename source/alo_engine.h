@@ -25,6 +25,8 @@
 #define LOW_BEAT_FREQ 440
 #define START_BEAT_FREQ 1760
 
+
+
 typedef enum {
   TRACK_IDLE = 0,
   TRACK_ARM_BASE,
@@ -64,10 +66,13 @@ typedef enum {
   ALO_LOOP1_HAS_AUDIO = 27,
   ALO_LOOP2_HAS_AUDIO = 28,
   ALO_LOOP3_HAS_AUDIO = 29,
+  /* Debug/visualization outputs (MOD GUI rings). */
+  ALO_CYCLE_PHASE = 30,
+  ALO_HOST_BAR_PHASE = 31,
 } PortIndex;
 
 /* Keep in sync with the highest port index + 1. */
-#define ALO_PORT_COUNT 30
+#define ALO_PORT_COUNT 32
 
 typedef struct {
   LV2_URID atom_Blank;
@@ -117,6 +122,10 @@ typedef struct {
   float *has_audio_out[NUM_TRACKS];
   /** Current beat-step within the Bars-length cycle (0..Bars*4-1). */
   float *bar_step_out;
+  /** Continuous phase through Bars-length cycle (0..1). */
+  float *cycle_phase_out;
+  /** Continuous phase through the current host bar (0..1). */
+  float *host_bar_phase_out;
   /** Whether loop_origin_beats has been set. */
   LV2_Atom_Sequence *control;
   LV2_Atom_Sequence *midiin;

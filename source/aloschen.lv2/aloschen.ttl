@@ -16,40 +16,28 @@ lv2:requiredFeature urid:map;
 lv2:optionalFeature lv2:hardRTCapable;
 doap:name "ALO";
 doap:license <http://opensource.org/licenses/isc>;
+doap:maintainer [
+  doap:name "Carlo Cattano" ;
+] ;
 ui:ui <http://ktano-studio.com/aloschen#ui>;
 
 
-lv2:minorVersion 2;
+lv2:minorVersion 3;
 lv2:microVersion 0;
 
 rdfs:comment """
+ALO is a 3-slot, transport-synced live looper.
 
-ALO is a multi-track looper designed for live audio looping. It works in sync mode, with Global BPM, or in free-running mode.
+Per slot:
+- Press Loop: arm; recording starts quantized (Bars-cycle downbeat for the very first loop, otherwise next loop boundary)
+- Records/overdubs exactly one loop and auto-stops
+- Press Undo: removes one overdub at the next bar; rapid presses clear the slot at the next bar
 
-There are six loops. Press a loop button to:
-- arm the loop for recording
-- stop playing the loop
-- resume the loop
-
-
-
-[BARS] sets the loop length in sync mode (when Global BPM is running). In free running mode, loop length is set at the end of recording the first loop, by activating a different loop button.
-
-[MIDI Base] optionally allows loops to be controlled from a connected MIDI device sending MIDI note on/off messages ([MIDI Base]..[MIDI Base + 5]).
-
-
-
-[CLICK] sets the volume of the click in sync mode, when no loop is playing.
-
-[MIX] sets the output dry/wet levels for the input and loop signals
-- 0 for only input
-- 50 for matched input and loop levels
-- 100 for only loops
-
-
-
-Loop6 behaves differently - it outputs the loop while replacing it with the input signal for next time. So if the output is looped back to the input, it works as an overdub. If the loopback goes via an effect, then the effect will be applied each time the loop passes through.
-
+Controls:
+- Bars: loop length in bars (host-synced)
+- Click: metronome level (suppressed when any slot has audio)
+- Mix: dry/loop balance
+- Loop N Volume: per-slot playback gain (does not affect recording)
 """;
 
 lv2:port
@@ -324,6 +312,24 @@ lv2:port
 	lv2:minimum 0;
 	lv2:maximum 1;
 	lv2:portProperty lv2:integer;
+],
+[
+	a lv2:ControlPort, lv2:OutputPort;
+	lv2:index 30;
+	lv2:symbol "cycle_phase";
+	lv2:name "Cycle Phase";
+	lv2:default 0.0;
+	lv2:minimum 0.0;
+	lv2:maximum 1.0;
+],
+[
+	a lv2:ControlPort, lv2:OutputPort;
+	lv2:index 31;
+	lv2:symbol "host_bar_phase";
+	lv2:name "Host Bar Phase";
+	lv2:default 0.0;
+	lv2:minimum 0.0;
+	lv2:maximum 1.0;
 ].
 
 <http://ktano-studio.com/aloschen#ui>

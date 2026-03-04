@@ -63,6 +63,75 @@ typedef struct {
 #define CTL_SLIDER_INT_(port_, label_, min_, max_) {port_, port_, label_, CTL_SLIDER_INT, min_, max_}
 #define CTL_SLIDER_FLOAT_(port_, label_, min_, max_) {port_, port_, label_, CTL_SLIDER_FLOAT, min_, max_}
 
+typedef enum {
+  ALO_T1 = 0,
+  ALO_T2 = 1,
+  ALO_T3 = 2,
+} AloTrack;
+
+static inline bool ui_is_undo_port(const uint32_t port_index) {
+  return port_index == ALO_UNDO1 || port_index == ALO_UNDO2 || port_index == ALO_UNDO3;
+}
+
+static inline bool ui_is_loop_state_port(const uint32_t port_index) {
+  return port_index == ALO_LOOP1_STATE || port_index == ALO_LOOP2_STATE || port_index == ALO_LOOP3_STATE;
+}
+
+static inline bool ui_is_armed_waiting(const float state_v) { return (state_v >= 0.20f) && (state_v < 0.45f); }
+static inline bool ui_is_playing(const float state_v) { return (state_v >= 0.45f) && (state_v < 0.75f); }
+static inline bool ui_is_recording(const float state_v) { return (state_v >= 0.75f); }
+
+static inline int ui_track_from_ui_port(const uint32_t port_index) {
+  switch (port_index) {
+    case ALO_LOOP1:
+    case ALO_UNDO1:
+    case ALO_LOOP1_STATE:
+    case ALO_UNDO1_STATE:
+    case ALO_LOOP1_HAS_AUDIO:
+      return 0;
+    case ALO_LOOP2:
+    case ALO_UNDO2:
+    case ALO_LOOP2_STATE:
+    case ALO_UNDO2_STATE:
+    case ALO_LOOP2_HAS_AUDIO:
+      return 1;
+    case ALO_LOOP3:
+    case ALO_UNDO3:
+    case ALO_LOOP3_STATE:
+    case ALO_UNDO3_STATE:
+    case ALO_LOOP3_HAS_AUDIO:
+      return 2;
+    default:
+      return -1;
+  }
+}
+
+static inline uint32_t ui_loop_has_audio_port_for_track(const int t) {
+  switch (t) {
+    case 0:
+      return ALO_LOOP1_HAS_AUDIO;
+    case 1:
+      return ALO_LOOP2_HAS_AUDIO;
+    case 2:
+      return ALO_LOOP3_HAS_AUDIO;
+    default:
+      return ALO_LOOP1_HAS_AUDIO;
+  }
+}
+
+static inline uint32_t ui_loop_input_port_for_state_port(const uint32_t state_port) {
+  switch (state_port) {
+    case ALO_LOOP1_STATE:
+      return ALO_LOOP1;
+    case ALO_LOOP2_STATE:
+      return ALO_LOOP2;
+    case ALO_LOOP3_STATE:
+      return ALO_LOOP3;
+    default:
+      return UINT32_MAX;
+  }
+}
+
 static const Control kControls[] = {
   CTL_LOOP_(ALO_LOOP1, ALO_LOOP1_STATE, "Loop1"),
   CTL_LOOP_(ALO_UNDO1, ALO_UNDO1_STATE, "Undo1"),
@@ -114,16 +183,12 @@ static inline bool undo_is_enabled(const AloUI* ui, uint32_t undo_port_index) {
     return true;
   }
 
-  if (undo_port_index == ALO_UNDO1) {
-    return ui->port_values[ALO_LOOP1_HAS_AUDIO] > 0.5f;
+  const int t = ui_track_from_ui_port(undo_port_index);
+  if (t < 0) {
+    return true;
   }
-  if (undo_port_index == ALO_UNDO2) {
-    return ui->port_values[ALO_LOOP2_HAS_AUDIO] > 0.5f;
-  }
-  if (undo_port_index == ALO_UNDO3) {
-    return ui->port_values[ALO_LOOP3_HAS_AUDIO] > 0.5f;
-  }
-  return true;
+
+  return ui->port_values[ui_loop_has_audio_port_for_track(t)] > 0.5f;
 }
 
 typedef struct {
@@ -143,13 +208,13 @@ static UILayout ui_layout(const AloUI* ui) {
   UILayout l;
   l.pad = UI_SI(10);
   l.header_h = UI_SI(22);
-  l.btn_w = UI_SI(96);
-  l.btn_h = UI_SI(32);
+  l.btn_w = UI_SI(104);
+  l.btn_h = UI_SI(34);
   l.btn_gap = UI_SI(10);
   l.slider_h = UI_SI(18);
-  l.row_h = UI_SI(40);
+  l.row_h = UI_SI(44);
   l.buttons_y0 = l.pad + l.header_h;
-  l.slider_y0 = l.buttons_y0 + l.btn_h + UI_SI(16);
+  l.slider_y0 = l.buttons_y0 + l.btn_h + UI_SI(18);
   return l;
 }
 
@@ -261,6 +326,47 @@ static void draw_string(AloUI* ui, int x, int y, const char* text) {
   XDrawString(ui->dpy, ui->win, ui->gc, x, y, text, (int)strlen(text));
 }
 
+static bool ui_button_is_on(const AloUI* ui, const Control* c, const bool blink_on) {
+  if (!ui || !c) {
+    return false;
+  }
+
+  const float state_v = ui->port_values[c->display_port_index];
+  const float in_v = ui->port_values[c->port_index];
+
+  const bool is_loop_button = (c->display_port_index != c->port_index);
+  if (is_loop_button) {
+    return ui_is_recording(state_v) || ui_is_playing(state_v) || (ui_is_armed_waiting(state_v) && blink_on);
+  }
+
+  if (ui_is_undo_port(c->port_index)) {
+    /* Undo buttons: show queued undo (blink) from undo*_state output */
+    const bool queued = (state_v >= 0.20f);
+    return queued && blink_on;
+  }
+
+  return (in_v >= 0.5f);
+}
+
+static void ui_draw_button(AloUI* ui, const int bx, const int by, const int bw, const int bh,
+                           const Control* c, const bool blink_on) {
+  if (!ui || !c) {
+    return;
+  }
+
+  XDrawRectangle(ui->dpy, ui->win, ui->gc, bx, by, bw, bh);
+
+  const bool on = ui_button_is_on(ui, c, blink_on);
+  if (on) {
+    XFillRectangle(ui->dpy, ui->win, ui->gc, bx + 1, by + 1, bw - 1, bh - 1);
+    XSetForeground(ui->dpy, ui->gc, WhitePixel(ui->dpy, ui->screen));
+    draw_string(ui, bx + UI_SI(10), by + UI_SI(20), c->label);
+    XSetForeground(ui->dpy, ui->gc, BlackPixel(ui->dpy, ui->screen));
+  } else {
+    draw_string(ui, bx + UI_SI(10), by + UI_SI(20), c->label);
+  }
+}
+
 static void ui_redraw(AloUI* ui) {
   if (!ui || !ui->dpy) {
     return;
@@ -276,7 +382,8 @@ static void ui_redraw(AloUI* ui) {
   int y = l.pad;
 
   /* Header */
-  draw_string(ui, l.pad, UI_SI(18), "ALO (native UI)");
+  draw_string(ui, l.pad, UI_SI(18), "ALOSCHEN — native UI");
+  draw_string(ui, (int)ui->width - UI_SI(180), UI_SI(18), "Carlo Cattano");
   y += l.header_h;
 
   /* Trigger buttons row */
@@ -290,40 +397,7 @@ static void ui_redraw(AloUI* ui) {
       continue;
     }
 
-    const int bx = x;
-    const int by = y;
-
-    XDrawRectangle(ui->dpy, ui->win, ui->gc, bx, by, btn_w, btn_h);
-
-    const float state_v = ui->port_values[c->display_port_index];
-    const float in_v = ui->port_values[c->port_index];
-
-    const bool is_loop_button = (c->display_port_index != c->port_index);
-    const bool is_armed_waiting = is_loop_button && (state_v >= 0.20f) && (state_v < 0.45f);
-    const bool is_playing = is_loop_button && (state_v >= 0.45f) && (state_v < 0.75f);
-    const bool is_recording = is_loop_button && (state_v >= 0.75f);
-
-    /*
-     * Loop buttons:
-      * - idle: 0
-      * - armed (waiting): ~0.25 (blink)
-      * - playing: ~0.5 (solid)
-      * - recording: 1 (solid)
-     * Other triggers (Undo) just reflect the incoming press.
-     */
-        const bool on = is_loop_button
-                ? (is_recording || is_playing || (is_armed_waiting && blink_on))
-                : (in_v >= 0.5f);
-
-    if (on) {
-      XFillRectangle(ui->dpy, ui->win, ui->gc, bx + 1, by + 1, btn_w - 1, btn_h - 1);
-      XSetForeground(ui->dpy, ui->gc, WhitePixel(ui->dpy, ui->screen));
-      draw_string(ui, bx + UI_SI(10), by + UI_SI(20), c->label);
-      XSetForeground(ui->dpy, ui->gc, BlackPixel(ui->dpy, ui->screen));
-    } else {
-      draw_string(ui, bx + UI_SI(10), by + UI_SI(20), c->label);
-    }
-
+    ui_draw_button(ui, x, y, btn_w, btn_h, c, blink_on);
     x += btn_w + btn_gap;
   }
 
@@ -369,6 +443,7 @@ static void ui_redraw(AloUI* ui) {
   {
     const int box = UI_SI(14);
     const int steps_y = (int)ui->height - l.pad - box;
+    draw_string(ui, l.pad, steps_y - UI_SI(6), "Cycle");
     ui_draw_bar_steps(ui, l.pad, steps_y);
   }
 
@@ -524,6 +599,22 @@ static void handle_configure(AloUI* ui, const XConfigureEvent* e) {
   }
 }
 
+static bool ui_any_armed_waiting(const AloUI* ui) {
+  if (!ui) {
+    return false;
+  }
+
+  const uint32_t ports[] = {ALO_LOOP1_STATE, ALO_LOOP2_STATE, ALO_LOOP3_STATE};
+  for (int i = 0; i < (int)ARRAY_LEN(ports); ++i) {
+    const uint32_t p = ports[i];
+    if (p < ALO_PORT_COUNT && ui_is_armed_waiting(ui->port_values[p])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 static int ui_idle(LV2UI_Handle handle) {
   AloUI* ui = (AloUI*)handle;
   if (!ui || !ui->dpy) {
@@ -531,18 +622,7 @@ static int ui_idle(LV2UI_Handle handle) {
   }
 
   /* Force periodic redraw while any loop is armed (waiting-to-record) to blink. */
-  bool any_armed_waiting = false;
-  for (int t = 0; t < NUM_TRACKS; ++t) {
-    const uint32_t p = (uint32_t)(ALO_LOOP1_STATE + t);
-    if (p < ALO_PORT_COUNT) {
-      const float v = ui->port_values[p];
-      if (v >= 0.20f && v < 0.45f) {
-        any_armed_waiting = true;
-        break;
-      }
-    }
-  }
-  if (any_armed_waiting) {
+  if (ui_any_armed_waiting(ui)) {
     const bool blink_on = ui_blink_on();
     if (blink_on != ui->last_blink_on) {
       ui->last_blink_on = blink_on;
@@ -642,15 +722,8 @@ static void ui_port_event(LV2UI_Handle handle, uint32_t port_index, uint32_t buf
    * parameter in sync. This matters for auto-stop: the DSP can turn the loop
    * off, but it cannot write to the *input* control port, so we do it here.
    */
-  {
-    uint32_t in_port = UINT32_MAX;
-    if (port_index == ALO_LOOP1_STATE) {
-      in_port = ALO_LOOP1;
-    } else if (port_index == ALO_LOOP2_STATE) {
-      in_port = ALO_LOOP2;
-    } else if (port_index == ALO_LOOP3_STATE) {
-      in_port = ALO_LOOP3;
-    }
+  if (ui_is_loop_state_port(port_index)) {
+    const uint32_t in_port = ui_loop_input_port_for_state_port(port_index);
 
     /* When DSP turns state off (auto-stop, undo), ensure the host parameter is also set to 0. */
     if (in_port != UINT32_MAX && v < 0.5f && ui->write) {

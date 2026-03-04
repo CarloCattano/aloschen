@@ -204,6 +204,62 @@
 }
 
 /* Bars-cycle step indicator (bars * 4) */
+.alo{{{cns}}} .alo-transport-row {
+    position: absolute;
+    left: 50%;
+    top: 52%;
+    transform: translate(-50%, -50%);
+
+    width: 320px;
+    height: 320px;
+
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0.40;
+}
+
+.alo{{{cns}}} .alo-transport {
+    width: 320px;
+    height: 320px;
+    display: block;
+}
+
+.alo{{{cns}}} .alo-transport .alo-ring-bg,
+.alo{{{cns}}} .alo-transport .alo-ring-cycle,
+.alo{{{cns}}} .alo-transport .alo-ring-host {
+    fill: none;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+}
+
+.alo{{{cns}}} .alo-transport .alo-ring-bg {
+    stroke: #000;
+    stroke-width: 16;
+    opacity: 0.55;
+}
+
+.alo{{{cns}}} .alo-transport .alo-ring-cycle {
+    stroke: #3c3;
+    stroke-width: 12;
+}
+
+.alo{{{cns}}} .alo-transport .alo-ring-host {
+    stroke: #fff;
+    stroke-width: 10;
+    opacity: 0.9;
+}
+
+/* When any slot is recording, emphasize the Bars-cycle ring. */
+.alo{{{cns}}}.alo-recording .alo-transport-row {
+    opacity: 0.55;
+}
+
+.alo{{{cns}}}.alo-recording .alo-transport .alo-ring-cycle {
+    stroke: #c33;
+    stroke-width: 16;
+}
+
 .alo{{{cns}}} .alo-stepbar-row {
     position: absolute;
     left: 40px;
@@ -242,29 +298,31 @@
 
 /* Force loop light visuals from DSP loop*_state output */
 .alo{{{cns}}} .mod-green-light .mod-green-light-image.alo-loop-light.alo-off {
+    background-image: url(/resources/greenlight.png{{{ns}}}) !important;
     background-position: left 0px !important;
     opacity: 1;
     filter: none;
 }
 
 .alo{{{cns}}} .mod-green-light .mod-green-light-image.alo-loop-light.alo-playing {
+    background-image: url(/resources/greenlight.png{{{ns}}}) !important;
     background-position: right 0px !important;
     opacity: 1;
     filter: none;
 }
 
 .alo{{{cns}}} .mod-green-light .mod-green-light-image.alo-loop-light.alo-armed {
+    background-image: url(/resources/yellowlight.png{{{ns}}}) !important;
     background-position: right 0px !important;
     animation: aloBlink 0.5s step-end infinite;
-    /* Tint the green light to orange while armed/waiting. */
-     filter: hue-rotate(-90deg) saturate(220%) brightness(1.05);
+    filter: none;
 }
 
 .alo{{{cns}}} .mod-green-light .mod-green-light-image.alo-loop-light.alo-rec {
+    background-image: url(/resources/redlight.png{{{ns}}}) !important;
     background-position: right 0px !important;
     animation: none !important;
-    /* Tint the green light to red while recording. */
-     filter: hue-rotate(-120deg) saturate(220%) brightness(1.0) !important;
+    filter: none;
 }
 
 /* Undo queued blink driven by DSP undo*_state output */
