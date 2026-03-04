@@ -218,6 +218,11 @@
     opacity: 0.40;
 }
 
+/* Hide the whole circular overlay when toggled off (UI-only). */
+.alo{{{cns}}}.alo-rings-off .alo-transport-row {
+    display: none;
+}
+
 .alo{{{cns}}} .alo-transport {
     width: 320px;
     height: 320px;
@@ -226,7 +231,11 @@
 
 .alo{{{cns}}} .alo-transport .alo-ring-bg,
 .alo{{{cns}}} .alo-transport .alo-ring-cycle,
-.alo{{{cns}}} .alo-transport .alo-ring-host {
+.alo{{{cns}}} .alo-transport .alo-ring-host,
+.alo{{{cns}}} .alo-transport .alo-ring-bars,
+.alo{{{cns}}} .alo-transport .alo-ring-bars-active,
+.alo{{{cns}}} .alo-transport .alo-ring-steps,
+.alo{{{cns}}} .alo-transport .alo-ring-steps-active {
     fill: none;
     stroke-linecap: round;
     transform: rotate(-90deg);
@@ -250,6 +259,51 @@
     opacity: 0.9;
 }
 
+/* Outer ring subdivided by Bars (circular bar indicator) */
+.alo{{{cns}}} .alo-transport .alo-ring-bars {
+    stroke: #fff;
+    stroke-width: 6;
+    opacity: 0.35;
+    stroke-linecap: butt;
+}
+
+.alo{{{cns}}} .alo-transport .alo-ring-bars-active {
+    stroke: #3c3;
+    stroke-width: 8;
+    opacity: 0.85;
+    stroke-linecap: butt;
+}
+
+/* Step ring subdivided by Bars*4 (1 bar=4, 2 bars=8, 4 bars=16, ...) */
+.alo{{{cns}}} .alo-transport .alo-ring-steps {
+    stroke: #fff;
+    stroke-width: 4;
+    opacity: 0.28;
+    stroke-linecap: butt;
+}
+
+.alo{{{cns}}} .alo-transport .alo-ring-steps-active {
+    stroke: #3c3;
+    stroke-width: 6;
+    opacity: 0.90;
+    stroke-linecap: butt;
+}
+
+/* Discrete step markers (Bars * 4), like the step UI but circular */
+.alo{{{cns}}} .alo-transport .alo-step-dot {
+    fill: transparent;
+    stroke: #000;
+    stroke-width: 1.25;
+    opacity: 0.85;
+}
+
+.alo{{{cns}}} .alo-transport .alo-step-dot.alo-active {
+    fill: #3c3;
+    stroke: #000;
+    stroke-width: 1.1;
+    opacity: 1.0;
+}
+
 /* When any slot is recording, emphasize the Bars-cycle ring. */
 .alo{{{cns}}}.alo-recording .alo-transport-row {
     opacity: 0.55;
@@ -258,6 +312,12 @@
 .alo{{{cns}}}.alo-recording .alo-transport .alo-ring-cycle {
     stroke: #c33;
     stroke-width: 16;
+}
+
+/* Ring toggle switch: place it just left of bypass */
+.alo{{{cns}}} .alo-global-group .mod-switch.alo-ring-toggle {
+    float: right;
+    margin-right: 8px;
 }
 
 .alo{{{cns}}} .alo-stepbar-row {

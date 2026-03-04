@@ -6,9 +6,14 @@
     <!-- Transport rings (debug): cycle phase + host bar phase -->
     <div class="alo-transport-row" aria-hidden="true">
         <svg class="alo-transport" viewBox="0 0 100 100" role="img" aria-label="Transport">
-            <circle class="alo-ring-bg" cx="50" cy="50" r="42"></circle>
-            <circle class="alo-ring-cycle" cx="50" cy="50" r="42"></circle>
-            <circle class="alo-ring-host" cx="50" cy="50" r="30"></circle>
+            <circle class="alo-ring-bg" cx="50" cy="50" r="26"></circle>
+            <circle class="alo-ring-cycle" cx="50" cy="50" r="26"></circle>
+            <circle class="alo-ring-host" cx="50" cy="50" r="14"></circle>
+            <circle class="alo-ring-bars" cx="50" cy="50" r="46"></circle>
+            <circle class="alo-ring-bars-active" cx="50" cy="50" r="46"></circle>
+            <circle class="alo-ring-steps" cx="50" cy="50" r="38"></circle>
+            <circle class="alo-ring-steps-active" cx="50" cy="50" r="38"></circle>
+            <g class="alo-step-dots" aria-hidden="true"></g>
         </svg>
     </div>
 
@@ -59,6 +64,9 @@
         <div class="mod-separator"></div>
         <div class="mod-switch" mod-role="bypass">
             <div class="mod-switch-image" mod-role="bypass-light"></div>
+        </div>
+        <div class="mod-switch alo-ring-toggle" title="Toggle transport rings">
+            <div class="mod-switch-image alo-ring-toggle-image off"></div>
         </div>
     </div>
 
