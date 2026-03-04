@@ -2,32 +2,8 @@
     <div mod-role="drag-handle" class="mod-drag-handle"></div>
     <div class="mod-plugin-brand"><h1>{{brand}}</h1></div>
     <div class="mod-plugin-name"><h1>{{label}}</h1></div>
-    <div class="mod-control-group clearfix">
-        <div class="mod-green-light" title="Loop1">
-            <div class="mod-green-light-image alo-loop-light" data-state-symbol="loop1_state" mod-role="input-control-port" mod-port-symbol="loop1" mod-widget="switch"></div>
-            <span class="mod-green-light-title">Loop1</span>
-        </div>
-        <div class="mod-green-light" title="Undo1">
-            <div class="mod-black-light-image" mod-role="input-control-port" mod-port-symbol="Undo1" mod-widget="switch"></div>
-            <span class="mod-green-light-title">Undo1</span>
-        </div>
-        <div class="mod-green-light" title="Loop2">
-            <div class="mod-green-light-image alo-loop-light" data-state-symbol="loop2_state" mod-role="input-control-port" mod-port-symbol="loop2" mod-widget="switch"></div>
-            <span class="mod-green-light-title">Loop2</span>
-        </div>
-        <div class="mod-green-light" title="Undo2">
-            <div class="mod-black-light-image" mod-role="input-control-port" mod-port-symbol="Undo2" mod-widget="switch"></div>
-            <span class="mod-green-light-title">Undo2</span>
-        </div>
-        <div class="mod-green-light" title="Loop3">
-            <div class="mod-green-light-image alo-loop-light" data-state-symbol="loop3_state" mod-role="input-control-port" mod-port-symbol="loop3" mod-widget="switch"></div>
-            <span class="mod-green-light-title">Loop3</span>
-        </div>
-        <div class="mod-green-light" title="Undo3">
-            <div class="mod-black-light-image" mod-role="input-control-port" mod-port-symbol="Undo3" mod-widget="switch"></div>
-            <span class="mod-green-light-title">Undo3</span>
-        </div>
-
+    <!-- Global controls (top row) -->
+    <div class="mod-control-group alo-global-group clearfix" aria-label="Global Controls">
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
             <div class="mod-knob-image-wrapper">
                 <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="bars"></div>
@@ -37,7 +13,6 @@
             <div class="mod-knob-title">Bars</div>
             <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="bars">2.000</div>
         </div>
-
         <div class="mod-separator"></div>
 
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
@@ -49,7 +24,6 @@
             <div class="mod-knob-title">Click</div>
             <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="click">1.000</div>
         </div>
-
         <div class="mod-separator"></div>
 
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
@@ -61,7 +35,6 @@
             <div class="mod-knob-title">MIDI Base</div>
             <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="midi_base">60.000</div>
         </div>
-
         <div class="mod-separator"></div>
 
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
@@ -73,10 +46,66 @@
             <div class="mod-knob-title">Mix</div>
             <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="mix">50.000</div>
         </div>
-
         <div class="mod-separator"></div>
         <div class="mod-switch" mod-role="bypass">
             <div class="mod-switch-image" mod-role="bypass-light"></div>
+        </div>
+    </div>
+
+    <!-- Per-loop controls (middle row): Loop + Undo side-by-side, slider underneath -->
+    <div class="mod-control-group alo-loop-row clearfix" aria-label="Loops">
+        <div class="alo-loop-col" aria-label="Loop 1">
+            <div class="alo-loop-buttons">
+                <div class="mod-green-light" title="Loop1">
+                    <div class="mod-green-light-image alo-loop-light" data-state-symbol="loop1_state" mod-role="input-control-port" mod-port-symbol="loop1" mod-widget="switch"></div>
+                    <span class="mod-green-light-title">Loop1</span>
+                </div>
+                <div class="mod-green-light" title="Undo1">
+                    <div class="mod-black-light-image alo-undo-light" data-state-symbol="undo1_state" mod-role="input-control-port" mod-port-symbol="Undo1" mod-widget="switch"></div>
+                    <span class="mod-green-light-title">Undo1</span>
+                </div>
+            </div>
+            <div class="mod-slider" mod-role="icon-button" mod-button-type="slider" title="Loop 1 volume">
+                <div class="mod-slider-image-wrapper">
+                    <div class="mod-slider-image" mod-role="input-control-port" mod-port-symbol="loop1_vol"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alo-loop-col" aria-label="Loop 2">
+            <div class="alo-loop-buttons">
+                <div class="mod-green-light" title="Loop2">
+                    <div class="mod-green-light-image alo-loop-light" data-state-symbol="loop2_state" mod-role="input-control-port" mod-port-symbol="loop2" mod-widget="switch"></div>
+                    <span class="mod-green-light-title">Loop2</span>
+                </div>
+                <div class="mod-green-light" title="Undo2">
+                    <div class="mod-black-light-image alo-undo-light" data-state-symbol="undo2_state" mod-role="input-control-port" mod-port-symbol="Undo2" mod-widget="switch"></div>
+                    <span class="mod-green-light-title">Undo2</span>
+                </div>
+            </div>
+            <div class="mod-slider" mod-role="icon-button" mod-button-type="slider" title="Loop 2 volume">
+                <div class="mod-slider-image-wrapper">
+                    <div class="mod-slider-image" mod-role="input-control-port" mod-port-symbol="loop2_vol"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alo-loop-col" aria-label="Loop 3">
+            <div class="alo-loop-buttons">
+                <div class="mod-green-light" title="Loop3">
+                    <div class="mod-green-light-image alo-loop-light" data-state-symbol="loop3_state" mod-role="input-control-port" mod-port-symbol="loop3" mod-widget="switch"></div>
+                    <span class="mod-green-light-title">Loop3</span>
+                </div>
+                <div class="mod-green-light" title="Undo3">
+                    <div class="mod-black-light-image alo-undo-light" data-state-symbol="undo3_state" mod-role="input-control-port" mod-port-symbol="Undo3" mod-widget="switch"></div>
+                    <span class="mod-green-light-title">Undo3</span>
+                </div>
+            </div>
+            <div class="mod-slider" mod-role="icon-button" mod-button-type="slider" title="Loop 3 volume">
+                <div class="mod-slider-image-wrapper">
+                    <div class="mod-slider-image" mod-role="input-control-port" mod-port-symbol="loop3_vol"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -84,10 +113,18 @@
     <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="loop1_state">0</div>
     <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="loop2_state">0</div>
     <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="loop3_state">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="loop1_has_audio">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="loop2_has_audio">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="loop3_has_audio">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="undo1_state">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="undo2_state">0</div>
+    <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="undo3_state">0</div>
     <div class="alo-hidden" mod-role="output-control-value" mod-port-symbol="bar_step">0</div>
 
-        <!-- Bars-cycle step indicator (bars * 4 steps), driven by bar_step output port -->
-        <div class="alo-stepbar" aria-hidden="true"></div>
+    <!-- Bars-cycle step indicator (bars * 4 steps), driven by bar_step output port -->
+    <div class="alo-stepbar-row" aria-hidden="true">
+        <div class="alo-stepbar"></div>
+    </div>
 
     <div class="mod-pedal-input">
         {{#effect.ports.audio.input}}

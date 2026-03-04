@@ -55,10 +55,19 @@ typedef enum {
   ALO_LOOP2_STATE = 18,
   ALO_LOOP3_STATE = 19,
   ALO_BAR_STEP = 20,
+  ALO_LOOP1_VOL = 21,
+  ALO_LOOP2_VOL = 22,
+  ALO_LOOP3_VOL = 23,
+  ALO_UNDO1_STATE = 24,
+  ALO_UNDO2_STATE = 25,
+  ALO_UNDO3_STATE = 26,
+  ALO_LOOP1_HAS_AUDIO = 27,
+  ALO_LOOP2_HAS_AUDIO = 28,
+  ALO_LOOP3_HAS_AUDIO = 29,
 } PortIndex;
 
 /* Keep in sync with the highest port index + 1. */
-#define ALO_PORT_COUNT 21
+#define ALO_PORT_COUNT 30
 
 typedef struct {
   LV2_URID atom_Blank;
@@ -93,13 +102,19 @@ typedef struct {
   float *output_r;
   float *loop_btn[NUM_TRACKS];
   float *undo_btn[NUM_TRACKS];
+  /** Per-track playback gain coefficient (0..1). */
+  float *loop_vol[NUM_TRACKS];
   float *bars;
   float *midi_base;
   float *click;
   float *mix;
-  int *enabled;
+  float *enabled;
   /** Loop phase origin in host beats (set at first base start). */
   float *loop_state_out[NUM_TRACKS];
+  /** Undo queue indicator for UI (0=off, 0.25=queued). */
+  float *undo_state_out[NUM_TRACKS];
+  /** Slot filled indicator for UI (0=empty, 1=has committed base loop). */
+  float *has_audio_out[NUM_TRACKS];
   /** Current beat-step within the Bars-length cycle (0..Bars*4-1). */
   float *bar_step_out;
   /** Whether loop_origin_beats has been set. */
@@ -195,6 +210,10 @@ typedef struct {
   bool ui_have_prev_bar_beat;
   float inmix;
   float loopmix;
+
+  /** Track lv2:enabled state to avoid per-block resets when disabled. */
+  bool have_last_enabled;
+  bool last_enabled;
 } Alo;
 
 void alo_log(const char *message, ...);

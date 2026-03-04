@@ -7,13 +7,27 @@
     background-image: url(/resources/background.png{{{ns}}});
     background-position: center center;
     background-repeat: no-repeat;
-    height: 205px;
+    background-size: 100% 100%;
+    background-color: #000;
+    height: 400px;
     position: relative;
-    width: 560px;
+    width: 600px;
 }
 
 
 /* THE AUTHOR */
+.alo{{{cns}}} .mod-plugin-brand,
+.alo{{{cns}}} .mod-plugin-name {
+    /* Keep headers from affecting layout/alignment */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
 .alo{{{cns}}} .mod-plugin-brand h1 {
     color: #3c3;
     font-size: 18px;
@@ -23,6 +37,8 @@
     margin: 0;
     position: absolute;
     top: 23px;
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* PLUGIN'S NAME */
@@ -35,27 +51,30 @@
     position: absolute;
     right: 80px;
     top: 23px;
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* CONTROLS */
-.alo{{{cns}}} .mod-control-group {
-    padding: 5px;
+.alo{{{cns}}} .alo-global-group {
+    padding: 4px 6px;
     border-color: #000;
     border-style: solid;
 	border-radius: 12px;
     border-width: 1px 1px 1px 1px;
-    bottom: 149px;
     color: #fff;
     font-size: 10px;
     font-weight: bold;
-    height: 80px;
+    height: 90px;
     left: 40px;
     position: absolute;
     right: 40px;
-    top: 47px;
+    top: 40px;
+    /* Must be above MOD's drag-handle overlay (z-index: 20) */
+    z-index: 30;
 }
 
-.alo{{{cns}}} .mod-control-group > div {
+.alo{{{cns}}} .alo-global-group > div {
     margin-right: 2px;
     margin-left: 2px;
 }
@@ -69,21 +88,146 @@
     display: none;
 }
 
-/* Bars-cycle step indicator (bars * 4) */
-.alo{{{cns}}} .alo-stepbar {
+/* Per-loop controls (Loop + Undo + Volume) */
+.alo{{{cns}}} .alo-loop-row {
     position: absolute;
     left: 40px;
     right: 40px;
-    bottom: 10px;
+    top: 145px;
+    bottom: 54px;
+    padding: 8px 10px;
+    border: 1px solid #000;
+    border-radius: 10px;
+    background: rgba(0,0,0,.6);
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+    justify-content: space-around;
+    overflow: hidden;
+    /* Must be above MOD's drag-handle overlay (z-index: 20) */
+    z-index: 30;
+}
+
+/* Compact the global row without removing labels */
+.alo{{{cns}}} .alo-global-group .mod-knob {
+    margin-top: 4px;
+}
+
+.alo{{{cns}}} .alo-global-group .mod-knob .mod-knob-title {
+    font-size: 10px;
+    height: 12px;
+}
+
+.alo{{{cns}}} .alo-global-group .mod-knob .mod-knob-value {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.alo{{{cns}}} .alo-global-group .mod-separator {
+    height: 60px;
+    margin-top: 0;
+}
+
+.alo{{{cns}}} .alo-loop-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.alo{{{cns}}} .alo-loop-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+/* Loop/Undo buttons: use MOD light widgets but avoid float-based layout */
+.alo{{{cns}}} .alo-loop-row .mod-green-light {
+    float: none;
+    width: 74px;
+}
+
+/* In our loop columns we want the label below the light, not overlayed. */
+.alo{{{cns}}} .alo-loop-row .mod-green-light .mod-green-light-title {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    height: auto;
+    margin-top: 2px;
+    z-index: 3;
+}
+
+/* Volume sliders (loop*_vol)
+ * Use MOD's canonical slider widget styles (adapted from mod-mixer.lv2).
+ */
+.alo{{{cns}}} .alo-loop-row .mod-slider {
+    margin-top: 2px;
+}
+
+.alo{{{cns}}} .alo-loop-row .mod-slider {
+    color: #fff;
+    font-size: 11px;
+    height: 140px;
+    overflow: hidden;
+    position: relative;
+    text-align: center;
+    width: 86px;
+    flex: 0 0 auto;
+}
+
+.alo{{{cns}}} .alo-loop-row .mod-slider .mod-slider-image-wrapper {
+    background-color: transparent;
+    padding: 8px 0;
+    position: relative;
+}
+
+.alo{{{cns}}} .alo-loop-row .mod-slider .mod-slider-image {
+    background-image: url(/resources/slider.png{{{ns}}});
+    background-repeat: no-repeat;
+    /* Canonical MOD slider sprite geometry (matches mod-mixer) */
+    background-size: auto 110px;
+    height: 110px;
+    margin: 0 auto;
+    width: 44px;
+    /* Make it visually thicker without changing MOD's sprite positioning logic */
+    transform: scaleX(1.45);
+    transform-origin: center;
+}
+
+.alo{{{cns}}} .alo-loop-row .mod-slider .mod-slider-image:hover {
+    cursor: pointer;
+}
+
+/* Bars-cycle step indicator (bars * 4) */
+.alo{{{cns}}} .alo-stepbar-row {
+    position: absolute;
+    left: 40px;
+    right: 40px;
+    bottom: 6px;
+    padding: 4px 6px;
+    border: 1px solid #000;
+    border-radius: 10px;
+    background: rgba(0,0,0,.6);
+    pointer-events: none;
+    z-index: 25;
+}
+
+.alo{{{cns}}} .alo-stepbar {
     height: 12px;
     display: flex;
-    gap: 2px;
+    gap: 3px;
 }
 
 .alo{{{cns}}} .alo-stepbar .alo-step {
     flex: 1 1 0;
     border: 1px solid #000;
     background: transparent;
+    border-radius: 4px;
 }
 
 .alo{{{cns}}} .alo-stepbar .alo-step.alo-active {
@@ -113,14 +257,27 @@
     background-position: right 0px !important;
     animation: aloBlink 0.5s step-end infinite;
     /* Tint the green light to orange while armed/waiting. */
-    filter: hue-rotate(-90deg) saturate(250%);
+     filter: hue-rotate(-90deg) saturate(220%) brightness(1.05);
 }
 
 .alo{{{cns}}} .mod-green-light .mod-green-light-image.alo-loop-light.alo-rec {
     background-position: right 0px !important;
-    animation: none;
+    animation: none !important;
     /* Tint the green light to red while recording. */
-    filter: hue-rotate(-120deg) saturate(200%);
+     filter: hue-rotate(-120deg) saturate(220%) brightness(1.0) !important;
+}
+
+/* Undo queued blink driven by DSP undo*_state output */
+.alo{{{cns}}} .mod-green-light .mod-black-light-image.alo-undo-light.alo-off {
+    background-position: left 0px !important;
+    opacity: 1;
+    filter: none;
+    animation: none !important;
+}
+
+.alo{{{cns}}} .mod-green-light .mod-black-light-image.alo-undo-light.alo-queued {
+    background-position: right 0px !important;
+    animation: aloBlink 0.5s step-end infinite;
 }
 
 /* SWITCH ON/OFF GENERAL */
@@ -180,6 +337,11 @@
     position: relative;
     width: 71px;
     z-index: 2;
+}
+
+.alo{{{cns}}} .mod-green-light.alo-undo-disabled {
+    opacity: 0.25;
+    pointer-events: none;
 }
 
 .alo{{{cns}}} .mod-green-light .mod-green-light-title {

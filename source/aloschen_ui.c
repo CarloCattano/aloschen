@@ -23,6 +23,8 @@
 #include <string.h>
 #include <time.h>
 
+#define ARRAY_LEN(a) ((int)(sizeof(a) / sizeof((a)[0])))
+
 #define ALO_UI_URI "http://ktano-studio.com/aloschen#ui"
 
 /* Reuse the DSP's canonical port indices + plugin URI. */
@@ -43,7 +45,8 @@
 typedef enum {
   CTL_TOGGLE,
   CTL_TRIGGER,
-  CTL_SLIDER_INT
+  CTL_SLIDER_INT,
+  CTL_SLIDER_FLOAT
 } ControlType;
 
 typedef struct {
@@ -58,14 +61,19 @@ typedef struct {
 #define CTL_TRIGGER_(port_, label_) {port_, port_, label_, CTL_TRIGGER, 0.0f, 1.0f}
 #define CTL_LOOP_(port_, state_port_, label_) {port_, state_port_, label_, CTL_TRIGGER, 0.0f, 1.0f}
 #define CTL_SLIDER_INT_(port_, label_, min_, max_) {port_, port_, label_, CTL_SLIDER_INT, min_, max_}
+#define CTL_SLIDER_FLOAT_(port_, label_, min_, max_) {port_, port_, label_, CTL_SLIDER_FLOAT, min_, max_}
 
 static const Control kControls[] = {
   CTL_LOOP_(ALO_LOOP1, ALO_LOOP1_STATE, "Loop1"),
-  CTL_TRIGGER_(ALO_UNDO1, "Undo1"),
+  CTL_LOOP_(ALO_UNDO1, ALO_UNDO1_STATE, "Undo1"),
   CTL_LOOP_(ALO_LOOP2, ALO_LOOP2_STATE, "Loop2"),
-  CTL_TRIGGER_(ALO_UNDO2, "Undo2"),
+  CTL_LOOP_(ALO_UNDO2, ALO_UNDO2_STATE, "Undo2"),
   CTL_LOOP_(ALO_LOOP3, ALO_LOOP3_STATE, "Loop3"),
-  CTL_TRIGGER_(ALO_UNDO3, "Undo3"),
+  CTL_LOOP_(ALO_UNDO3, ALO_UNDO3_STATE, "Undo3"),
+
+  CTL_SLIDER_FLOAT_(ALO_LOOP1_VOL, "Loop1 Vol", 0.0f, 1.0f),
+  CTL_SLIDER_FLOAT_(ALO_LOOP2_VOL, "Loop2 Vol", 0.0f, 1.0f),
+  CTL_SLIDER_FLOAT_(ALO_LOOP3_VOL, "Loop3 Vol", 0.0f, 1.0f),
 
   CTL_SLIDER_INT_(ALO_BARS, "Bars", 1.0f, 32.0f),
   CTL_SLIDER_INT_(ALO_CLICK, "Click", 0.0f, 10.0f),
@@ -100,6 +108,23 @@ typedef struct {
   int active_control; /* index into kControls */
   HitType active_hit;
 } AloUI;
+
+static inline bool undo_is_enabled(const AloUI* ui, uint32_t undo_port_index) {
+  if (!ui) {
+    return true;
+  }
+
+  if (undo_port_index == ALO_UNDO1) {
+    return ui->port_values[ALO_LOOP1_HAS_AUDIO] > 0.5f;
+  }
+  if (undo_port_index == ALO_UNDO2) {
+    return ui->port_values[ALO_LOOP2_HAS_AUDIO] > 0.5f;
+  }
+  if (undo_port_index == ALO_UNDO3) {
+    return ui->port_values[ALO_LOOP3_HAS_AUDIO] > 0.5f;
+  }
+  return true;
+}
 
 typedef struct {
   int pad;
@@ -208,6 +233,10 @@ static uint64_t monotonic_ms(void) {
   return (uint64_t)ts.tv_sec * 1000ull + (uint64_t)ts.tv_nsec / 1000000ull;
 }
 
+static bool ui_blink_on(void) {
+  return ((monotonic_ms() / 250ull) % 2ull) == 0ull;
+}
+
 static float clampf(const float v, const float lo, const float hi) {
   return (v < lo) ? lo : (v > hi) ? hi : v;
 }
@@ -237,7 +266,7 @@ static void ui_redraw(AloUI* ui) {
     return;
   }
 
-  const bool blink_on = ((monotonic_ms() / 250ull) % 2ull) == 0ull;
+  const bool blink_on = ui_blink_on();
 
   XClearWindow(ui->dpy, ui->win);
 
@@ -255,7 +284,7 @@ static void ui_redraw(AloUI* ui) {
   const int btn_h = l.btn_h;
   const int btn_gap = l.btn_gap;
 
-  for (int i = 0; i < (int)(sizeof(kControls) / sizeof(kControls[0])); ++i) {
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
     if (c->type != CTL_TOGGLE && c->type != CTL_TRIGGER) {
       continue;
@@ -276,14 +305,15 @@ static void ui_redraw(AloUI* ui) {
 
     /*
      * Loop buttons:
-    * - idle: 0
-    * - armed (waiting): ~0.25 (blink)
-    * - playing: ~0.5 (solid)
-    * - recording: 1 (solid)
+      * - idle: 0
+      * - armed (waiting): ~0.25 (blink)
+      * - playing: ~0.5 (solid)
+      * - recording: 1 (solid)
      * Other triggers (Undo) just reflect the incoming press.
      */
-      const bool on = is_loop_button ? (is_recording || is_playing || (is_armed_waiting && blink_on))
-                     : (in_v >= 0.5f);
+        const bool on = is_loop_button
+                ? (is_recording || is_playing || (is_armed_waiting && blink_on))
+                : (in_v >= 0.5f);
 
     if (on) {
       XFillRectangle(ui->dpy, ui->win, ui->gc, bx + 1, by + 1, btn_w - 1, btn_h - 1);
@@ -306,9 +336,9 @@ static void ui_redraw(AloUI* ui) {
   const int row_h = l.row_h;
 
   int slider_index = 0;
-  for (int i = 0; i < (int)(sizeof(kControls) / sizeof(kControls[0])); ++i) {
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
-    if (c->type != CTL_SLIDER_INT) {
+    if (c->type != CTL_SLIDER_INT && c->type != CTL_SLIDER_FLOAT) {
       continue;
     }
 
@@ -316,7 +346,11 @@ static void ui_redraw(AloUI* ui) {
 
     char label[128];
     const float v = ui->port_values[c->port_index];
-    snprintf(label, sizeof(label), "%s: %.0f", c->label, v);
+    if (c->type == CTL_SLIDER_FLOAT) {
+      snprintf(label, sizeof(label), "%s: %.2f", c->label, v);
+    } else {
+      snprintf(label, sizeof(label), "%s: %.0f", c->label, v);
+    }
     draw_string(ui, x, sy + UI_SI(12), label);
 
     const int bar_x = x;
@@ -357,7 +391,7 @@ static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type) {
   const int btn_gap = l.btn_gap;
 
   /* Toggles */
-  for (int i = 0; i < (int)(sizeof(kControls) / sizeof(kControls[0])); ++i) {
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
     if (c->type != CTL_TOGGLE && c->type != CTL_TRIGGER) {
       continue;
@@ -380,9 +414,9 @@ static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type) {
   const int row_h = l.row_h;
 
   int slider_index = 0;
-  for (int i = 0; i < (int)(sizeof(kControls) / sizeof(kControls[0])); ++i) {
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
-    if (c->type != CTL_SLIDER_INT) {
+    if (c->type != CTL_SLIDER_INT && c->type != CTL_SLIDER_FLOAT) {
       continue;
     }
 
@@ -409,8 +443,14 @@ static void update_slider_from_x(AloUI* ui, const int control_index, const int p
 
   const float t = clampf(((float)(px - l.pad) / (float)slider_w), 0.0f, 1.0f);
   float v = c->min + t * (c->max - c->min);
-  v = round_int_value(v);
-  v = clampf(v, c->min, c->max);
+  if (c->type == CTL_SLIDER_INT) {
+    v = round_int_value(v);
+    v = clampf(v, c->min, c->max);
+  } else {
+    /* Keep float sliders reasonably stable (2 decimal places). */
+    v = floorf(v * 100.0f + 0.5f) * 0.01f;
+    v = clampf(v, c->min, c->max);
+  }
 
   ui_send_port(ui, c->port_index, v);
   ui->needs_redraw = true;
@@ -428,6 +468,13 @@ static void handle_button_press(AloUI* ui, const XButtonEvent* e) {
 
   const Control* c = &kControls[index];
   if (hit_type == HIT_BUTTON) {
+    if ((c->port_index == ALO_UNDO1 || c->port_index == ALO_UNDO2 || c->port_index == ALO_UNDO3) &&
+        !undo_is_enabled(ui, c->port_index)) {
+      ui->active_control = -1;
+      ui->active_hit = HIT_NONE;
+      return;
+    }
+
     if (c->type == CTL_TRIGGER) {
       /* Momentary trigger: press sends 1, release sends 0 */
       ui_send_port(ui, c->port_index, 1.0f);
@@ -485,7 +532,7 @@ static int ui_idle(LV2UI_Handle handle) {
 
   /* Force periodic redraw while any loop is armed (waiting-to-record) to blink. */
   bool any_armed_waiting = false;
-  for (int t = 0; t < 3; ++t) {
+  for (int t = 0; t < NUM_TRACKS; ++t) {
     const uint32_t p = (uint32_t)(ALO_LOOP1_STATE + t);
     if (p < ALO_PORT_COUNT) {
       const float v = ui->port_values[p];
@@ -496,7 +543,7 @@ static int ui_idle(LV2UI_Handle handle) {
     }
   }
   if (any_armed_waiting) {
-    const bool blink_on = ((monotonic_ms() / 250ull) % 2ull) == 0ull;
+    const bool blink_on = ui_blink_on();
     if (blink_on != ui->last_blink_on) {
       ui->last_blink_on = blink_on;
       ui->needs_redraw = true;
@@ -590,19 +637,23 @@ static void ui_port_event(LV2UI_Handle handle, uint32_t port_index, uint32_t buf
   const float v = *(const float*)buffer;
   ui->port_values[port_index] = v;
 
-  // If the DSP reports a loop state change, keep the corresponding loop input
-  // parameter in sync. This matters for auto-stop: the DSP can turn the loop
-  // off, but it cannot write to the *input* control port, so we do it here.
-  if (port_index == ALO_LOOP1_STATE || port_index == ALO_LOOP2_STATE || port_index == ALO_LOOP3_STATE) {
-    uint32_t in_port = ALO_LOOP1;
-    if (port_index == ALO_LOOP2_STATE) {
+  /*
+   * If the DSP reports a loop state change, keep the corresponding loop input
+   * parameter in sync. This matters for auto-stop: the DSP can turn the loop
+   * off, but it cannot write to the *input* control port, so we do it here.
+   */
+  {
+    uint32_t in_port = UINT32_MAX;
+    if (port_index == ALO_LOOP1_STATE) {
+      in_port = ALO_LOOP1;
+    } else if (port_index == ALO_LOOP2_STATE) {
       in_port = ALO_LOOP2;
     } else if (port_index == ALO_LOOP3_STATE) {
       in_port = ALO_LOOP3;
     }
 
-    // When DSP turns state off (auto-stop, undo), ensure the host parameter is also set to 0.
-    if (v < 0.5f) {
+    /* When DSP turns state off (auto-stop, undo), ensure the host parameter is also set to 0. */
+    if (in_port != UINT32_MAX && v < 0.5f && ui->write) {
       ui->port_values[in_port] = 0.0f;
       const float zero = 0.0f;
       ui->write(ui->controller, in_port, sizeof(float), 0, &zero);
@@ -673,6 +724,9 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   *widget = (LV2UI_Widget)(uintptr_t)ui->win;
 
   /* Sensible defaults in case host doesn't send initial values */
+  ui->port_values[ALO_LOOP1_VOL] = 1.0f;
+  ui->port_values[ALO_LOOP2_VOL] = 1.0f;
+  ui->port_values[ALO_LOOP3_VOL] = 1.0f;
   ui->port_values[ALO_BARS] = 2.0f;
   ui->port_values[ALO_CLICK] = 1.0f;
   ui->port_values[ALO_MIX] = 50.0f;

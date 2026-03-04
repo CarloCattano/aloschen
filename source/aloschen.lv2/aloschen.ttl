@@ -12,14 +12,15 @@
 
 <http://ktano-studio.com/aloschen>
 a lv2:Plugin, lv2:UtilityPlugin;
-lv2:project <http://lv2plug.in/ns/lv2>;
+lv2:requiredFeature urid:map;
+lv2:optionalFeature lv2:hardRTCapable;
 doap:name "ALO";
 doap:license <http://opensource.org/licenses/isc>;
 ui:ui <http://ktano-studio.com/aloschen#ui>;
 
 
-lv2:minorVersion 0;
-lv2:microVersion 9;
+lv2:minorVersion 2;
+lv2:microVersion 0;
 
 rdfs:comment """
 
@@ -65,16 +66,16 @@ lv2:port
 	lv2:name "In_right"
 ],
 [
-    a lv2:AudioPort, lv2:OutputPort;
-    lv2:index 2;
-    lv2:symbol "out_left";
-    lv2:name "Out_left"
+	a lv2:AudioPort, lv2:OutputPort;
+	lv2:index 2;
+	lv2:symbol "out_left";
+	lv2:name "Out_left"
 ],
 [
-    a lv2:AudioPort, lv2:OutputPort;
-    lv2:index 3;
-    lv2:symbol "out_right";
-    lv2:name "Out_right"
+	a lv2:AudioPort, lv2:OutputPort;
+	lv2:index 3;
+	lv2:symbol "out_right";
+	lv2:name "Out_right"
 ],
 [
 	a lv2:ControlPort, lv2:InputPort;
@@ -94,7 +95,7 @@ lv2:port
 	lv2:default 0;
 	lv2:minimum 0;
 	lv2:maximum 1;
-    lv2:portProperty lv2:integer, lv2:toggled;
+	lv2:portProperty lv2:integer, lv2:toggled;
 ],
 [
 	a lv2:ControlPort, lv2:InputPort;
@@ -193,16 +194,15 @@ lv2:port
 	lv2:portProperty lv2:integer;
 ],
 [
-    a lv2:InputPort ,
-    lv2:ControlPort ;
-    lv2:index 16;
-    lv2:symbol "ENABLED" ;
-    lv2:name "ENABLED" ;
-    lv2:default 1.0 ;
-    lv2:minimum 0.0 ;
-    lv2:maximum 1.0 ;
-    lv2:designation lv2:enabled;
-    lv2:portProperty lv2:toggled;
+	a lv2:ControlPort, lv2:InputPort;
+	lv2:index 16;
+	lv2:symbol "ENABLED";
+	lv2:name "ENABLED";
+	lv2:default 1.0;
+	lv2:minimum 0.0;
+	lv2:maximum 1.0;
+	lv2:designation lv2:enabled;
+	lv2:portProperty lv2:toggled;
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;
@@ -237,11 +237,99 @@ lv2:port
 	lv2:minimum 0;
 	lv2:maximum 127;
 	lv2:portProperty lv2:integer;
+],
+[
+	a lv2:ControlPort, lv2:InputPort;
+	lv2:index 21;
+	lv2:symbol "loop1_vol";
+	lv2:name "Loop1 Volume";
+	lv2:default 1.0;
+	lv2:minimum 0;
+	lv2:maximum 1.0;
+	units:unit units:coef ;
+],
+[
+	a lv2:ControlPort, lv2:InputPort;
+	lv2:index 22;
+	lv2:symbol "loop2_vol";
+	lv2:name "Loop2 Volume";
+	lv2:default 1.0;
+	lv2:minimum 0;
+	lv2:maximum 1.0;
+	units:unit units:coef ;
+],
+[
+	a lv2:ControlPort, lv2:InputPort;
+	lv2:index 23;
+	lv2:symbol "loop3_vol";
+	lv2:name "Loop3 Volume";
+	lv2:default 1.0;
+	lv2:minimum 0;
+	lv2:maximum 1.0;
+	units:unit units:coef ;
+],
+[
+	a lv2:ControlPort, lv2:OutputPort;
+	lv2:index 24;
+	lv2:symbol "undo1_state";
+	lv2:name "Undo1 State";
+	lv2:default 0;
+	lv2:minimum 0;
+	lv2:maximum 1;
+],
+[
+	a lv2:ControlPort, lv2:OutputPort;
+	lv2:index 25;
+	lv2:symbol "undo2_state";
+	lv2:name "Undo2 State";
+	lv2:default 0;
+	lv2:minimum 0;
+	lv2:maximum 1;
+],
+[
+	a lv2:ControlPort, lv2:OutputPort;
+	lv2:index 26;
+	lv2:symbol "undo3_state";
+	lv2:name "Undo3 State";
+	lv2:default 0;
+	lv2:minimum 0;
+	lv2:maximum 1;
+],
+[
+	a lv2:ControlPort, lv2:OutputPort;
+	lv2:index 27;
+	lv2:symbol "loop1_has_audio";
+	lv2:name "Loop1 Has Audio";
+	lv2:default 0;
+	lv2:minimum 0;
+	lv2:maximum 1;
+	lv2:portProperty lv2:integer;
+],
+[
+	a lv2:ControlPort, lv2:OutputPort;
+	lv2:index 28;
+	lv2:symbol "loop2_has_audio";
+	lv2:name "Loop2 Has Audio";
+	lv2:default 0;
+	lv2:minimum 0;
+	lv2:maximum 1;
+	lv2:portProperty lv2:integer;
+],
+[
+	a lv2:ControlPort, lv2:OutputPort;
+	lv2:index 29;
+	lv2:symbol "loop3_has_audio";
+	lv2:name "Loop3 Has Audio";
+	lv2:default 0;
+	lv2:minimum 0;
+	lv2:maximum 1;
+	lv2:portProperty lv2:integer;
 ].
 
 <http://ktano-studio.com/aloschen#ui>
 	a ui:X11UI ;
 	lv2:binary <aloschen_ui.so> ;
+	lv2:requiredFeature ui:idleInterface ;
 	lv2:extensionData ui:idleInterface, ui:showInterface ;
 	ui:portNotification [
 		ui:plugin <http://ktano-studio.com/aloschen> ;
@@ -285,4 +373,31 @@ lv2:port
 	] , [
 		ui:plugin <http://ktano-studio.com/aloschen> ;
 		ui:portIndex 20
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 21
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 22
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 23
+		] , [
+			ui:plugin <http://ktano-studio.com/aloschen> ;
+			ui:portIndex 24
+		] , [
+			ui:plugin <http://ktano-studio.com/aloschen> ;
+			ui:portIndex 25
+		] , [
+			ui:plugin <http://ktano-studio.com/aloschen> ;
+			ui:portIndex 26
+		] , [
+			ui:plugin <http://ktano-studio.com/aloschen> ;
+			ui:portIndex 27
+		] , [
+			ui:plugin <http://ktano-studio.com/aloschen> ;
+			ui:portIndex 28
+		] , [
+			ui:plugin <http://ktano-studio.com/aloschen> ;
+			ui:portIndex 29
 	] .

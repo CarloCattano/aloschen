@@ -83,6 +83,48 @@ static void sine_pulse(float *target, double frequency, double sample_rate,
   }
 }
 
+static void free_instance(Alo* self) {
+  if (!self) {
+    return;
+  }
+
+  for (int t = 0; t < NUM_TRACKS; ++t) {
+    free(self->loop_buf[t]);
+    for (int l = 0; l < ALO_MAX_UNDO_LAYERS; ++l) {
+      free(self->od_buf[t][l]);
+    }
+  }
+
+  free(self->high_beat);
+  free(self->low_beat);
+  free(self->start_beat);
+  free(self);
+}
+
+static bool alloc_track_buffers(Alo* self) {
+  if (!self) {
+    return false;
+  }
+
+  for (int t = 0; t < NUM_TRACKS; ++t) {
+    self->loop_buf[t] = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
+    if (!self->loop_buf[t]) {
+      fprintf(stderr, "ALO: loop buffer allocation failed\n");
+      return false;
+    }
+
+    for (int l = 0; l < ALO_MAX_UNDO_LAYERS; ++l) {
+      self->od_buf[t][l] = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
+      if (!self->od_buf[t][l]) {
+        fprintf(stderr, "ALO: overdub buffer allocation failed\n");
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 /* ------------------------------------------------------------------------
  * LV2 instantiate
  * ------------------------------------------------------------------------ */
@@ -107,52 +149,13 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
   self->bpm = DEFAULT_BPM;
   self->loop_samples =
       (uint32_t)(self->loop_beats * self->rate * 60.0f / self->bpm);
-  self->current_position = 0.0f;
 
-  self->have_transport = false;
-  self->transport_loop_index = 0;
-  self->transport_loop_index_pending = false;
-  self->last_bar_beat = 0.0f;
-  self->have_last_bar_beat = false;
-  self->bar_counter_fallback = 0;
-  self->last_transport_beats = 0.0;
-  self->have_last_transport_beats = false;
+  self->have_last_enabled = false;
+  self->last_enabled = true;
 
-  self->midi_control = false;
-
-  for (int t = 0; t < NUM_TRACKS; ++t) {
-    self->loop_buf[t] = (float *)calloc(LOOP_SIZE * 2, sizeof(float));
-    if (!self->loop_buf[t]) {
-      fprintf(stderr, "ALO: loop buffer allocation failed\n");
-      goto fail;
-    }
-
-    for (int l = 0; l < ALO_MAX_UNDO_LAYERS; ++l) {
-      self->od_buf[t][l] = (float *)calloc(LOOP_SIZE * 2, sizeof(float));
-      if (!self->od_buf[t][l]) {
-        fprintf(stderr, "ALO: overdub buffer allocation failed\n");
-        goto fail;
-      }
-    }
-
-    self->have_loop[t] = false;
-    self->od_count[t] = 0;
-    self->rec_od_layer[t] = 0;
-    self->pending_undo[t] = 0;
-    self->pending_clear_all[t] = false;
-    self->track_state[t] = TRACK_IDLE;
-    self->rec_remaining_samples[t] = 0;
-    self->last_loop_input[t] = false;
-    self->last_undo_input[t] = false;
-    self->loop_btn_high_frames[t] = 0;
+  if (!alloc_track_buffers(self)) {
+    goto fail;
   }
-  self->loop_start = 0;
-  self->loop_index = 0;
-
-  for (int t = 0; t < NUM_TRACKS; ++t) {
-    self->ports.loop_state_out[t] = NULL;
-  }
-  self->ports.bar_step_out = NULL;
 
   LV2_URID_Map *map = NULL;
   for (int i = 0; features[i]; ++i) {
@@ -208,18 +211,7 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
   return (LV2_Handle)self;
 
 fail:
-  if (self) {
-    for (int t = 0; t < NUM_TRACKS; ++t) {
-      free(self->loop_buf[t]);
-      for (int l = 0; l < ALO_MAX_UNDO_LAYERS; ++l) {
-        free(self->od_buf[t][l]);
-      }
-    }
-    free(self->high_beat);
-    free(self->low_beat);
-    free(self->start_beat);
-    free(self);
-  }
+  free_instance(self);
   return NULL;
 }
 
@@ -228,111 +220,116 @@ fail:
  * ------------------------------------------------------------------------ */
 
 static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
-  alo_log("Connect");
   Alo *self = (Alo *)instance;
 
   switch ((PortIndex)port) {
   case ALO_INPUT_L:
     self->ports.input_l = (const float *)data;
-    alo_log("Connect ALO_INPUT_L %u", port);
     break;
   case ALO_INPUT_R:
     self->ports.input_r = (const float *)data;
-    alo_log("Connect ALO_INPUT_R %u", port);
     break;
   case ALO_OUTPUT_L:
     self->ports.output_l = (float *)data;
-    alo_log("Connect ALO_OUTPUT_L %u", port);
     break;
   case ALO_OUTPUT_R:
     self->ports.output_r = (float *)data;
-    alo_log("Connect ALO_OUTPUT_R %u", port);
     break;
 
   case ALO_BARS:
     self->ports.bars = (float *)data;
-    alo_log("Connect ALO_BARS %u", port);
     break;
 
   case ALO_CONTROL:
     self->ports.control = (LV2_Atom_Sequence *)data;
-    alo_log("Connect ALO_CONTROL %u", port);
     break;
 
   case ALO_MIDIIN:
     self->ports.midiin = (LV2_Atom_Sequence *)data;
-    alo_log("Connect ALO_MIDIIN %u", port);
     break;
 
   case ALO_MIDI_BASE:
     self->ports.midi_base = (float *)data;
-    alo_log("Connect ALO_MIDI_BASE %u", port);
     break;
 
   case ALO_CLICK:
     self->ports.click = (float *)data;
-    alo_log("Connect ALO_CLICK %u", port);
     break;
 
   case ALO_MIX:
     self->ports.mix = (float *)data;
-    alo_log("Connect ALO_MIX %u", port);
     break;
 
   case ALO_ENABLED:
-    self->ports.enabled = (int *)data;
-    alo_log("Connect ALO_ENABLED %u", port);
+    self->ports.enabled = (float *)data;
     break;
 
   case ALO_LOOP1:
     self->ports.loop_btn[0] = (float *)data;
-    alo_log("Connect ALO_LOOP1 %u", port);
     break;
   case ALO_UNDO1:
     self->ports.undo_btn[0] = (float *)data;
-    alo_log("Connect ALO_UNDO1 %u", port);
     break;
   case ALO_LOOP2:
     self->ports.loop_btn[1] = (float *)data;
-    alo_log("Connect ALO_LOOP2 %u", port);
     break;
   case ALO_UNDO2:
     self->ports.undo_btn[1] = (float *)data;
-    alo_log("Connect ALO_UNDO2 %u", port);
     break;
   case ALO_LOOP3:
     self->ports.loop_btn[2] = (float *)data;
-    alo_log("Connect ALO_LOOP3 %u", port);
     break;
   case ALO_UNDO3:
     self->ports.undo_btn[2] = (float *)data;
-    alo_log("Connect ALO_UNDO3 %u", port);
+    break;
+
+  case ALO_LOOP1_VOL:
+    self->ports.loop_vol[0] = (float *)data;
+    break;
+  case ALO_LOOP2_VOL:
+    self->ports.loop_vol[1] = (float *)data;
+    break;
+  case ALO_LOOP3_VOL:
+    self->ports.loop_vol[2] = (float *)data;
     break;
 
   case ALO_LOOP1_STATE:
     self->ports.loop_state_out[0] = (float *)data;
-    alo_log("Connect ALO_LOOP1_STATE %u", port);
     break;
   case ALO_LOOP2_STATE:
     self->ports.loop_state_out[1] = (float *)data;
-    alo_log("Connect ALO_LOOP2_STATE %u", port);
     break;
   case ALO_LOOP3_STATE:
     self->ports.loop_state_out[2] = (float *)data;
-    alo_log("Connect ALO_LOOP3_STATE %u", port);
+    break;
+
+  case ALO_UNDO1_STATE:
+    self->ports.undo_state_out[0] = (float *)data;
+    break;
+  case ALO_UNDO2_STATE:
+    self->ports.undo_state_out[1] = (float *)data;
+    break;
+  case ALO_UNDO3_STATE:
+    self->ports.undo_state_out[2] = (float *)data;
+    break;
+
+  case ALO_LOOP1_HAS_AUDIO:
+    self->ports.has_audio_out[0] = (float *)data;
+    break;
+  case ALO_LOOP2_HAS_AUDIO:
+    self->ports.has_audio_out[1] = (float *)data;
+    break;
+  case ALO_LOOP3_HAS_AUDIO:
+    self->ports.has_audio_out[2] = (float *)data;
     break;
 
   case ALO_BAR_STEP:
     self->ports.bar_step_out = (float *)data;
-    alo_log("Connect ALO_BAR_STEP %u", port);
     break;
 
   default:
-    alo_log("Connect unknown port %u", port);
     break;
   }
-
-  alo_log("Connect end");
 }
 
 /* ------------------------------------------------------------------------
@@ -365,9 +362,19 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
   /* Click/metronome. */
   run_clicks(self, n_samples);
 
-  /* If plugin is disabled, reset engine state. */
-  if (self->ports.enabled && !*(self->ports.enabled)) {
-    reset(self);
+  /* If plugin is disabled, reset engine state once per disable transition. */
+  if (self->ports.enabled) {
+    const bool enabled_now = (*(self->ports.enabled) >= 0.5f);
+    if (!self->have_last_enabled) {
+      self->have_last_enabled = true;
+      self->last_enabled = enabled_now;
+      if (!enabled_now) {
+        reset(self);
+      }
+    } else if (self->last_enabled && !enabled_now) {
+      reset(self);
+    }
+    self->last_enabled = enabled_now;
   }
 }
 
@@ -378,19 +385,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 static void cleanup(LV2_Handle instance) {
   alo_log("Cleanup");
 
-  Alo *self = (Alo *)instance;
-
-  for (int t = 0; t < NUM_TRACKS; ++t) {
-    free(self->loop_buf[t]);
-    for (int l = 0; l < ALO_MAX_UNDO_LAYERS; ++l) {
-      free(self->od_buf[t][l]);
-    }
-  }
-
-  free(self->low_beat);
-  free(self->high_beat);
-  free(self->start_beat);
-  free(self);
+  free_instance((Alo*)instance);
 }
 
 /* ------------------------------------------------------------------------

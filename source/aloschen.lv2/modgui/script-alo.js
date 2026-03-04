@@ -1,4 +1,4 @@
-function (event) {
+function (event, funcs) {
     function clampBars(bars) {
         if (!(bars > 0)) return 1;
         if (bars < 1) return 1;
@@ -28,6 +28,38 @@ function (event) {
             el.addClass('alo-armed');
         } else {
             el.addClass('alo-off');
+        }
+    }
+
+    function setUndoLight(icon, stateSymbol, value) {
+        var sel = '.alo-undo-light[data-state-symbol="' + stateSymbol + '"]';
+        var el = icon.find(sel);
+        if (!el.length) {
+            return;
+        }
+
+        el.removeClass('alo-off alo-queued');
+        if (value >= 0.20) {
+            el.addClass('alo-queued');
+        } else {
+            el.addClass('alo-off');
+        }
+    }
+
+    function setUndoEnabled(icon, stateSymbol, enabled) {
+        var sel = '.alo-undo-light[data-state-symbol="' + stateSymbol + '"]';
+        var el = icon.find(sel);
+        if (!el.length) {
+            return;
+        }
+        var wrap = el.closest('.mod-green-light');
+        if (!wrap.length) {
+            return;
+        }
+        if (enabled) {
+            wrap.removeClass('alo-undo-disabled');
+        } else {
+            wrap.addClass('alo-undo-disabled');
         }
     }
 
@@ -94,6 +126,18 @@ function (event) {
             setLoopLight(icon, 'loop2_state', value);
         } else if (symbol === 'loop3_state') {
             setLoopLight(icon, 'loop3_state', value);
+        } else if (symbol === 'loop1_has_audio') {
+            setUndoEnabled(icon, 'undo1_state', value >= 0.5);
+        } else if (symbol === 'loop2_has_audio') {
+            setUndoEnabled(icon, 'undo2_state', value >= 0.5);
+        } else if (symbol === 'loop3_has_audio') {
+            setUndoEnabled(icon, 'undo3_state', value >= 0.5);
+        } else if (symbol === 'undo1_state') {
+            setUndoLight(icon, 'undo1_state', value);
+        } else if (symbol === 'undo2_state') {
+            setUndoLight(icon, 'undo2_state', value);
+        } else if (symbol === 'undo3_state') {
+            setUndoLight(icon, 'undo3_state', value);
         }
 
         icon.data('alo', data);

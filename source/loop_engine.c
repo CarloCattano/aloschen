@@ -30,6 +30,10 @@ static inline bool track_is_busy(const Alo* self, int t) {
   return track_is_active(self, t) && self->track_state[t] != TRACK_IDLE;
 }
 
+static inline bool port_is_pressed(const float* p) {
+  return p && (*p > 0.0f);
+}
+
 static inline float soft_clip_unit(float x) {
   /* Smoothly bounds signal to (-1, 1) without hard discontinuities. */
   return x / (1.0f + fabsf(x));
@@ -51,10 +55,25 @@ static void clear_track_audio(Alo* self, int t) {
   self->pending_clear_all[t] = false;
 }
 
+static inline void request_ui_cycle_resync(Alo* self) {
+  if (!self) {
+    return;
+  }
+  self->click_bar_in_cycle = 0;
+  self->ui_cycle_resync_pending = true;
+  self->ui_have_cycle_origin = false;
+  self->ui_have_prev_bar_beat = false;
+  /* Force a step-0 update to UIs on the next call. */
+  self->ui_last_bar_step = -2;
+}
+
 void update_loop_state_ports(Alo* self) {
   if (!self) {
     return;
   }
+
+  const bool transport_stopped = self->have_transport && self->have_speed && self->speed == 0.0f;
+
   for (int t = 0; t < NUM_TRACKS; ++t) {
     if (self->ports.loop_state_out[t]) {
       float v = 0.0f;
@@ -70,10 +89,20 @@ void update_loop_state_ports(Alo* self) {
         case TRACK_IDLE:
         default:
           /* Idle: show playback state if this track has a loop. */
-          v = self->have_loop[t] ? 0.5f : 0.0f;
+          v = (self->have_loop[t] && !transport_stopped) ? 0.5f : 0.0f;
           break;
       }
       *(self->ports.loop_state_out[t]) = v;
+    }
+
+    if (self->ports.undo_state_out[t]) {
+      /* 0=off, 0.25=queued (blink in UI) */
+      const bool queued = (self->pending_clear_all[t] || self->pending_undo[t] > 0);
+      *(self->ports.undo_state_out[t]) = queued ? 0.25f : 0.0f;
+    }
+
+    if (self->ports.has_audio_out[t]) {
+      *(self->ports.has_audio_out[t]) = self->have_loop[t] ? 1.0f : 0.0f;
     }
   }
 }
@@ -96,6 +125,38 @@ static uint32_t get_bars_i(const Alo* self) {
     bars_i = 1u;
   }
   return bars_i;
+}
+
+static double compute_next_cycle_start_beats(const Alo* self, double global_beats0) {
+  if (!self) {
+    return global_beats0;
+  }
+
+  const double bpb = (self->bpb > 1e-6f) ? (double)self->bpb : (double)DEFAULT_BEATS_PER_BAR;
+  if (!(bpb > 0.0)) {
+    return global_beats0;
+  }
+
+  const uint32_t bars_i = get_bars_i(self);
+  const double cycle_len_beats = (double)(bars_i ? bars_i : 1u) * bpb;
+  if (!(cycle_len_beats > 0.0)) {
+    return global_beats0;
+  }
+
+  /* Phase within the Bars-length cycle: [0, cycle_len_beats). */
+  double phase = fmod(global_beats0, cycle_len_beats);
+  if (phase < 0.0) {
+    phase += cycle_len_beats;
+  }
+
+  /* If we're effectively on the boundary, start now (avoid drifting a cycle). */
+  const double kCycleEpsBeats = 1e-3; /* ~0.5ms at 120 BPM */
+  if (phase <= kCycleEpsBeats || (cycle_len_beats - phase) <= kCycleEpsBeats) {
+    return global_beats0;
+  }
+
+  /* Next cycle start. */
+  return global_beats0 + (cycle_len_beats - phase);
 }
 
 static uint32_t compute_loop_beats(const Alo* self) {
@@ -132,6 +193,36 @@ static uint32_t compute_loop_samples(const Alo* self, uint32_t loop_beats) {
   return (uint32_t)s;
 }
 
+static bool compute_transport_phase_index(const Alo* self, double global_beats, uint32_t* out_phase_samples) {
+  if (!self || !out_phase_samples) {
+    return false;
+  }
+
+  const uint32_t loop_beats = self->loop_beats;
+  const uint32_t loop_samples = self->loop_samples;
+  if (!(loop_beats > 0u && loop_samples > 0u)) {
+    return false;
+  }
+
+  const double origin = self->have_loop_origin ? self->loop_origin_beats : 0.0;
+  double phase_beats = fmod(global_beats - origin, (double)loop_beats);
+  if (phase_beats < 0.0) {
+    phase_beats += (double)loop_beats;
+  }
+
+  double phase_samples_d = phase_beats * (double)loop_samples / (double)loop_beats;
+  if (phase_samples_d < 0.0) {
+    phase_samples_d = 0.0;
+  }
+  uint32_t phase_samples = (uint32_t)floor(phase_samples_d);
+  if (phase_samples >= loop_samples) {
+    phase_samples = loop_samples - 1;
+  }
+
+  *out_phase_samples = phase_samples;
+  return true;
+}
+
 void reset_timing(Alo* self) {
   if (!self) {
     return;
@@ -153,6 +244,26 @@ void reset_timing(Alo* self) {
   if (self->transport_loop_index >= self->loop_samples) {
     self->transport_loop_index %= self->loop_samples;
   }
+
+  /*
+   * Bars/tempo changes must keep playback phase aligned to host transport.
+   * Recompute the transport phase immediately from the most recent position.
+   */
+  if (self->have_last_transport_beats) {
+    uint32_t phase_samples = 0;
+    if (compute_transport_phase_index(self, self->last_transport_beats, &phase_samples)) {
+      self->transport_loop_index = phase_samples;
+      self->transport_loop_index_pending = true;
+      self->have_transport = true;
+    }
+  }
+
+  /* Timing changes can shift downbeat/phase; force UI + cycle resync. */
+  request_ui_cycle_resync(self);
+  /* Drop any in-flight click envelope so we don't smear across tempo changes. */
+  self->high_beat_offset = self->beat_len;
+  self->low_beat_offset = self->beat_len;
+  self->start_beat_offset = self->beat_len;
 
   update_loop_state_ports(self);
 }
@@ -230,10 +341,7 @@ static void update_bar_step_out(Alo* self) {
   const uint32_t bars_i = get_bars_i(self);
   if (bars_i != self->ui_last_bars_i) {
     self->ui_last_bars_i = bars_i;
-    self->click_bar_in_cycle = 0;
-    self->ui_cycle_resync_pending = true;
-    self->ui_have_cycle_origin = false;
-    self->ui_have_prev_bar_beat = false;
+    request_ui_cycle_resync(self);
   }
 
   /* Default to showing the first position when stopped / not yet synced. */
@@ -241,10 +349,7 @@ static void update_bar_step_out(Alo* self) {
 
   if (transport_stopped || !self->have_transport || !self->have_last_transport_beats) {
     /* Stopped/unknown: show step 0 and force next start to resync. */
-    self->click_bar_in_cycle = 0;
-    self->ui_cycle_resync_pending = true;
-    self->ui_have_cycle_origin = false;
-    self->ui_have_prev_bar_beat = false;
+    request_ui_cycle_resync(self);
     step = 0;
   } else {
     float bar_beat = self->current_position;
@@ -264,7 +369,8 @@ static void update_bar_step_out(Alo* self) {
 
     if (self->ui_cycle_resync_pending && !self->ui_have_cycle_origin) {
       /* Set cycle origin on the first downbeat after (re)sync. */
-      if (downbeat_edge || bar_beat < 1e-3f) {
+      const float kDownbeatGraceBeats = 0.25f;
+      if (downbeat_edge || bar_beat <= kDownbeatGraceBeats) {
         self->ui_cycle_origin_beats = self->last_transport_beats - (double)bar_beat;
         self->ui_have_cycle_origin = true;
         self->ui_cycle_resync_pending = false;
@@ -306,6 +412,44 @@ static void update_bar_step_out(Alo* self) {
 /* -------------------------------------------------------------------------
  * Transport update
  * ------------------------------------------------------------------------- */
+
+static void update_transport_beats(Alo* self, double global_beats) {
+  if (!self) {
+    return;
+  }
+
+  /* Transport is considered present as soon as we receive beat position. */
+  self->have_transport = true;
+
+  if (self->have_last_transport_beats) {
+    if (global_beats > self->last_transport_beats + 1e-6) {
+      self->transport_moving = true;
+    } else if (self->have_speed && self->speed == 0.0f) {
+      self->transport_moving = false;
+    }
+  }
+
+  if (self->have_last_transport_beats && global_beats < self->last_transport_beats - 0.5) {
+    reset(self);
+  }
+
+  self->last_transport_beats = global_beats;
+  self->have_last_transport_beats = true;
+}
+
+static void update_transport_phase(Alo* self, double global_beats) {
+  if (!self) {
+    return;
+  }
+
+  uint32_t phase_samples = 0;
+  if (!compute_transport_phase_index(self, global_beats, &phase_samples)) {
+    return;
+  }
+
+  self->transport_loop_index = phase_samples;
+  self->transport_loop_index_pending = true;
+}
 
 static void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj) {
   if (!self || !obj) {
@@ -354,47 +498,13 @@ static void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj) {
   if (abs_beat && abs_beat->type == uris->atom_Float) {
     const double global_beats = (double)((LV2_Atom_Float*)abs_beat)->body;
 
-    if (self->have_last_transport_beats) {
-      if (global_beats > self->last_transport_beats + 1e-6) {
-        self->transport_moving = true;
-      } else if (self->have_speed && self->speed == 0.0f) {
-        self->transport_moving = false;
-      }
-    }
-
-    if (self->have_last_transport_beats &&
-        global_beats < self->last_transport_beats - 0.5) {
-      reset(self);
-    }
-
-    self->last_transport_beats = global_beats;
-    self->have_last_transport_beats = true;
+    update_transport_beats(self, global_beats);
 
     const float bar_beat =
         (self->bpb > 0.0f) ? fmodf((float)global_beats, self->bpb) : 0.0f;
     self->current_position = bar_beat;
 
-    if (self->loop_beats > 0 && self->loop_samples > 0) {
-      const double origin = self->have_loop_origin ? self->loop_origin_beats : 0.0;
-      double phase_beats = fmod(global_beats - origin, (double)self->loop_beats);
-      if (phase_beats < 0.0) {
-        phase_beats += (double)self->loop_beats;
-      }
-
-      double phase_samples_d =
-          phase_beats * (double)self->loop_samples / (double)self->loop_beats;
-      if (phase_samples_d < 0.0) {
-        phase_samples_d = 0.0;
-      }
-      uint32_t phase_samples = (uint32_t)floor(phase_samples_d);
-      if (phase_samples >= self->loop_samples) {
-        phase_samples = self->loop_samples - 1;
-      }
-
-      self->transport_loop_index = phase_samples;
-      self->transport_loop_index_pending = true;
-      self->have_transport = true;
-    }
+    update_transport_phase(self, global_beats);
 
     return;
   }
@@ -428,41 +538,8 @@ static void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj) {
       const double global_beats =
           (double)bar_index * (double)self->bpb + (double)bar_beat2;
 
-      if (self->have_last_transport_beats) {
-        if (global_beats > self->last_transport_beats + 1e-6) {
-          self->transport_moving = true;
-        } else if (self->have_speed && self->speed == 0.0f) {
-          self->transport_moving = false;
-        }
-      }
-
-      if (self->have_last_transport_beats &&
-          global_beats < self->last_transport_beats - 0.5) {
-        reset(self);
-      }
-
-      self->last_transport_beats = global_beats;
-      self->have_last_transport_beats = true;
-
-      const double origin = self->have_loop_origin ? self->loop_origin_beats : 0.0;
-      double phase_beats = fmod(global_beats - origin, (double)self->loop_beats);
-      if (phase_beats < 0.0) {
-        phase_beats += (double)self->loop_beats;
-      }
-
-      double phase_samples_d =
-          phase_beats * (double)self->loop_samples / (double)self->loop_beats;
-      if (phase_samples_d < 0.0) {
-        phase_samples_d = 0.0;
-      }
-      uint32_t phase_samples = (uint32_t)floor(phase_samples_d);
-      if (phase_samples >= self->loop_samples) {
-        phase_samples = self->loop_samples - 1;
-      }
-
-      self->transport_loop_index = phase_samples;
-      self->transport_loop_index_pending = true;
-      self->have_transport = true;
+      update_transport_beats(self, global_beats);
+      update_transport_phase(self, global_beats);
     }
   }
 }
@@ -482,6 +559,20 @@ static void handle_loop_press(Alo* self, int t) {
   }
 
   if (!self->have_loop[t]) {
+    /*
+     * First-ever base recording defines the loop origin.
+     * Force the Bars-cycle (UI stepbar + START click) to restart so the
+     * quantized downbeat we start on is always step 0 / bar 1.
+     */
+    if (!self->have_loop_origin) {
+      request_ui_cycle_resync(self);
+      if (self->have_last_transport_beats) {
+        /* Keep UI step origin aligned with the exact same target as audio. */
+        self->ui_cycle_origin_beats = compute_next_cycle_start_beats(self, self->last_transport_beats);
+        self->ui_have_cycle_origin = true;
+        self->ui_cycle_resync_pending = false;
+      }
+    }
     self->track_state[t] = TRACK_ARM_BASE;
     self->rec_remaining_samples[t] = 0;
   } else {
@@ -502,7 +593,13 @@ static void handle_undo_press(Alo* self, int t) {
    * Quantized undo:
    * - First press schedules one undo at the next bar downbeat.
    * - Additional presses before that downbeat clear the entire slot.
+   * - Triple tap before the downbeat clears immediately (no waiting for sync).
    */
+  if (self->pending_clear_all[t]) {
+    clear_track_audio(self, t);
+    return;
+  }
+
   if (self->pending_undo[t] > 0) {
     self->pending_clear_all[t] = true;
     return;
@@ -550,6 +647,24 @@ static void handle_button_edges(Alo* self, int t, bool loop_btn, bool undo_btn) 
   self->last_undo_input[t] = undo_btn;
 }
 
+static inline void apply_pending_undo_at_bar(Alo* self) {
+  for (int t = 0; t < NUM_TRACKS; ++t) {
+    if (self->pending_clear_all[t]) {
+      clear_track_audio(self, t);
+      continue;
+    }
+
+    while (self->pending_undo[t] > 0) {
+      if (self->od_count[t] > 0) {
+        self->od_count[t]--;
+      } else if (self->have_loop[t]) {
+        self->have_loop[t] = false;
+      }
+      self->pending_undo[t]--;
+    }
+  }
+}
+
 /* -------------------------------------------------------------------------
  * Click
  * ------------------------------------------------------------------------- */
@@ -586,6 +701,15 @@ void run_clicks(Alo* self, uint32_t n_samples) {
     return;
   }
 
+  if (!self->ports.click || !self->ports.output_l || !self->ports.output_r) {
+    return;
+  }
+
+  /* This plugin is transport-synced: do not free-run without host position. */
+  if (!self->have_transport || !self->have_last_transport_beats) {
+    return;
+  }
+
   /* With host transport: do not advance click/beat state while stopped. */
   if (self->have_speed && self->speed == 0.0f) {
     return;
@@ -598,6 +722,8 @@ void run_clicks(Alo* self, uint32_t n_samples) {
       break;
     }
   }
+
+  const bool can_click = play_click && (*(self->ports.click) > 0.0f) && self->speed;
 
   const float old_beat = floorf(self->current_position);
   self->current_position += n_samples / self->rate / 60.0f * self->bpm;
@@ -620,7 +746,7 @@ void run_clicks(Alo* self, uint32_t n_samples) {
     }
     const bool is_cycle_start = (beat == 0.0f) && (self->click_bar_in_cycle == 0u);
 
-    if (play_click && *self->ports.click && self->speed) {
+    if (can_click) {
       click_mix(self, 0, sample_offset);
 
       if (beat == 0.0f) {
@@ -646,7 +772,7 @@ void run_clicks(Alo* self, uint32_t n_samples) {
       }
     }
   } else {
-    if (play_click && *self->ports.click && self->speed) {
+    if (can_click) {
       click_mix(self, 0, n_samples);
     }
   }
@@ -681,11 +807,39 @@ void run_events(Alo* self) {
     const bool stopped = (self->speed == 0.0f);
     if (stopped != self->ui_transport_was_stopped) {
       self->ui_transport_was_stopped = stopped;
-      self->click_bar_in_cycle = 0;
-      self->ui_cycle_resync_pending = true;
-      self->ui_have_cycle_origin = false;
-      self->ui_have_prev_bar_beat = false;
-      self->ui_last_bar_step = -2;
+      request_ui_cycle_resync(self);
+    }
+  }
+
+  /*
+   * Bars changes are a blocking operation: treat them like a disable/enable
+   * to guarantee the engine is fully resynchronized (no drifted loop origin
+   * or UI cycle offsets). Preserve transport position so we stay phase-locked.
+   */
+  {
+    const uint32_t bars_i = get_bars_i(self);
+    if (bars_i != self->ui_last_bars_i) {
+      const bool have_pos = self->have_last_transport_beats;
+      const double global_beats = self->last_transport_beats;
+      const bool have_speed = self->have_speed;
+      const float speed = self->speed;
+      const bool moving = self->transport_moving;
+
+      reset(self);
+
+      self->have_speed = have_speed;
+      self->speed = speed;
+      self->transport_moving = moving || (!have_speed || speed != 0.0f);
+
+      if (have_pos) {
+        self->have_transport = true;
+        self->have_last_transport_beats = true;
+        self->last_transport_beats = global_beats;
+
+        const float bpb = (self->bpb > 1e-6f) ? self->bpb : (float)DEFAULT_BEATS_PER_BAR;
+        self->current_position = (bpb > 0.0f) ? fmodf((float)global_beats, bpb) : 0.0f;
+        update_transport_phase(self, global_beats);
+      }
     }
   }
 
@@ -721,8 +875,8 @@ void run_events(Alo* self) {
   /* 3) UI edges (unless MIDI is driving). */
   if (!self->midi_control) {
     for (int t = 0; t < NUM_TRACKS; ++t) {
-      const bool loop_btn = self->ports.loop_btn[t] && (*self->ports.loop_btn[t] > 0.0f);
-      const bool undo_btn = self->ports.undo_btn[t] && (*self->ports.undo_btn[t] > 0.0f);
+      const bool loop_btn = port_is_pressed(self->ports.loop_btn[t]);
+      const bool undo_btn = port_is_pressed(self->ports.undo_btn[t]);
       handle_button_edges(self, t, loop_btn, undo_btn);
     }
   }
@@ -746,13 +900,29 @@ void run_loops(Alo* self, uint32_t n_samples) {
   float* const output_l = self->ports.output_l;
   float* const output_r = self->ports.output_r;
 
+  if (!input_l || !input_r || !output_l || !output_r || !self->ports.mix) {
+    return;
+  }
+
   self->loopmix = fminf(1.0f, *self->ports.mix / 50.0f);
   self->inmix = fminf(1.0f, (100.0f - *self->ports.mix) / 50.0f);
 
-  const bool transport_running = self->have_transport
-                                    ? (self->transport_moving || !self->have_speed ||
-                                       self->speed != 0.0f)
-                                    : true;
+  float track_gain[NUM_TRACKS];
+  for (int t = 0; t < NUM_TRACKS; ++t) {
+    float v = 1.0f;
+    if (self->ports.loop_vol[t]) {
+      v = *(self->ports.loop_vol[t]);
+    }
+    if (v < 0.0f) {
+      v = 0.0f;
+    } else if (v > 1.0f) {
+      v = 1.0f;
+    }
+    track_gain[t] = v;
+  }
+
+    const bool transport_running = self->have_transport && self->have_last_transport_beats &&
+                        (self->transport_moving || !self->have_speed || self->speed != 0.0f);
 
   /* If transport stops, do not advance or record; keep arms latched. */
   if (!transport_running) {
@@ -773,7 +943,10 @@ void run_loops(Alo* self, uint32_t n_samples) {
     self->transport_loop_index_pending = false;
   }
 
-  /* Next-bar start scheduling for the very first loop origin. */
+  /* Next-bar start scheduling for the very first loop origin.
+   * Note: arming the first base recording forces a Bars-cycle/UI resync so
+   * this next downbeat becomes step 0 (cycle start).
+   */
   uint32_t first_base_start_offset[NUM_TRACKS];
   double first_base_target_beats[NUM_TRACKS];
   for (int t = 0; t < NUM_TRACKS; ++t) {
@@ -784,43 +957,17 @@ void run_loops(Alo* self, uint32_t n_samples) {
   if (!self->have_loop_origin && self->have_last_transport_beats) {
     const double bpm = (self->bpm > 1e-6f) ? (double)self->bpm : (double)DEFAULT_BPM;
     const double samples_per_beat = (double)self->rate * 60.0 / bpm;
-    const double bpb = (self->bpb > 1e-6f) ? (double)self->bpb : (double)DEFAULT_BEATS_PER_BAR;
     const double global_beats0 = self->last_transport_beats;
 
-    /*
-     * Quantize the very first base recording to the next bar downbeat.
-     *
-     * Control-port changes (UI button presses) are typically applied at the
-     * next audio block boundary. If the user presses right before a downbeat,
-     * the host may deliver the armed state in the *following* block, when the
-     * transport position is already slightly past the downbeat. Without a
-     * guard, we can miss that downbeat and schedule one full bar later.
-     *
-     * Grace window: if we are very near the downbeat at the start of this
-     * block, treat it as the downbeat and start immediately (offset 0).
-     */
-    const float bar_beat0_f = self->current_position;
-    double bar_beat0 = (bar_beat0_f >= 0.0f) ? (double)bar_beat0_f : 0.0;
-    if (bar_beat0 < 0.0) {
-      bar_beat0 = 0.0;
+    /* Quantize the very first base recording to the next Bars-cycle start. */
+    const double target_beats = compute_next_cycle_start_beats(self, global_beats0);
+    const double beats_until = target_beats - global_beats0;
+    uint64_t offset_s = 0;
+    if (beats_until > 0.0) {
+      /* Never start early: ceil to the next sample at/after the boundary. */
+      const double samples_until = beats_until * samples_per_beat;
+      offset_s = (uint64_t)ceil(samples_until - 1e-9);
     }
-    const double kDownbeatGraceBeats = 0.25; /* quarter-beat */
-
-    const double k = floor(global_beats0 / bpb);
-    double target_beats = k * bpb;
-
-    if (bar_beat0 <= kDownbeatGraceBeats) {
-      /* Start at the current bar downbeat (block boundary). */
-      target_beats = global_beats0 - bar_beat0;
-    } else {
-      /* Start at the next bar downbeat. */
-      if (global_beats0 - target_beats > 1e-6) {
-        target_beats += bpb;
-      }
-    }
-
-    const double beats_until = fmax(0.0, target_beats - global_beats0);
-    const uint64_t offset_s = (uint64_t)llround(beats_until * samples_per_beat);
 
     for (int t = 0; t < NUM_TRACKS; ++t) {
       if (self->track_state[t] == TRACK_ARM_BASE) {
@@ -840,42 +987,35 @@ void run_loops(Alo* self, uint32_t n_samples) {
     bar_len = self->loop_samples ? self->loop_samples : 1u;
   }
 
+  const float inmix = self->inmix;
+  const float loopmix = self->loopmix;
+
   for (uint32_t pos = 0; pos < n_samples; ++pos) {
     /* Apply pending undo at bar downbeat. */
     const uint32_t phase = (self->loop_index - self->loop_start);
     const bool at_bar = ((phase % bar_len) == 0u);
     if (at_bar) {
-      for (int t = 0; t < NUM_TRACKS; ++t) {
-        if (self->pending_clear_all[t]) {
-          clear_track_audio(self, t);
-          continue;
-        }
-
-        while (self->pending_undo[t] > 0) {
-          if (self->od_count[t] > 0) {
-            self->od_count[t]--;
-          } else if (self->have_loop[t]) {
-            self->have_loop[t] = false;
-          }
-          self->pending_undo[t]--;
-        }
-      }
+      apply_pending_undo_at_bar(self);
     }
+
+    const uint32_t idx = self->loop_index;
+    const uint32_t idx_r = idx + LOOP_SIZE;
 
     const float in_l = input_l[pos];
     const float in_r = input_r[pos];
 
     /* Dry input */
-    output_l[pos] = self->inmix * in_l;
-    output_r[pos] = self->inmix * in_r;
+    output_l[pos] = inmix * in_l;
+    output_r[pos] = inmix * in_r;
 
     /* Playback (sum tracks). */
     for (int t = 0; t < NUM_TRACKS; ++t) {
       if (!self->have_loop[t] || !self->loop_buf[t]) {
         continue;
       }
-      output_l[pos] += self->loop_buf[t][self->loop_index];
-      output_r[pos] += self->loop_buf[t][self->loop_index + LOOP_SIZE];
+      const float g = track_gain[t];
+      output_l[pos] += g * self->loop_buf[t][idx];
+      output_r[pos] += g * self->loop_buf[t][idx_r];
 
       const uint8_t n_layers = self->od_count[t];
       for (uint8_t l = 0; l < n_layers; ++l) {
@@ -883,8 +1023,8 @@ void run_loops(Alo* self, uint32_t n_samples) {
         if (!buf) {
           continue;
         }
-        output_l[pos] += buf[self->loop_index];
-        output_r[pos] += buf[self->loop_index + LOOP_SIZE];
+        output_l[pos] += g * buf[idx];
+        output_r[pos] += g * buf[idx_r];
       }
     }
 
@@ -939,8 +1079,8 @@ void run_loops(Alo* self, uint32_t n_samples) {
       }
 
       if (self->track_state[t] == TRACK_REC_BASE) {
-        self->loop_buf[t][self->loop_index] = self->loopmix * in_l;
-        self->loop_buf[t][self->loop_index + LOOP_SIZE] = self->loopmix * in_r;
+        self->loop_buf[t][idx] = loopmix * in_l;
+        self->loop_buf[t][idx_r] = loopmix * in_r;
 
         if (self->rec_remaining_samples[t] > 0) {
           self->rec_remaining_samples[t]--;
@@ -953,8 +1093,8 @@ void run_loops(Alo* self, uint32_t n_samples) {
         const uint8_t layer = self->rec_od_layer[t];
         if (layer < ALO_MAX_UNDO_LAYERS && self->od_buf[t][layer]) {
           float* const buf = self->od_buf[t][layer];
-          buf[self->loop_index] = self->loopmix * in_l;
-          buf[self->loop_index + LOOP_SIZE] = self->loopmix * in_r;
+          buf[idx] = loopmix * in_l;
+          buf[idx_r] = loopmix * in_r;
         }
 
         if (self->rec_remaining_samples[t] > 0) {
