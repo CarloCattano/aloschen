@@ -45,3 +45,14 @@ install: build
 	install -m 644 aloschen.lv2/modgui/* $(DESTDIR)$(PREFIX)/lib/lv2/aloschen.lv2/modgui
 
 # --------------------------------------------------------------
+# Local dev convenience: deploy to MOD Desktop
+
+MOD_DESKTOP_PLUGINS ?= $(HOME)/Desktop/mod-desktop-0.0.12-linux-x86_64/mod-desktop/plugins
+
+.PHONY: deploy-mod-desktop
+deploy-mod-desktop: build
+	@echo "Deploying aloschen.lv2 -> $(MOD_DESKTOP_PLUGINS)"
+	rm -rf "$(MOD_DESKTOP_PLUGINS)/aloschen.lv2"
+	cp -r aloschen.lv2 "$(MOD_DESKTOP_PLUGINS)"
+
+# --------------------------------------------------------------

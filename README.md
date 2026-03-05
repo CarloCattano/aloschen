@@ -1,111 +1,100 @@
-# An [Alo Looper fork](https://github.com/devcurmudgeon/alo)
-aims to be controlled with 2 buttons only.
-[REC/OVERDUB] [UNDO/CLEAR]
+# ALO / Aloschen — transport-synced 3-track LV2 looper
 
-WIP
+ALO is a lightweight, mistake-resistant looper that stays locked to the host transport.
+It provides **3 independent loop slots**, each with **one-shot** record/overdub and **quantized undo**.
 
-Tested on amd64 and aarch64 ( mod )
+Tested on amd64 and aarch64 (MOD).
 
-![screenshot](/source/alo.lv2/modgui/screenshot-alo.png)
+![screenshot](source/aloschen.lv2/modgui/screenshot-alo.png)
 
-ALO is an LV2 plugin primarily targeted at the MOD Duo but hopefully it should
-work on other systems too. It's based on the amp.c and metro.c lv2 example
-plugins, plus some study of the loopor code.
+## Quick start
 
-The idea is to provide an easy, mistake-proof way to create and trigger live
-music loops in sync with a click track, or in free running mode.
+1. Start the host transport (this plugin is transport-synced; it does not free-run).
+2. Set `Bars` (loop length = `Bars` bars).
+3. Press `Loop1`/`Loop2`/`Loop3`:
+   - If the slot is empty: arms base recording.
+   - If the slot has audio: arms an overdub.
+4. Recording starts **quantized** and lasts for exactly **one loop length**, then auto-stops.
 
-- Each instance of ALO can record and play up to 6 loops. All loops are the
-  same length.
+## Looping behavior
 
-- In sync mode the loop length is set by the ```Bars``` parameter.
+Per slot:
 
-- In free running mode, the loop length is set when a switch is pressed to mark
-  the end of recording the first loop.
+- **Arm (base)**: Press `LoopN` when the slot is empty.
+  - If this is the **first base recording in the instance** (no loop origin yet): starts on the **next Bars-cycle downbeat** (bar 1 beat 1 / step 0).
+  - Otherwise: starts on the **next loop boundary** (phase-aligned with the existing loop origin).
+- **Arm (overdub)**: Press `LoopN` when the slot already has audio.
+  - Starts on the **next loop boundary**, records one loop length, then commits as a new overdub layer.
+- **One-shot**: base and overdub both record for exactly one loop length and auto-stop.
 
-- Each loop is recorded/played using a switch by default.
+### Undo
 
-- Alternatively you can connect a MIDI device and use MIDI notes to control
-  the loops. The ```MIDI Base``` parameter sets the range of midi notes (from
-  ```MIDI Base``` to ```MIDI Base + 5```) assigned to loops.
+- Undo is **quantized** to the next **bar downbeat**.
+- Press `UndoN` once: removes one overdub layer at the next bar.
+- Press `UndoN` rapidly (2+ times before the next bar): clears the whole slot at the next bar.
 
-- Each loop start point is triggered when the audio input signal crosses the
- ```Threshold``` value.
+### Bars changes (important)
 
-- Hit a switch (or a MIDI note on) to arm a loop, then start playing to begin
-  recording. Hit the switch again (or MIDI note off) to mute the loop once it
-  finishes playing. Hit again (or MIDI note on again) to start playing the
-  loop again next time around.
+Changing `Bars` is treated as a **blocking resync** (similar to disable/enable):
 
-- Each loop is a single recording. To 'overdub', just record another loop.
+- The engine resets to guarantee transport/phase correctness.
+- Existing loops/arms are cleared.
 
-- To reset a loop, for re-recording, double-hit the switch (or toggle the midi
-  note) within one second.
+## Controls
 
-- In free running mode, turning all loops off will reset them all.
+Main controls:
 
-- The ```Click``` parameter adjusts the click volume in sync mode. Set it to
-  zero if you're using something else as a click track.
+- `Bars` (1..32, integer): loop length in bars.
+- `Click` (0..10, integer): click volume (only when no loops are playing).
+- `Mix` (0..100, integer): dry/wet blend.
+- `ENABLED` (0/1): resets engine state on disable.
 
-- The ```Mix``` parameter adjusts the relativel levels of the dry signal and
-  loop signals. 100 is loops only, 0 is dry signal only.
+Per-slot buttons:
 
-- If you want more loops, or different loop lengths, add extra instances of Alo.
+- `Loop1`, `Loop2`, `Loop3`: arm base/overdub.
+- `Undo1`, `Undo2`, `Undo3`: quantized undo/clear.
 
-## design notes
-```
-              1       2       3       4       1       2
-.-|-.-.-.-|-.-.-.-|-.-.-.-|-.-.-.-|-.-.-.-|-.-.-.-|-.-.-.   beats
+Per-slot playback volumes:
 
-<------always recording in the background--------------->
+- `loop1_vol`, `loop2_vol`, `loop3_vol` (0..1, float): playback gain coefficients.
+  - Default `1.0` = unity gain (no change).
+  - Applies to playback (base + overdub layers), not recording.
 
-_______/<<^^^^^^^^^^^^^^^^^^^\____________________________  audio in
-       |<<| phrase-start..goes here--> |<<|
+MIDI:
 
-      |^^^^^^^| hit loop button anytime in this region
-                now we know loop starts at nearest beat 1 
-                and threshold detect for intro phrase
-          |^^^^^^^^^^^^^^^^^^^\_________<<|     loop is fixed length
-                                       |  |     includes phrase-start
-```
+- `MIDI Base` sets the note mapping:
+  - `MIDI Base + 0..2` → `Loop1..3`
+  - `MIDI Base + 3..5` → `Undo1..3`
 
-- we start in 'recording' mode
+## Click + step indicator
 
-- when loop button is pressed:
+- The click has three sounds:
+  - **START**: bar 1 beat 1 of the Bars-length cycle (once per cycle)
+  - **HIGH**: beat 1 of other bars
+  - **LOW**: all other beats
+- The DSP also outputs `bar_step` (index 20) as a step index across the Bars-length cycle:
+  - steps = `Bars * 4` (4 steps per bar)
+  - range is sized for `Bars` up to 32 (max 127)
 
-  if 'recording' mode:
-    - figure out when phrase-start happens
-    - switch to loop_on mode at next phrase_start
+## Build
 
-  if loop_on mode:
-    - play the loop from (and looping at) next phrase-start
+From the repo root:
 
-  if loop_off mode:
-    - stop playing loop at next phrase-start
-
-  - if button is pressed twice within one beat, go back to 'recording' mode
-
-## starting MOD docker build environment
-
-These instructions assume that the alo source is at ```~/Projects/2018/moddevices/alo```
-
-```
-docker run -ti --name mpb -p 9000:9000 -v ~/Projects/2018/moddevices/:/tmp/moddevices moddevices/mod-plugin-builder
+```sh
+cd source
+make -j
 ```
 
-## build and deploy notes
+## Debug logging
 
-```/tmp/moddevices/alo/cycle.sh```
+Logging is opt-in:
 
-## debug notes
-
+```sh
+ALO_LOG=1 <your-host>
+tail -f /tmp/alo.log
 ```
 
-edit the code to set `LOG_ENABLED = true`
+## Notes
 
-```
-tail -f /root/alo.log`
-
-mod-host -p 1234 -i
-add http://devcurmudgeon.com/alo 0
-````
+- The DSP preallocates all loop and overdub buffers at instantiate time (no allocation in the audio thread).
+- Memory footprint is intentionally large (worst-case preallocation) to keep the audio thread deterministic.

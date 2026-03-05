@@ -56,8 +56,12 @@
 }
 
 /* CONTROLS */
+.alo{{{cns}}} .alo-setup-group {
+    display: none;
+}
+
 .alo{{{cns}}} .alo-global-group {
-    padding: 4px 6px;
+    padding: 4px 4px;
     border-color: #000;
     border-style: solid;
 	border-radius: 12px;
@@ -65,18 +69,42 @@
     color: #fff;
     font-size: 10px;
     font-weight: bold;
-    height: 90px;
-    left: 40px;
+    height: 74px;
+    left: 12px;
     position: absolute;
-    right: 40px;
-    top: 40px;
+    right: 12px;
+    bottom: 8px;
     /* Must be above MOD's drag-handle overlay (z-index: 20) */
     z-index: 30;
 }
 
+/* Footer switches (bypass + UI rings) live next to Mix.
+ * Wrap to allow a small label above each switch.
+ */
+.alo{{{cns}}} .alo-global-group .alo-footer-switch {
+    float: right;
+    margin-top: 0px;
+    margin-left: 6px;
+    text-align: center;
+}
+
+.alo{{{cns}}} .alo-global-group .alo-footer-switch-label {
+    font-size: 8px;
+    font-weight: bold;
+    line-height: 1;
+    opacity: 0.85;
+    margin-bottom: 0px;
+    pointer-events: none;
+}
+
+.alo{{{cns}}} .alo-global-group .alo-footer-switch .mod-switch {
+    float: none;
+    margin: 0;
+}
+
 .alo{{{cns}}} .alo-global-group > div {
-    margin-right: 2px;
-    margin-left: 2px;
+    margin-right: 1px;
+    margin-left: 1px;
 }
 
 .alo{{{cns}}} .mod-pedal-input,
@@ -91,18 +119,19 @@
 /* Per-loop controls (Loop + Undo + Volume) */
 .alo{{{cns}}} .alo-loop-row {
     position: absolute;
-    left: 40px;
-    right: 40px;
-    top: 145px;
-    bottom: 54px;
-    padding: 8px 10px;
+    left: 270px;
+    right: 12px;
+    top: 38px;
+    bottom: 90px;
+    padding: 4px 4px;
     border: 1px solid #000;
     border-radius: 10px;
     background: rgba(0,0,0,.6);
     display: flex;
-    gap: 10px;
+    flex-direction: column;
+    gap: 6px;
     align-items: stretch;
-    justify-content: space-around;
+    justify-content: flex-start;
     overflow: hidden;
     /* Must be above MOD's drag-handle overlay (z-index: 20) */
     z-index: 30;
@@ -129,74 +158,114 @@
 }
 
 .alo{{{cns}}} .alo-loop-col {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: 74px 74px 150px;
+    grid-template-rows: auto auto;
+    column-gap: 4px;
+    row-gap: 0;
     align-items: center;
-    justify-content: flex-start;
-    flex: 1 1 0;
+    justify-content: start;
+    flex: 0 0 auto;
     min-width: 0;
 }
 
-.alo{{{cns}}} .alo-loop-buttons {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    justify-content: center;
+.alo{{{cns}}} .alo-loop-col.alo-loop-col-nolabel {
+    padding-top: 2px;
 }
+
+.alo{{{cns}}} .alo-loop-col:not(:last-child) {
+    padding-bottom: 3px;
+    border-bottom: 1px solid #000;
+}
+
+.alo{{{cns}}} .alo-loop-label {
+    font-size: 8px;
+    line-height: 1;
+    font-weight: bold;
+    color: #fff;
+    opacity: 0.75;
+    text-align: center;
+    pointer-events: none;
+    align-self: end;
+    position: relative;
+    top: 0;
+}
+
+.alo{{{cns}}} .alo-loop-label-loop { grid-column: 1; grid-row: 1; }
+.alo{{{cns}}} .alo-loop-label-undo { grid-column: 2; grid-row: 1; }
+.alo{{{cns}}} .alo-loop-label-vol  { grid-column: 3; grid-row: 1; }
+
+.alo{{{cns}}} .alo-loop-cell { grid-row: 2; align-self: center; }
+.alo{{{cns}}} .alo-loop-cell-loop { grid-column: 1; }
+.alo{{{cns}}} .alo-loop-cell-undo { grid-column: 2; }
+.alo{{{cns}}} .alo-loop-cell-vol  { grid-column: 3; }
 
 /* Loop/Undo buttons: use MOD light widgets but avoid float-based layout */
 .alo{{{cns}}} .alo-loop-row .mod-green-light {
     float: none;
     width: 74px;
+    height: 74px;
+    overflow: visible;
+}
+
+/* Make the light sprite fill the bigger button area (loop rows only). */
+.alo{{{cns}}} .alo-loop-row .mod-green-light .mod-green-light-image,
+.alo{{{cns}}} .alo-loop-row .mod-green-light .mod-black-light-image {
+    width: 74px;
+    height: 74px;
+    margin-top: 0;
+    background-size: auto 74px;
 }
 
 /* In our loop columns we want the label below the light, not overlayed. */
 .alo{{{cns}}} .alo-loop-row .mod-green-light .mod-green-light-title {
-    position: relative;
-    top: auto;
-    left: auto;
-    right: auto;
-    height: auto;
-    margin-top: 2px;
-    z-index: 3;
+    display: none;
 }
 
 /* Volume sliders (loop*_vol)
  * Use MOD's canonical slider widget styles (adapted from mod-mixer.lv2).
  */
 .alo{{{cns}}} .alo-loop-row .mod-slider {
-    margin-top: 2px;
+    margin-top: 0;
 }
 
 .alo{{{cns}}} .alo-loop-row .mod-slider {
     color: #fff;
     font-size: 11px;
-    height: 140px;
-    overflow: hidden;
+    height: 74px;
+    overflow: visible;
     position: relative;
     text-align: center;
-    width: 86px;
+    width: 150px;
     flex: 0 0 auto;
+    transform: none;
 }
 
 .alo{{{cns}}} .alo-loop-row .mod-slider .mod-slider-image-wrapper {
     background-color: transparent;
-    padding: 8px 0;
+    padding: 0;
+    width: 150px;
+    height: 74px;
     position: relative;
+    overflow: visible;
 }
 
 .alo{{{cns}}} .alo-loop-row .mod-slider .mod-slider-image {
     background-image: url(/resources/slider.png{{{ns}}});
     background-repeat: no-repeat;
-    /* Canonical MOD slider sprite geometry (matches mod-mixer) */
+    /* Keep MOD's canonical slider sprite geometry (prevents flicker/jumps). */
     background-size: auto 110px;
     height: 110px;
-    margin: 0 auto;
     width: 44px;
-    /* Make it visually thicker without changing MOD's sprite positioning logic */
-    transform: scaleX(1.45);
+    margin: 0;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    /* Display as a horizontal fader */
+    transform: translate(-50%, -50%) rotate(90deg) scaleX(1.25) scaleY(0.92) translateZ(0);
     transform-origin: center;
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 .alo{{{cns}}} .alo-loop-row .mod-slider .mod-slider-image:hover {
@@ -206,12 +275,12 @@
 /* Bars-cycle step indicator (bars * 4) */
 .alo{{{cns}}} .alo-transport-row {
     position: absolute;
-    left: 50%;
-    top: 52%;
+    left: 140px;
+    top: 178px;
     transform: translate(-50%, -50%);
 
-    width: 320px;
-    height: 320px;
+    width: 220px;
+    height: 220px;
 
     pointer-events: none;
     z-index: 5;
@@ -219,13 +288,14 @@
 }
 
 /* Hide the whole circular overlay when toggled off (UI-only). */
-.alo{{{cns}}}.alo-rings-off .alo-transport-row {
-    display: none;
+.alo{{{cns}}}.alo-rings-off .alo-transport-row,
+.alo-rings-off .alo-transport-row {
+    display: none !important;
 }
 
 .alo{{{cns}}} .alo-transport {
-    width: 320px;
-    height: 320px;
+    width: 220px;
+    height: 220px;
     display: block;
 }
 
@@ -255,7 +325,7 @@
 
 .alo{{{cns}}} .alo-transport .alo-ring-host {
     stroke: #fff;
-    stroke-width: 10;
+    stroke-width: 6;
     opacity: 0.9;
 }
 
@@ -276,25 +346,25 @@
 
 /* Step ring subdivided by Bars*4 (1 bar=4, 2 bars=8, 4 bars=16, ...) */
 .alo{{{cns}}} .alo-transport .alo-ring-steps {
-    stroke: #fff;
+    stroke: #ccc;
     stroke-width: 4;
-    opacity: 0.28;
+    opacity: 0.75;
     stroke-linecap: butt;
 }
 
 .alo{{{cns}}} .alo-transport .alo-ring-steps-active {
-    stroke: #3c3;
+    stroke: #000;
     stroke-width: 6;
-    opacity: 0.90;
+    opacity: 0.98;
     stroke-linecap: butt;
 }
 
 /* Discrete step markers (Bars * 4), like the step UI but circular */
 .alo{{{cns}}} .alo-transport .alo-step-dot {
     fill: transparent;
-    stroke: #000;
+    stroke: #ccc;
     stroke-width: 1.25;
-    opacity: 0.85;
+    opacity: 0.90;
 }
 
 .alo{{{cns}}} .alo-transport .alo-step-dot.alo-active {
@@ -314,23 +384,26 @@
     stroke-width: 16;
 }
 
-/* Ring toggle switch: place it just left of bypass */
-.alo{{{cns}}} .alo-global-group .mod-switch.alo-ring-toggle {
-    float: right;
-    margin-right: 8px;
+/* Setup bar switches */
+.alo{{{cns}}} .alo-setup-group .mod-switch {
+    float: none;
+    display: inline-block;
+    margin-left: 4px;
+    margin-right: 0;
 }
 
 .alo{{{cns}}} .alo-stepbar-row {
     position: absolute;
-    left: 40px;
-    right: 40px;
-    bottom: 6px;
-    padding: 4px 6px;
+    left: 12px;
+    right: 12px;
+    top: 8px;
+    bottom: auto;
+    padding: 4px 4px;
     border: 1px solid #000;
     border-radius: 10px;
     background: rgba(0,0,0,.6);
     pointer-events: none;
-    z-index: 25;
+    z-index: 35;
 }
 
 .alo{{{cns}}} .alo-stepbar {
@@ -342,12 +415,13 @@
 .alo{{{cns}}} .alo-stepbar .alo-step {
     flex: 1 1 0;
     border: 1px solid #000;
-    background: transparent;
+    background: rgba(255,255,255,.30);
     border-radius: 4px;
 }
 
 .alo{{{cns}}} .alo-stepbar .alo-step.alo-active {
     background: #3c3;
+    border-color: #000;
 }
 
 @keyframes aloBlink {
@@ -402,7 +476,7 @@
 .alo{{{cns}}} .mod-switch {
     cursor: pointer;
     float: right;
-    height: 71px;
+    height: 60px;
     position: relative;
 }
 

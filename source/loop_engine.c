@@ -338,6 +338,19 @@ void reset(Alo* self) {
   self->ui_prev_bar_beat = 0.0f;
   self->ui_have_prev_bar_beat = false;
 
+  /* Reset UI phase outputs immediately (they otherwise only update when
+   * update_bar_step_out() runs).
+   */
+  if (self->ports.bar_step_out) {
+    *(self->ports.bar_step_out) = 0.0f;
+  }
+  if (self->ports.cycle_phase_out) {
+    *(self->ports.cycle_phase_out) = 0.0f;
+  }
+  if (self->ports.host_bar_phase_out) {
+    *(self->ports.host_bar_phase_out) = 0.0f;
+  }
+
   update_loop_state_ports(self);
 }
 
@@ -615,8 +628,10 @@ static void handle_loop_press(Alo* self, int t) {
     return;
   }
 
-  /* One-shot: ignore presses while busy. */
+  /* If the user presses while armed/recording, treat it as cancel/abort. */
   if (track_is_busy(self, t)) {
+    clear_track_state(self, t);
+    update_loop_state_ports(self);
     return;
   }
 
@@ -797,16 +812,55 @@ void run_clicks(Alo* self, uint32_t n_samples) {
     const uint32_t sample_offset =
         (uint32_t)((self->current_position - beat) * self->rate);
 
-    /*
-     * Advance the Bars-cycle phase on every bar downbeat, even when the click
-     * is muted or suppressed (e.g. loops present). The UI step indicator and
-     * the START click both reference this cycle.
-     */
+    /* Absolute transport beat position at the beat boundary inside this block. */
+    const double bpm = (self->bpm > 1e-6f) ? (double)self->bpm : (double)DEFAULT_BPM;
+    const double samples_per_beat = (double)self->rate * 60.0 / bpm;
+    const double boundary_beats = self->last_transport_beats + ((double)sample_offset / samples_per_beat);
+
     const uint32_t bars_i = get_bars_i(self);
-    if (self->click_bar_in_cycle >= bars_i) {
-      self->click_bar_in_cycle = 0;
+    bool is_cycle_start = false;
+
+    if (beat == 0.0f) {
+      /* If resync is pending and the downbeat occurs within this block, lock
+       * the Bars-cycle origin to this exact boundary.
+       */
+      if (self->ui_cycle_resync_pending && !self->ui_have_cycle_origin) {
+        self->ui_cycle_origin_beats = boundary_beats;
+        self->ui_have_cycle_origin = true;
+        self->ui_cycle_resync_pending = false;
+      }
+
+      if (self->ui_have_cycle_origin && !self->ui_cycle_resync_pending) {
+        const double bpb = (self->bpb > 1e-6f) ? (double)self->bpb : (double)DEFAULT_BEATS_PER_BAR;
+        const double cycle_len = (double)(bars_i ? bars_i : 1u) * bpb;
+        double phase = fmod(boundary_beats - self->ui_cycle_origin_beats, cycle_len);
+        if (phase < 0.0) {
+          phase += cycle_len;
+        }
+
+        const double kCycleEpsBeats = 1e-3;
+        is_cycle_start = (phase <= kCycleEpsBeats) || ((cycle_len - phase) <= kCycleEpsBeats);
+
+        /* Keep click_bar_in_cycle consistent with the same origin. */
+        uint32_t bar_in_cycle = 0;
+        if (bpb > 1e-9) {
+          const double bar_phase = floor(phase / bpb);
+          if (bar_phase >= 0.0) {
+            bar_in_cycle = (uint32_t)bar_phase;
+          }
+        }
+        if (bar_in_cycle >= bars_i) {
+          bar_in_cycle = 0;
+        }
+        self->click_bar_in_cycle = bar_in_cycle;
+      } else {
+        /* Fallback before origin is established. */
+        if (self->click_bar_in_cycle >= bars_i) {
+          self->click_bar_in_cycle = 0;
+        }
+        is_cycle_start = (self->click_bar_in_cycle == 0u);
+      }
     }
-    const bool is_cycle_start = (beat == 0.0f) && (self->click_bar_in_cycle == 0u);
 
     if (can_click) {
       click_mix(self, 0, sample_offset);
@@ -827,10 +881,14 @@ void run_clicks(Alo* self, uint32_t n_samples) {
     }
 
     if (beat == 0.0f) {
-      /* Advance bar within cycle on the downbeat. */
-      self->click_bar_in_cycle++;
-      if (self->click_bar_in_cycle >= bars_i) {
-        self->click_bar_in_cycle = 0;
+      /* When the origin isn't locked yet, advance the fallback counter on
+       * downbeats.
+       */
+      if (!self->ui_have_cycle_origin || self->ui_cycle_resync_pending) {
+        self->click_bar_in_cycle++;
+        if (self->click_bar_in_cycle >= bars_i) {
+          self->click_bar_in_cycle = 0;
+        }
       }
     }
   } else {
@@ -870,6 +928,17 @@ void run_events(Alo* self) {
     if (stopped != self->ui_transport_was_stopped) {
       self->ui_transport_was_stopped = stopped;
       request_ui_cycle_resync(self);
+
+      /* If transport stops, abort any in-flight arming/recording so we don't
+       * unexpectedly start recording/overdubbing on the next transport start.
+       */
+      if (stopped) {
+        for (int t = 0; t < NUM_TRACKS; ++t) {
+          if (self->track_state[t] != TRACK_IDLE) {
+            clear_track_state(self, t);
+          }
+        }
+      }
     }
   }
 
@@ -989,6 +1058,16 @@ void run_loops(Alo* self, uint32_t n_samples) {
 
   /* If transport stops, do not advance or record; keep arms latched. */
   if (!transport_running) {
+    /* If the host reports a real transport stop, abort any in-flight
+     * arming/recording so nothing triggers on restart.
+     */
+    if (self->have_speed && self->speed == 0.0f) {
+      for (int t = 0; t < NUM_TRACKS; ++t) {
+        if (self->track_state[t] != TRACK_IDLE) {
+          clear_track_state(self, t);
+        }
+      }
+    }
     for (uint32_t i = 0; i < n_samples; ++i) {
       const float l = input_l[i];
       const float r = input_r[i];
@@ -1156,14 +1235,17 @@ void run_loops(Alo* self, uint32_t n_samples) {
         }
       } else if (self->track_state[t] == TRACK_ARM_OVERDUB) {
         if (self->have_loop[t] && self->loop_index == self->loop_start) {
-          self->track_state[t] = TRACK_REC_OVERDUB;
-          self->rec_remaining_samples[t] = self->loop_samples;
-
-          /* Append if possible, else overwrite most recent layer. */
+          /* Only start an overdub if we have a free layer to record into.
+           * Never overwrite an active layer in-place (aborts would corrupt
+           * playback).
+           */
           if (self->od_count[t] < ALO_MAX_UNDO_LAYERS) {
+            self->track_state[t] = TRACK_REC_OVERDUB;
+            self->rec_remaining_samples[t] = self->loop_samples;
             self->rec_od_layer[t] = self->od_count[t];
           } else {
-            self->rec_od_layer[t] = (ALO_MAX_UNDO_LAYERS > 0) ? (ALO_MAX_UNDO_LAYERS - 1) : 0;
+            self->track_state[t] = TRACK_IDLE;
+            self->rec_remaining_samples[t] = 0;
           }
         }
       }

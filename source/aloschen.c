@@ -361,6 +361,47 @@ static void deactivate(LV2_Handle instance) {
 static void run(LV2_Handle instance, uint32_t n_samples) {
   Alo *self = (Alo *)instance;
 
+  /* lv2:enabled behaves like a bypass: when disabled, stop looper/click
+   * processing and reset counters/state.
+   */
+  bool enabled_now = true;
+  if (self->ports.enabled) {
+    enabled_now = (*(self->ports.enabled) >= 0.5f);
+  }
+
+  if (!self->have_last_enabled) {
+    self->have_last_enabled = true;
+    self->last_enabled = enabled_now;
+    if (!enabled_now) {
+      reset(self);
+    }
+  } else if (self->last_enabled != enabled_now) {
+    /* Reset on both edges so re-enabling picks up any changed timing params
+     * while the plugin was disabled.
+     */
+    reset(self);
+    self->last_enabled = enabled_now;
+  }
+
+  if (!enabled_now) {
+    /* Dry passthrough when bypassed/disabled. */
+    if (self->ports.output_l) {
+      if (self->ports.input_l) {
+        memcpy(self->ports.output_l, self->ports.input_l, n_samples * sizeof(float));
+      } else {
+        memset(self->ports.output_l, 0, n_samples * sizeof(float));
+      }
+    }
+    if (self->ports.output_r) {
+      if (self->ports.input_r) {
+        memcpy(self->ports.output_r, self->ports.input_r, n_samples * sizeof(float));
+      } else {
+        memset(self->ports.output_r, 0, n_samples * sizeof(float));
+      }
+    }
+    return;
+  }
+
   /* Handle control and MIDI events first so we quantize to the right boundary. */
   run_events(self);
 
@@ -369,21 +410,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 
   /* Click/metronome. */
   run_clicks(self, n_samples);
-
-  /* If plugin is disabled, reset engine state once per disable transition. */
-  if (self->ports.enabled) {
-    const bool enabled_now = (*(self->ports.enabled) >= 0.5f);
-    if (!self->have_last_enabled) {
-      self->have_last_enabled = true;
-      self->last_enabled = enabled_now;
-      if (!enabled_now) {
-        reset(self);
-      }
-    } else if (self->last_enabled && !enabled_now) {
-      reset(self);
-    }
-    self->last_enabled = enabled_now;
-  }
 }
 
 /* ------------------------------------------------------------------------

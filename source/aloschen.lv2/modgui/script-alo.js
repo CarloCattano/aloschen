@@ -129,8 +129,19 @@ function (event, funcs) {
 
     function setRingsVisible(icon, data, visible) {
         data.showRings = !!visible;
-        if (data.showRings) icon.removeClass('alo-rings-off');
-        else icon.addClass('alo-rings-off');
+        var root = icon;
+        if (icon && icon.closest) {
+            var r = icon.closest('.mod-pedal');
+            if (r && r.length) root = r;
+        }
+
+        if (data.showRings) {
+            icon.removeClass('alo-rings-off');
+            if (root && root !== icon) root.removeClass('alo-rings-off');
+        } else {
+            icon.addClass('alo-rings-off');
+            if (root && root !== icon) root.addClass('alo-rings-off');
+        }
 
         if (data.ring_toggle_img && data.ring_toggle_img.length) {
             data.ring_toggle_img.removeClass('on off');
