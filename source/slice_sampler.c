@@ -114,6 +114,66 @@ static inline float alo_voice_env(const AloSliceVoice* v) {
   return env;
 }
 
+/* Buffer management implementation (non-RT) */
+bool alo_slice_sampler_alloc_buffers(AloSliceSampler* s, uint32_t max_len, uint32_t channels) {
+  if (!s || channels < 1 || channels > 2 || max_len == 0) return false;
+  s->slice_buffer_channels = channels;
+  s->slice_buffer_len = max_len;
+  for (uint32_t i = 0; i < ALO_SLICE_INFO_MAX; ++i) {
+    if (s->slice_buffers[i].data) {
+      free(s->slice_buffers[i].data);
+      s->slice_buffers[i].data = NULL;
+    }
+    s->slice_buffers[i].data = (float*)calloc(max_len * channels, sizeof(float));
+    s->slice_buffers[i].length = max_len;
+    s->slice_buffers[i].valid = false;
+    if (!s->slice_buffers[i].data) return false;
+  }
+  return true;
+}
+
+void alo_slice_sampler_free_buffers(AloSliceSampler* s) {
+  if (!s) return;
+  for (uint32_t i = 0; i < ALO_SLICE_INFO_MAX; ++i) {
+    if (s->slice_buffers[i].data) {
+      free(s->slice_buffers[i].data);
+      s->slice_buffers[i].data = NULL;
+    }
+    s->slice_buffers[i].length = 0;
+    s->slice_buffers[i].valid = false;
+  }
+}
+
+bool alo_slice_sampler_fill_slice(AloSliceSampler* s, uint32_t slice_idx, const float* src_l, const float* src_r, uint32_t len) {
+  if (!s || slice_idx >= ALO_SLICE_INFO_MAX || !src_l || !src_r || len == 0) return false;
+  AloSliceBuffer* buf = &s->slice_buffers[slice_idx];
+  if (!buf->data || buf->length < len) return false;
+  uint32_t ch = s->slice_buffer_channels;
+  float* dst = buf->data;
+  for (uint32_t i = 0; i < len; ++i) {
+    dst[i] = src_l[i];
+    if (ch == 2) dst[i + buf->length] = src_r[i];
+  }
+  buf->valid = true;
+  buf->length = len;
+  return true;
+}
+
+void alo_slice_sampler_clear_buffers(AloSliceSampler* s) {
+  if (!s) return;
+  for (uint32_t i = 0; i < ALO_SLICE_INFO_MAX; ++i) {
+    s->slice_buffers[i].valid = false;
+    if (s->slice_buffers[i].data && s->slice_buffers[i].length > 0) {
+      memset(s->slice_buffers[i].data, 0, sizeof(float) * s->slice_buffers[i].length * s->slice_buffer_channels);
+    }
+  }
+}
+
+void alo_slice_sampler_prealloc_buffers(AloSliceSampler* s, uint32_t max_samples) {
+  // synonym for alloc_buffers; kept for PLAN.md compatibility
+  (void)alo_slice_sampler_alloc_buffers(s, max_samples, ALO_SLICE_MAX_CHANNELS);
+}
+
 void alo_slice_sampler_process_block(AloSliceSampler* s,
                                     const Alo* alo,
                                     const float track_gain_3[3],

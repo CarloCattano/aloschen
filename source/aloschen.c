@@ -111,6 +111,8 @@ static void free_instance(Alo* self)
   free(self->low_beat);
   free(self->start_beat);
   free(self->sampler_src_buf);
+  /* release slice sampler buffers as well */
+  alo_slice_sampler_free_buffers(&self->slice_sampler);
   free(self->rt_play_l);
   free(self->rt_play_r);
   free(self->rt_slice_l);
@@ -189,6 +191,17 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor, double rate,
 
   self->rate         = rate;
   self->slice_sampler.rate = (float)rate;
+
+  /* Preallocate per-slice audio buffers so the sampler can copy data
+   * without any heap allocation in the audio thread. LOOP_SIZE is the
+   * worst-case slice length (one full loop) and we always use stereo.
+   */
+  if (!alo_slice_sampler_alloc_buffers(&self->slice_sampler, LOOP_SIZE, 2))
+  {
+    fprintf(stderr, "ALO: slice sampler buffer allocation failed\n");
+    goto fail;
+  }
+
   self->bpb          = DEFAULT_BEATS_PER_BAR;
   self->loop_beats   = DEFAULT_BEATS_PER_BAR * DEFAULT_NUM_BARS;
   self->bpm          = DEFAULT_BPM;

@@ -454,6 +454,8 @@ void reset(Alo* self)
   }
 
   alo_slice_sampler_reset(&self->slice_sampler);
+  /* make sure any preallocated buffers are invalidated too */
+  alo_slice_sampler_clear_buffers(&self->slice_sampler);
   self->slice_sampler.rate = (float)self->rate;
 
   self->sampler_src_valid          = false;
@@ -1759,7 +1761,8 @@ void run_loops(Alo* self, uint32_t n_samples)
     if (self->sampler_src_dirty)
     {
       /* Start/restart rebuild from the beginning to reflect the latest
-       * committed state.
+       * committed state.  Also invalidate any existing slice audio so that
+       * the sampler does not play stale data while rebuilding.
        */
       self->sampler_src_valid          = false;
       self->sampler_src_rebuild_active = true;
@@ -1767,11 +1770,32 @@ void run_loops(Alo* self, uint32_t n_samples)
       self->sampler_src_peak_abs       = 0.0f;
       self->sampler_src_norm_gain      = 1.0f;
       self->sampler_src_loop_samples   = self->loop_samples;
+
+      /* mark relevant slice buffers invalid (cheap, RT-safe) */
+      {
+        const uint32_t bars_i = get_bars_i(self);
+        const uint32_t slices_per_bar = get_slices_per_bar_u(self);
+        const uint32_t slice_count = bars_i * slices_per_bar;
+        for (uint32_t si = 0; si < slice_count && si < ALO_SLICE_INFO_MAX; ++si)
+        {
+          self->slice_sampler.slice_buffers[si].valid = false;
+          self->slice_sampler.slice_buffers[si].length = 0;
+        }
+      }
+
       self->sampler_src_dirty          = false;
     }
 
     if (self->sampler_src_rebuild_active && self->sampler_src_buf && self->loop_samples)
     {
+      /* compute slice configuration for incremental copying */
+      const uint32_t bars_i = get_bars_i(self);
+      const uint32_t slices_per_bar = get_slices_per_bar_u(self);
+      const uint32_t slice_count = bars_i * slices_per_bar;
+      const uint32_t slice_len = (slice_count > 0)
+                                      ? (self->loop_samples / slice_count)
+                                      : 0u;
+
       uint32_t       cap_pos = self->sampler_src_pos;
       const uint32_t cap_end = self->loop_samples;
       /* RT-safety: bound rebuild work per callback.
@@ -1843,8 +1867,32 @@ void run_loops(Alo* self, uint32_t n_samples)
         mr = alo_sanitize_f32(mr);
 #endif
 
-        self->sampler_src_buf[cap_pos]             = ml;
+          self->sampler_src_buf[cap_pos]             = ml;
         self->sampler_src_buf[cap_pos + LOOP_SIZE] = mr;
+
+        /* Mirror into per-slice buffers incrementally.  Determine which
+         * slice this sample belongs to and write it if the slice configuration
+         * is valid.  This keeps the per-run work bounded alongside the
+         * sampler_src rebuild loop so we never malloc/copy large chunks in
+         * the audio thread.
+         */
+        if (slice_len > 0 && slice_count > 0)
+        {
+          uint32_t si = cap_pos / slice_len;
+          if (si < slice_count)
+          {
+            AloSliceBuffer* sb = &self->slice_sampler.slice_buffers[si];
+            if (sb->data && sb->length >= slice_len)
+            {
+              uint32_t off = cap_pos - si * slice_len;
+              sb->data[off] = ml;
+              if (self->slice_sampler.slice_buffer_channels == 2)
+              {
+                sb->data[off + sb->length] = mr;
+              }
+            }
+          }
+        }
         {
           const float a_l = fabsf(ml);
           const float a_r = fabsf(mr);
