@@ -1709,11 +1709,18 @@ void run_loops(Alo* self, uint32_t n_samples)
   const bool just_resumed = transport_running && !self->transport_prev_running;
   self->transport_prev_running = transport_running;
 
-  /* If transport stops, do not advance or record; keep arms latched. */
+  /* Normally loops stop/advance only while transport is running.  However, we
+   * still want sampler slices and the cache rebuild to operate regardless of
+   * transport state.  Remember when to suppress loop playback below.
+   */
+  bool skip_loops = false;
   if (!transport_running)
   {
+    skip_loops = true;
+
     /* If the host reports a real transport stop, abort any RECORDING states
-     * but keep ARM states so the user can arm before start.
+     * but keep ARM states so the user can arm before start.  Also clear any
+     * in-flight slice voices to avoid stale audio while paused.
      */
     if (self->have_speed && self->speed == 0.0f)
     {
@@ -1727,15 +1734,6 @@ void run_loops(Alo* self, uint32_t n_samples)
       }
       alo_slice_sampler_reset(&self->slice_sampler);
     }
-    for (uint32_t i = 0; i < n_samples; ++i)
-    {
-      const float l = input_l[i];
-      const float r = input_r[i];
-      output_l[i]   = self->inmix * l;
-      output_r[i]   = self->inmix * r;
-    }
-    update_loop_state_ports(self);
-    return;
   }
 
   bool any_committed_audio = false;
@@ -2048,14 +2046,20 @@ void run_loops(Alo* self, uint32_t n_samples)
       blk = cap;
     }
 
-    /* Only compute playback if we have at least one active slot. */
+    /* Only compute loop playback if transport allows and we have any
+     * committed slot.  When skip_loops is true the scratch buffers should
+     * remain zero so that the output becomes dry+slice only.
+     */
     bool any_play = false;
-    for (int t = 0; t < NUM_TRACKS; ++t)
+    if (!skip_loops)
     {
-      if (self->have_loop[t] && self->loop_buf[t])
+      for (int t = 0; t < NUM_TRACKS; ++t)
       {
-        any_play = true;
-        break;
+        if (self->have_loop[t] && self->loop_buf[t])
+        {
+          any_play = true;
+          break;
+        }
       }
     }
 
