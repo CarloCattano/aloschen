@@ -146,7 +146,6 @@ static const Control kControls[] = {
 
   /* Isolation helpers */
   {ALO_UI_ACTION_MUTE_ALL, ALO_UI_ACTION_MUTE_ALL, "Mute All", CTL_TRIGGER, 0.0f, 1.0f},
-  CTL_TOGGLE_(ALO_FREEZE_MODE, "Dump"),
 
   CTL_SLIDER_FLOAT_(ALO_LOOP1_VOL, "Loop1 Vol", 0.0f, 1.0f),
   CTL_SLIDER_FLOAT_(ALO_LOOP2_VOL, "Loop2 Vol", 0.0f, 1.0f),
@@ -157,6 +156,7 @@ static const Control kControls[] = {
   CTL_SLIDER_INT_(ALO_CLICK, "Click", 0.0f, 10.0f),
   CTL_SLIDER_INT_(ALO_MIX, "Mix", 0.0f, 100.0f),
   CTL_SLIDER_INT_(ALO_SLICE_ROOT, "Slice Root", 0.0f, 127.0f),
+  CTL_SLIDER_INT_(ALO_SLICES_PER_BAR, "Slices/Bar", 2.0f, 8.0f),
 };
 
 typedef enum {
@@ -1168,6 +1168,7 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->port_values[ALO_CLICK] = 1.0f;
   ui->port_values[ALO_MIX] = 50.0f;
   ui->port_values[ALO_SLICE_ROOT] = 36.0f;
+  ui->port_values[ALO_SLICES_PER_BAR] = 4.0f;
   ui->port_values[ALO_BAR_STEP] = 0.0f;
   ui->port_values[ALO_CYCLE_PHASE] = 0.0f;
   ui->port_values[ALO_HOST_BAR_PHASE] = 0.0f;

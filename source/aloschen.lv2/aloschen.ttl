@@ -24,11 +24,11 @@ doap:maintainer [
 ui:ui <http://ktano-studio.com/aloschen#ui>;
 
 
-lv2:minorVersion 6;
+lv2:minorVersion 8;
 lv2:microVersion 0;
 
 rdfs:comment """
-ALO is a 3-slot, transport-synced live looper.
+	lv2:portProperty lv2:toggled;
 
 Per slot:
 - Press Loop: arm; recording starts quantized (Bars-cycle downbeat for the very first loop, otherwise next loop boundary)
@@ -199,24 +199,27 @@ lv2:port
 	lv2:index 17;
 	lv2:symbol "loop1_state";
 	lv2:name "Loop1 State";
-	lv2:minimum 0;
-	lv2:maximum 1;
+	lv2:default 0.0;
+	lv2:minimum 0.0;
+	lv2:maximum 1.0;
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;
 	lv2:index 18;
 	lv2:symbol "loop2_state";
 	lv2:name "Loop2 State";
-	lv2:minimum 0;
-	lv2:maximum 1;
+	lv2:default 0.0;
+	lv2:minimum 0.0;
+	lv2:maximum 1.0;
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;
 	lv2:index 19;
 	lv2:symbol "loop3_state";
 	lv2:name "Loop3 State";
-	lv2:minimum 0;
-	lv2:maximum 1;
+	lv2:default 0.0;
+	lv2:minimum 0.0;
+	lv2:maximum 1.0;
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;
@@ -271,12 +274,12 @@ lv2:port
 [
 	a lv2:ControlPort, lv2:InputPort;
 	lv2:index 33;
-	lv2:symbol "freeze_mode";
-	lv2:name "Dump To Sampler";
-	lv2:default 0.0;
-	lv2:minimum 0.0;
-	lv2:maximum 1.0;
-	lv2:portProperty lv2:toggled;
+	lv2:symbol "slices_per_bar";
+	lv2:name "Slices Per Bar";
+	lv2:default 4;
+	lv2:minimum 2;
+	lv2:maximum 8;
+	lv2:portProperty lv2:integer;
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;

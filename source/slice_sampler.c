@@ -168,10 +168,12 @@ static inline void alo_mix_looper_at_phase(const Alo* alo,
     return;
   }
 
-  /* Strict decoupling: sampler reads ONLY from the snapshot buffer.
-   * If DUMP is off or snapshot is not valid yet, output silence.
+  (void)track_gain_3;
+
+  /* Sampler reads from the committed-mix cache buffer.
+   * If the cache isn't valid yet, output silence.
    */
-  if (!alo->freeze_mode || !alo->freeze_valid || !alo->freeze_buf) {
+  if (!alo->sampler_src_valid || !alo->sampler_src_buf) {
     return;
   }
 
@@ -179,19 +181,20 @@ static inline void alo_mix_looper_at_phase(const Alo* alo,
                              ? phase_samples
                              : (phase_samples % alo->loop_samples);
 
-  float l = alo->freeze_buf[phase];
-  float r = alo->freeze_buf[phase + LOOP_SIZE];
+  float l = alo->sampler_src_buf[phase];
+  float r = alo->sampler_src_buf[phase + LOOP_SIZE];
 
 #ifdef ALO_MATH_CHECKS
   l = alo_sanitize_f32(l);
   r = alo_sanitize_f32(r);
 #endif
 
-  const float g = alo->freeze_norm_gain;
+  const float g = alo->sampler_src_norm_gain;
   if (g > 0.0f && g < 1.0f) {
     l *= g;
     r *= g;
   }
+
   *out_l = l;
   *out_r = r;
 }

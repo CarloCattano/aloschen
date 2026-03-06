@@ -80,7 +80,7 @@ typedef enum {
   ALO_CYCLE_PHASE = 30,
   ALO_HOST_BAR_PHASE = 31,
   ALO_SAMPLER_VOL = 32,
-  ALO_FREEZE_MODE = 33,
+  ALO_SLICES_PER_BAR = 33,
 } PortIndex;
 
 /* Keep in sync with the highest port index + 1. */
@@ -128,9 +128,9 @@ typedef struct {
   float *loop_vol[NUM_TRACKS];
   /** Sampler (slice one-shot) output gain coefficient (0..1). */
   float *sampler_vol;
-  /** Dump mode (sampler isolation): capture a snapshot of the current looper mix for the sampler to read (0/1). */
-  float *freeze_mode;
   float *bars;
+  /** Number of slices per bar for MIDI one-shots (integer 2..8). */
+  float *slices_per_bar;
   float *slice_root;
   float *click;
   float *mix;
@@ -193,18 +193,18 @@ typedef struct Alo {
   float* rt_slice_l;
   float* rt_slice_r;
 
-  /** When enabled, playback and sampler source use a frozen mix buffer. */
-  bool freeze_mode;
-  bool last_freeze_mode;
-  /** Frozen full-loop stereo mix buffer (same layout as loop_buf: L then R). */
-  float *freeze_buf;
-  /** Peak absolute value observed during the most recent freeze capture. */
-  float freeze_peak_abs;
-  /** Linear gain applied to freeze_buf playback to avoid clipping (<= 1). */
-  float freeze_norm_gain;
-  bool freeze_valid;
-  bool freeze_capture_active;
-  uint32_t freeze_capture_pos;
+  /* Sampler source cache: committed full-loop stereo mix buffer (L then R).
+   * Rebuilt automatically (RT-safe, bounded work per run call) whenever the
+   * committed loop content changes.
+   */
+  float* sampler_src_buf;
+  bool sampler_src_valid;
+  bool sampler_src_dirty;
+  bool sampler_src_rebuild_active;
+  uint32_t sampler_src_pos;
+  float sampler_src_peak_abs;
+  float sampler_src_norm_gain;
+  uint32_t sampler_src_loop_samples;
 
   /** Per-track loop audio buffer (stereo stored as [0..LOOP_SIZE) L, [LOOP_SIZE..2*LOOP_SIZE) R). */
   float *loop_buf[NUM_TRACKS];

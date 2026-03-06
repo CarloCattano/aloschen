@@ -100,7 +100,7 @@ static void free_instance(Alo* self) {
   free(self->high_beat);
   free(self->low_beat);
   free(self->start_beat);
-  free(self->freeze_buf);
+  free(self->sampler_src_buf);
   free(self->rt_play_l);
   free(self->rt_play_r);
   free(self->rt_slice_l);
@@ -113,9 +113,9 @@ static bool alloc_track_buffers(Alo* self) {
     return false;
   }
 
-  self->freeze_buf = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
-  if (!self->freeze_buf) {
-    fprintf(stderr, "ALO: freeze buffer allocation failed\n");
+  self->sampler_src_buf = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
+  if (!self->sampler_src_buf) {
+    fprintf(stderr, "ALO: sampler source buffer allocation failed\n");
     return false;
   }
 
@@ -377,6 +377,10 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
     self->ports.sampler_vol = (float *)data;
     break;
 
+  case ALO_SLICES_PER_BAR:
+    self->ports.slices_per_bar = (float*)data;
+    break;
+
   case ALO_LOOP1_STATE:
     self->ports.loop_state_out[0] = (float *)data;
     break;
@@ -401,9 +405,6 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
     self->ports.has_audio_out[0] = (float *)data;
     break;
   case ALO_LOOP2_HAS_AUDIO:
-      case ALO_FREEZE_MODE:
-        self->ports.freeze_mode = (float*)data;
-        break;
     self->ports.has_audio_out[1] = (float *)data;
     break;
   case ALO_LOOP3_HAS_AUDIO:

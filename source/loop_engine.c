@@ -45,6 +45,76 @@ static inline float soft_clip_unit(float x) {
   return x / (1.0f + fabsf(x));
 }
 
+static inline uint32_t edge_fade_samples_u32(const Alo* self) {
+  /* Fast click suppression at loop boundaries: fade edges to zero.
+   * Use ~1ms, clamped to a small bounded range.
+   */
+  if (!self || !(self->rate > 1e-6)) {
+    return 64u;
+  }
+  uint64_t fs = (uint64_t)llround((double)self->rate * 0.001); /* 1ms */
+  if (fs < 16u) {
+    fs = 16u;
+  } else if (fs > 512u) {
+    fs = 512u;
+  }
+  return (uint32_t)fs;
+}
+
+static inline void apply_edge_fade_stereo(float* buf,
+                                         const uint32_t loop_start,
+                                         const uint32_t loop_samples,
+                                         uint32_t fade_samples) {
+  if (!buf || loop_samples == 0u) {
+    return;
+  }
+
+  if (fade_samples == 0u) {
+    return;
+  }
+
+  /* Avoid overlap on very short loops. */
+  const uint32_t half = loop_samples / 2u;
+  if (fade_samples > half) {
+    fade_samples = half;
+  }
+  if (fade_samples == 0u) {
+    return;
+  }
+
+  const uint32_t s0 = loop_start;
+  const uint32_t s1 = loop_start + loop_samples;
+
+  if (fade_samples == 1u) {
+    /* Degenerate: force the first/last sample to 0. */
+    buf[s0] = 0.0f;
+    buf[s0 + LOOP_SIZE] = 0.0f;
+    if (loop_samples >= 2u) {
+      buf[s1 - 1u] = 0.0f;
+      buf[s1 - 1u + LOOP_SIZE] = 0.0f;
+    }
+    return;
+  }
+
+  const float inv = 1.0f / (float)(fade_samples - 1u);
+
+  /* Fade-in at start: 0 -> 1 */
+  for (uint32_t i = 0; i < fade_samples; ++i) {
+    const float g = (float)i * inv;
+    const uint32_t idx = s0 + i;
+    buf[idx] *= g;
+    buf[idx + LOOP_SIZE] *= g;
+  }
+
+  /* Fade-out at end: 1 -> 0 */
+  for (uint32_t i = 0; i < fade_samples; ++i) {
+    const float g = (float)(fade_samples - 1u - i) * inv;
+    const uint32_t idx = s1 - fade_samples + i;
+    buf[idx] *= g;
+    buf[idx + LOOP_SIZE] *= g;
+  }
+}
+
 static void clear_track_state(Alo* self, int t) {
   self->track_state[t] = TRACK_IDLE;
   self->rec_remaining_samples[t] = 0;
@@ -59,6 +129,10 @@ static void clear_track_audio(Alo* self, int t) {
   self->od_count[t] = 0;
   self->pending_undo[t] = 0;
   self->pending_clear_all[t] = false;
+
+  /* Committed audio changed; sampler source cache must be rebuilt. */
+  self->sampler_src_dirty = true;
+  self->sampler_src_valid = false;
 }
 
 static void clear_inflight_actions_and_sync_controls(Alo* self) {
@@ -315,13 +389,13 @@ void reset(Alo* self) {
 
   alo_slice_sampler_reset(&self->slice_sampler);
 
-  self->freeze_mode = false;
-  self->last_freeze_mode = false;
-  self->freeze_valid = false;
-  self->freeze_capture_active = false;
-  self->freeze_capture_pos = 0u;
-  self->freeze_peak_abs = 0.0f;
-  self->freeze_norm_gain = 1.0f;
+  self->sampler_src_valid = false;
+  self->sampler_src_dirty = true;
+  self->sampler_src_rebuild_active = false;
+  self->sampler_src_pos = 0u;
+  self->sampler_src_peak_abs = 0.0f;
+  self->sampler_src_norm_gain = 1.0f;
+  self->sampler_src_loop_samples = 0u;
 
   for (int t = 0; t < NUM_TRACKS; ++t) {
     self->have_loop[t] = false;
@@ -412,11 +486,18 @@ static inline int get_slice_root_note(const Alo* self) {
   return v;
 }
 
-static inline bool get_freeze_mode_on(const Alo* self) {
-  if (!self || !self->ports.freeze_mode) {
-    return false;
+static inline uint32_t get_slices_per_bar_u(const Alo* self) {
+  if (!self || !self->ports.slices_per_bar) {
+    return 4u;
   }
-  return (*(self->ports.freeze_mode) >= 0.5f);
+
+  int v = (int)floorf(*(self->ports.slices_per_bar));
+  if (v < 2) {
+    v = 2;
+  } else if (v > 8) {
+    v = 8;
+  }
+  return (uint32_t)v;
 }
 
 static void update_bar_step_out(Alo* self) {
@@ -808,22 +889,28 @@ static void handle_button_edges(Alo* self, int t, bool loop_btn, bool undo_btn) 
   self->last_undo_input[t] = undo_btn;
 }
 
-static inline void apply_pending_undo_at_bar(Alo* self) {
+static inline bool apply_pending_undo_at_bar(Alo* self) {
+  bool changed = false;
   for (int t = 0; t < NUM_TRACKS; ++t) {
     if (self->pending_clear_all[t]) {
       clear_track_audio(self, t);
+      changed = true;
       continue;
     }
 
     while (self->pending_undo[t] > 0) {
       if (self->od_count[t] > 0) {
         self->od_count[t]--;
+        changed = true;
       } else if (self->have_loop[t]) {
         self->have_loop[t] = false;
+        changed = true;
       }
       self->pending_undo[t]--;
     }
   }
+
+  return changed;
 }
 
 /* -------------------------------------------------------------------------
@@ -1156,16 +1243,22 @@ void run_events(Alo* self, const uint32_t n_samples) {
     }
   }
 
-  self->freeze_mode = get_freeze_mode_on(self);
+  const bool sampler_enabled = true;
 
   /* 2) MIDI slice triggers (one-shot, sample-accurate start within the block). */
   const LV2_Atom_Sequence* midiin = self->ports.midiin;
   if (midiin) {
-    /* User intent: when DUMP is off, we are in looper/recording mode.
-     * Do not accept MIDI slice triggers unless DUMP is enabled and a
-     * snapshot is available (strict sampler/looper decoupling).
+    /* Only accept MIDI slice triggers when sampler output is enabled and we
+     * have committed loop audio.
      */
-    if (!self->freeze_mode || !self->freeze_valid || !self->freeze_buf) {
+    if (!sampler_enabled) {
+      goto midi_done;
+    }
+
+    /* Do not accept triggers while the sampler source cache is invalid or
+     * currently being rebuilt.
+     */
+    if (!self->sampler_src_valid || self->sampler_src_rebuild_active || !self->sampler_src_buf) {
       goto midi_done;
     }
 
@@ -1176,16 +1269,14 @@ void run_events(Alo* self, const uint32_t n_samples) {
         break;
       }
     }
-    if (!any_committed_audio && self->freeze_mode && self->freeze_valid) {
-      any_committed_audio = true;
-    }
     if (!any_committed_audio) {
       goto midi_done;
     }
 
     const int root = get_slice_root_note(self);
     const uint32_t bars_i = get_bars_i(self);
-    const uint32_t slice_count = bars_i * 4u;
+    const uint32_t slices_per_bar = get_slices_per_bar_u(self);
+    const uint32_t slice_count = bars_i * slices_per_bar;
 
     LV2_ATOM_SEQUENCE_FOREACH (midiin, ev) {
       if (ev->body.type != self->uris.midi_MidiEvent) {
@@ -1215,13 +1306,6 @@ void run_events(Alo* self, const uint32_t n_samples) {
       }
 
       if (self->loop_samples == 0) {
-        continue;
-      }
-
-      /* Dump mode: strictly snapshot-only. While the snapshot is still being
-       * captured, ignore triggers rather than falling back to live buffers.
-       */
-      if (self->freeze_mode && !self->freeze_valid) {
         continue;
       }
 
@@ -1287,12 +1371,7 @@ void run_loops(Alo* self, uint32_t n_samples) {
     return;
   }
 
-  /* freeze_mode is a sampler-only isolation tool: it captures a snapshot of
-   * the current looper playback mix into freeze_buf, and the sampler reads
-   * from that buffer (looper playback/record remain live).
-   */
-  const bool dump_on = get_freeze_mode_on(self);
-  self->freeze_mode = dump_on;
+  const bool sampler_enabled = true;
 
   const float* const input_l = self->ports.input_l;
   const float* const input_r = self->ports.input_r;
@@ -1365,11 +1444,130 @@ void run_loops(Alo* self, uint32_t n_samples) {
       break;
     }
   }
-  if (!any_committed_audio && self->freeze_mode && self->freeze_valid) {
-    any_committed_audio = true;
+
+  /* If committed content changed, we rebuild the sampler cache.
+   * Never rebuild while old notes are playing: force notes off first.
+   */
+  if (self->sampler_src_dirty && alo_slice_sampler_is_busy(&self->slice_sampler)) {
+    alo_slice_sampler_reset(&self->slice_sampler);
   }
 
-  if (!any_committed_audio && !self->freeze_capture_active) {
+  /* Maintain the sampler source cache. Rebuild only when committed content
+   * changes (dirty flag) and there is committed audio to cache.
+   */
+  if (!any_committed_audio) {
+    self->sampler_src_valid = false;
+    self->sampler_src_rebuild_active = false;
+    self->sampler_src_pos = 0u;
+    self->sampler_src_peak_abs = 0.0f;
+    self->sampler_src_norm_gain = 1.0f;
+    self->sampler_src_loop_samples = 0u;
+  } else {
+    if (self->sampler_src_dirty) {
+      /* Start/restart rebuild from the beginning to reflect the latest
+       * committed state.
+       */
+      self->sampler_src_valid = false;
+      self->sampler_src_rebuild_active = true;
+      self->sampler_src_pos = 0u;
+      self->sampler_src_peak_abs = 0.0f;
+      self->sampler_src_norm_gain = 1.0f;
+      self->sampler_src_loop_samples = self->loop_samples;
+      self->sampler_src_dirty = false;
+    }
+
+    if (self->sampler_src_rebuild_active && self->sampler_src_buf && self->loop_samples) {
+      uint32_t cap_pos = self->sampler_src_pos;
+      const uint32_t cap_end = self->loop_samples;
+      /* RT-safety: bound rebuild work per callback.
+       * Speed: rebuild faster than 1:1 block size so cache becomes valid
+       * quickly after a commit.
+       */
+      uint32_t cap_max = n_samples;
+      {
+        const uint32_t kMaxPerRun = 4096u;
+        uint64_t scaled = (uint64_t)n_samples * 8u;
+        if (scaled < (uint64_t)cap_max) {
+          scaled = (uint64_t)cap_max;
+        }
+        if (scaled > (uint64_t)kMaxPerRun) {
+          scaled = (uint64_t)kMaxPerRun;
+        }
+        cap_max = (uint32_t)scaled;
+        if (cap_max == 0u) {
+          cap_max = 1u;
+        }
+      }
+      while (cap_pos < cap_end && cap_max--) {
+        const uint32_t idx = self->loop_start + cap_pos;
+        const uint32_t idx_r = idx + LOOP_SIZE;
+
+        float ml = 0.0f;
+        float mr = 0.0f;
+        for (int t = 0; t < NUM_TRACKS; ++t) {
+          if (!self->have_loop[t] || !self->loop_buf[t]) {
+            continue;
+          }
+          if (self->track_state[t] == TRACK_REC_BASE) {
+            continue;
+          }
+
+          ml += self->loop_buf[t][idx];
+          mr += self->loop_buf[t][idx_r];
+
+          uint8_t n_layers = self->od_count[t];
+          if (self->track_state[t] == TRACK_REC_OVERDUB) {
+            const uint8_t rec_layer = self->rec_od_layer[t];
+            if (rec_layer < n_layers) {
+              n_layers = rec_layer;
+            }
+          }
+          for (uint8_t l = 0; l < n_layers; ++l) {
+            float* const buf = self->od_buf[t][l];
+            if (!buf) {
+              continue;
+            }
+            ml += buf[idx];
+            mr += buf[idx_r];
+          }
+        }
+
+#ifdef ALO_MATH_CHECKS
+        ml = alo_sanitize_f32(ml);
+        mr = alo_sanitize_f32(mr);
+#endif
+
+        self->sampler_src_buf[cap_pos] = ml;
+        self->sampler_src_buf[cap_pos + LOOP_SIZE] = mr;
+        {
+          const float a_l = fabsf(ml);
+          const float a_r = fabsf(mr);
+          const float a = (a_l > a_r) ? a_l : a_r;
+          if (a > self->sampler_src_peak_abs) {
+            self->sampler_src_peak_abs = a;
+          }
+        }
+
+        cap_pos++;
+      }
+
+      self->sampler_src_pos = cap_pos;
+      if (self->sampler_src_pos >= self->loop_samples) {
+        self->sampler_src_rebuild_active = false;
+        self->sampler_src_valid = true;
+        self->sampler_src_loop_samples = self->loop_samples;
+        if (self->sampler_src_peak_abs > 1.0f) {
+          self->sampler_src_norm_gain = 1.0f / self->sampler_src_peak_abs;
+        } else {
+          self->sampler_src_norm_gain = 1.0f;
+        }
+      }
+    }
+  }
+
+  const bool sampler_busy = alo_slice_sampler_is_busy(&self->slice_sampler);
+
+  if (!any_committed_audio && !sampler_busy) {
     alo_slice_sampler_reset(&self->slice_sampler);
   } else {
     alo_slice_sampler_begin_block(&self->slice_sampler, n_samples);
@@ -1426,112 +1624,9 @@ void run_loops(Alo* self, uint32_t n_samples) {
     bar_len = self->loop_samples ? self->loop_samples : 1u;
   }
 
-  const float inmix = self->freeze_mode ? 0.0f : self->inmix;
+  const float inmix = self->inmix;
   const float loopmix = self->loopmix;
 
-  /* Handle dump toggle edges. */
-  if (dump_on != self->last_freeze_mode) {
-    self->last_freeze_mode = dump_on;
-
-    /* Switching source while voices are active is a classic click source. */
-    alo_slice_sampler_reset(&self->slice_sampler);
-
-    if (dump_on) {
-      /* Start (re)capturing the snapshot if we have any committed audio. */
-      if (any_committed_audio && self->freeze_buf && self->loop_samples) {
-        self->freeze_valid = false;
-        self->freeze_capture_active = true;
-        self->freeze_capture_pos = 0u;
-        self->freeze_peak_abs = 0.0f;
-        self->freeze_norm_gain = 1.0f;
-      } else {
-        self->freeze_valid = false;
-        self->freeze_capture_active = false;
-        self->freeze_capture_pos = 0u;
-        self->freeze_peak_abs = 0.0f;
-        self->freeze_norm_gain = 1.0f;
-      }
-    } else {
-      /* Leaving dump mode just returns sampler to live source. */
-      self->freeze_capture_active = false;
-      self->freeze_capture_pos = 0u;
-      self->freeze_peak_abs = 0.0f;
-      self->freeze_norm_gain = 1.0f;
-    }
-  }
-
-  /* Incrementally capture the frozen full-loop mix buffer (RT-safe: bounded
-   * work per block). The capture uses the current playback gains.
-   */
-  if (self->freeze_mode && self->freeze_capture_active && self->freeze_buf && self->loop_samples) {
-    uint32_t cap_pos = self->freeze_capture_pos;
-    const uint32_t cap_end = self->loop_samples;
-    uint32_t cap_max = n_samples;
-    while (cap_pos < cap_end && cap_max--) {
-      const uint32_t idx = self->loop_start + cap_pos;
-      const uint32_t idx_r = idx + LOOP_SIZE;
-
-      float ml = 0.0f;
-      float mr = 0.0f;
-      for (int t = 0; t < NUM_TRACKS; ++t) {
-        if (!self->have_loop[t] || !self->loop_buf[t]) {
-          continue;
-        }
-        if (self->track_state[t] == TRACK_REC_BASE) {
-          continue;
-        }
-
-        const float g = track_gain[t];
-        ml += g * self->loop_buf[t][idx];
-        mr += g * self->loop_buf[t][idx_r];
-
-        uint8_t n_layers = self->od_count[t];
-        if (self->track_state[t] == TRACK_REC_OVERDUB) {
-          const uint8_t rec_layer = self->rec_od_layer[t];
-          if (rec_layer < n_layers) {
-            n_layers = rec_layer;
-          }
-        }
-        for (uint8_t l = 0; l < n_layers; ++l) {
-          float* const buf = self->od_buf[t][l];
-          if (!buf) {
-            continue;
-          }
-          ml += g * buf[idx];
-          mr += g * buf[idx_r];
-        }
-      }
-
-#ifdef ALO_MATH_CHECKS
-      ml = alo_sanitize_f32(ml);
-      mr = alo_sanitize_f32(mr);
-#endif
-
-      self->freeze_buf[cap_pos] = ml;
-      self->freeze_buf[cap_pos + LOOP_SIZE] = mr;
-      {
-        const float a_l = fabsf(ml);
-        const float a_r = fabsf(mr);
-        const float a = (a_l > a_r) ? a_l : a_r;
-        if (a > self->freeze_peak_abs) {
-          self->freeze_peak_abs = a;
-        }
-      }
-      cap_pos++;
-    }
-
-    self->freeze_capture_pos = cap_pos;
-    if (self->freeze_capture_pos >= self->loop_samples) {
-      self->freeze_capture_active = false;
-      self->freeze_valid = true;
-      /* Linear normalization to avoid clipping distortion during slice playback. */
-      if (self->freeze_peak_abs > 1.0f) {
-        self->freeze_norm_gain = 1.0f / self->freeze_peak_abs;
-      } else {
-        self->freeze_norm_gain = 1.0f;
-      }
-    }
-  }
 
   /*
    * Optimization pass:
@@ -1555,17 +1650,17 @@ void run_loops(Alo* self, uint32_t n_samples) {
 
     /* Only compute playback if we have at least one active slot. */
     bool any_play = false;
-    if (!self->freeze_mode) {
-      for (int t = 0; t < NUM_TRACKS; ++t) {
-        if (self->have_loop[t] && self->loop_buf[t]) {
-          any_play = true;
-          break;
-        }
+    for (int t = 0; t < NUM_TRACKS; ++t) {
+      if (self->have_loop[t] && self->loop_buf[t]) {
+        any_play = true;
+        break;
       }
     }
 
     memset(play_l_s, 0, sizeof(float) * (size_t)blk);
     memset(play_r_s, 0, sizeof(float) * (size_t)blk);
+    memset(slice_l_s, 0, sizeof(float) * (size_t)blk);
+    memset(slice_r_s, 0, sizeof(float) * (size_t)blk);
 
     if (any_play) {
       uint32_t idx = self->loop_index;
@@ -1599,7 +1694,8 @@ void run_loops(Alo* self, uint32_t n_samples) {
       }
     }
 
-    if (self->freeze_mode && sampler_gain > 0.0f) {
+    const bool sampler_busy = alo_slice_sampler_is_busy(&self->slice_sampler);
+    if (sampler_enabled && sampler_gain > 0.0f && sampler_busy) {
       alo_slice_sampler_process_chunk(&self->slice_sampler, self, sampler_track_gain,
                                       block_base, blk, slice_l_s, slice_r_s);
     }
@@ -1610,7 +1706,9 @@ void run_loops(Alo* self, uint32_t n_samples) {
     const uint32_t phase = (self->loop_index - self->loop_start);
     const bool at_bar = ((phase % bar_len) == 0u);
     if (at_bar) {
-      apply_pending_undo_at_bar(self);
+      if (apply_pending_undo_at_bar(self)) {
+        self->sampler_src_dirty = true;
+      }
     }
 
     const uint32_t idx = self->loop_index;
@@ -1621,11 +1719,9 @@ void run_loops(Alo* self, uint32_t n_samples) {
 
     float slice_l = 0.0f;
     float slice_r = 0.0f;
-    if (self->freeze_mode) {
-      if (sampler_gain > 0.0f) {
-        slice_l = slice_l_s[pos];
-        slice_r = slice_r_s[pos];
-      }
+    if (sampler_enabled && sampler_gain > 0.0f && sampler_busy) {
+      slice_l = slice_l_s[pos];
+      slice_r = slice_r_s[pos];
     }
     slice_l *= sampler_gain;
     slice_r *= sampler_gain;
@@ -1703,7 +1799,10 @@ void run_loops(Alo* self, uint32_t n_samples) {
         }
         if (self->rec_remaining_samples[t] == 0) {
           self->track_state[t] = TRACK_IDLE;
+          apply_edge_fade_stereo(self->loop_buf[t], self->loop_start,
+                                 self->loop_samples, edge_fade_samples_u32(self));
           self->have_loop[t] = true;
+          self->sampler_src_dirty = true;
         }
       } else if (self->track_state[t] == TRACK_REC_OVERDUB) {
         const uint8_t layer = self->rec_od_layer[t];
@@ -1720,8 +1819,18 @@ void run_loops(Alo* self, uint32_t n_samples) {
           self->track_state[t] = TRACK_IDLE;
           self->have_loop[t] = true;
           if (self->od_count[t] < ALO_MAX_UNDO_LAYERS) {
+            /* Fade the newly committed layer edges to zero for click-free
+             * wrap-around.
+             */
+            const uint8_t layer = self->rec_od_layer[t];
+            if (layer < ALO_MAX_UNDO_LAYERS && self->od_buf[t][layer]) {
+              apply_edge_fade_stereo(self->od_buf[t][layer], self->loop_start,
+                                     self->loop_samples,
+                                     edge_fade_samples_u32(self));
+            }
             self->od_count[t]++;
           }
+          self->sampler_src_dirty = true;
         }
       }
     }
