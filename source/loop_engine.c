@@ -199,10 +199,15 @@ static inline float loop_state_value(const Alo* self, const int t, const bool tr
 {
   /* Encoded states (used by native + MOD UIs):
    * 0.0  = off/empty
-   * 0.25 = armed (blink)
+   * 0.25 = armed (blink) or queued-to-record
    * 0.5  = playing (solid)
    * 1.0  = recording (solid)
    */
+  /* queued arm takes precedence so the UI will show orange even if idle */
+  if (self && self->pending_arm_track == t) {
+    return 0.25f;
+  }
+
   switch (self->track_state[t])
   {
   case TRACK_ARM_BASE:
@@ -452,6 +457,8 @@ void reset(Alo* self)
   {
     return;
   }
+  self->pending_arm_track = -1;
+  self->pending_arm_type = TRACK_IDLE;
 
   alo_slice_sampler_reset(&self->slice_sampler);
   /* make sure any preallocated buffers are invalidated too */
@@ -973,25 +980,34 @@ static void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj)
 
 static void handle_loop_press(Alo* self, int t)
 {
+  // Cancel queued arm if pressing same track
+  if (self && self->pending_arm_track == t) {
+    self->pending_arm_track = -1;
+    update_loop_state_ports(self);
+    return;
+  }
+  // Check if any other track is recording
+  if (self) {
+    bool other_busy = false;
+    for (int u = 0; u < NUM_TRACKS; ++u) {
+      if (u == t) continue;
+      if (self->track_state[u] == TRACK_REC_BASE || self->track_state[u] == TRACK_REC_OVERDUB) {
+        other_busy = true;
+        break;
+      }
+    }
+    if (other_busy) {
+      if (self->pending_arm_track < 0) {
+        self->pending_arm_track = t;
+        self->pending_arm_type = self->have_loop[t] ? TRACK_ARM_OVERDUB : TRACK_ARM_BASE;
+        update_loop_state_ports(self);  // immediate UI feedback
+      }
+      return;
+    }
+  }
   if (!self || !track_is_active(self, t))
   {
     return;
-  }
-
-  /* Only one slot may ever be in the armed/recording state.  If any other
-   * track is currently busy (recording/overdubbing) or already armed we
-   * ignore additional presses on the remaining slots.  This prevents two
-   * loops from attempting to record simultaneously when a downbeat arrives.
-   */
-  for (int u = 0; u < NUM_TRACKS; ++u)
-  {
-    if (u == t)
-      continue;
-    if (track_is_busy(self, u) || self->track_state[u] == TRACK_ARM_BASE ||
-        self->track_state[u] == TRACK_ARM_OVERDUB)
-    {
-      return;
-    }
   }
 
   /* If the user presses while armed/recording, treat it as cancel/abort. */
@@ -1671,8 +1687,31 @@ void run_loops(Alo* self, uint32_t n_samples)
     return;
   }
 
+  // Discharge any queued arm now that we've recomputed transport state
+  if (self->pending_arm_track >= 0) {
+    bool other_busy = false;
+    for (int u = 0; u < NUM_TRACKS; ++u) {
+      if (u == self->pending_arm_track) continue;
+      if (self->track_state[u] == TRACK_REC_BASE || self->track_state[u] == TRACK_REC_OVERDUB) {
+        other_busy = true;
+        break;
+      }
+    }
+    if (!other_busy) {
+      int t = self->pending_arm_track;
+      self->pending_arm_track = -1;
+      self->track_state[t] = self->pending_arm_type;
+      self->rec_remaining_samples[t] = 0;
+      update_loop_state_ports(self);
+    }
+  }
+  if (!self)
+  {
+    return;
+  }
+
   const bool sampler_enabled = true;
-  const float duck_amt = (self->ports.sidechain_amt) ? fmaxf(0.0f, fminf(*(self->ports.sidechain_amt), 1.0f)) : 0.0f;
+  // const float duck_amt = (self->ports.sidechain_amt) ? fmaxf(0.0f, fminf(*(self->ports.sidechain_amt), 1.0f)) : 0.0f;
 
   const float* const input_l  = self->ports.input_l;
   const float* const input_r  = self->ports.input_r;
@@ -1722,8 +1761,8 @@ void run_loops(Alo* self, uint32_t n_samples)
       self->have_transport && self->have_last_transport_beats &&
       (self->transport_blocks_without_update <= 2u) && (!self->have_speed || self->speed != 0.0f) &&
       (self->transport_updated_this_cycle ? self->transport_moving : true);
-  const bool just_resumed = transport_running && !self->transport_prev_running;
-  self->transport_prev_running = transport_running;
+  // const bool just_resumed = transport_running && !self->transport_prev_running;
+  // self->transport_prev_running = transport_running;
 
   /* Normally loops stop/advance only while transport is running.  However, we
    * still want sampler slices and the cache rebuild to operate regardless of
@@ -2007,7 +2046,7 @@ void run_loops(Alo* self, uint32_t n_samples)
     const double target_beats = compute_next_cycle_start_beats(self, global_beats0);
     const double beats_until  = target_beats - global_beats0;
     uint64_t     offset_s     = 0;
-    if (beats_until > 0.0 && !just_resumed)
+    if (beats_until > 0.0)
     {
       /* normal quantization path */
       const double samples_until = beats_until * samples_per_beat;
@@ -2177,13 +2216,6 @@ void run_loops(Alo* self, uint32_t n_samples)
       /* Dry input + precomputed playback + slice one-shots */
       float out_l_val = inmix * in_l + play_l_s[pos] + slice_l;
       float out_r_val = inmix * in_r + play_r_s[pos] + slice_r;
-      if (duck_amt > 0.0f && self->ports.sidechain_in) {
-        float sc = fabsf(self->ports.sidechain_in[pos_in_block]);
-        float duck = 1.0f - sc * duck_amt;
-        if (duck < 0.0f) duck = 0.0f;
-        out_l_val *= duck;
-        out_r_val *= duck;
-      }
       output_l[pos_in_block] = out_l_val;
       output_r[pos_in_block] = out_r_val;
 

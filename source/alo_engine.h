@@ -272,9 +272,13 @@ typedef struct Alo
   /** Track lv2:enabled state to avoid per-block resets when disabled. */
   bool have_last_enabled;
   bool last_enabled;
+
+  int pending_arm_track; // -1 if none
+  TrackRecState pending_arm_type;
 } Alo;
 
 void alo_log(const char* message, ...);
+
 void update_loop_state_ports(Alo* self);
 
 void reset(Alo* self);

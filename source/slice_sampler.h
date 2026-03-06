@@ -118,7 +118,9 @@ typedef struct {
 
   void alo_slice_sampler_reset(AloSliceSampler* s);
 
-  void alo_slice_sampler_schedule(AloSliceSampler* s, uint32_t start_offset_samples,
+  // schedule from Alo context (allows buffer lookup)
+  void alo_slice_sampler_schedule(AloSliceSampler* s, const struct Alo* alo,
+                                  uint32_t start_offset_samples,
                                   uint32_t phase_samples, uint32_t length_samples,
                                   uint32_t fade_samples, float gain);
 
@@ -142,9 +144,10 @@ typedef struct {
   void alo_slice_sampler_process_sample(AloSliceSampler* s, const struct Alo* alo,
                                         const float track_gain_3[3], float* out_l, float* out_r);
 
-  void alo_slice_sampler_start_voice(AloSliceSampler* s, uint32_t key,
-                                  uint32_t start_delay_samples, uint32_t phase_samples,
-                                  uint32_t length_samples, uint32_t fade_samples, float gain);
+  void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* alo,
+                                  uint32_t key, uint32_t start_delay_samples,
+                                  uint32_t phase_samples, uint32_t length_samples,
+                                  uint32_t fade_samples, float gain);
 
   float alo_env_tick(AloEnvState* e);
 

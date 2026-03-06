@@ -2,6 +2,7 @@
 #include "alo_engine.h"
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 #ifdef ALO_MATH_CHECKS
 static inline float alo_sanitize_f32(const float x) {
   return isfinite(x) ? x : 0.0f;
@@ -225,7 +226,7 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s,
         }
       }
 
-      alo_slice_sampler_start_voice(s, p->key, 0u, p->phase_samples, p->length_samples,
+      alo_slice_sampler_start_voice(s, NULL, p->key, 0u, p->phase_samples, p->length_samples,
                                    p->fade_samples, p->gain);
       p->active = false;
     }
@@ -346,17 +347,19 @@ void alo_slice_sampler_reset(AloSliceSampler* s) {
     }
 }
 
-void alo_slice_sampler_schedule(AloSliceSampler* s, uint32_t start_offset_samples,
+void alo_slice_sampler_schedule(AloSliceSampler* s, const struct Alo* alo,
+                               uint32_t start_offset_samples,
                                uint32_t phase_samples, uint32_t length_samples,
                                uint32_t fade_samples, float gain) {
     if (!s) return;
     // Use key = phase_samples for now (could be improved)
-    alo_slice_sampler_start_voice(s, phase_samples, start_offset_samples, phase_samples, length_samples, fade_samples, gain);
+    alo_slice_sampler_start_voice(s, alo, phase_samples, start_offset_samples, phase_samples, length_samples, fade_samples, gain);
 }
 
-void alo_slice_sampler_start_voice(AloSliceSampler* s, uint32_t key,
-                                  uint32_t start_delay_samples, uint32_t phase_samples,
-                                  uint32_t length_samples, uint32_t fade_samples, float gain) {
+void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* alo,
+                                  uint32_t key, uint32_t start_delay_samples,
+                                  uint32_t phase_samples, uint32_t length_samples,
+                                  uint32_t fade_samples, float gain) {
     if (!s) return;
 
     /* Retrigger behavior: if any existing voice already using the same key

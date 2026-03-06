@@ -3,7 +3,8 @@
   Copyright 2006 Steve Harris <steve@plugin.org.uk>
   Copyright 2018 Stevie <modplugins@radig.com>
   Copyright 2018 Paul Sherwood <devcurmudgeon@gmail.com>
-
+  Copyright 2025-2026 Carlo Cattano <contact@ktano-studio.com>
+  
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
   copyright notice and this permission notice appear in all copies.
