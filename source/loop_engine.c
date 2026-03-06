@@ -1025,6 +1025,15 @@ static void handle_undo_press(Alo* self, int t)
   /* Stop any pending action/recording immediately (quantized audio change later). */
   clear_track_state(self, t);
 
+  /* If there's no committed audio to undo or clear, we're done.  The button
+   * still acts as a cancel for recording/arming, but we shouldn't schedule any
+   * future bar‑sync operations.
+   */
+  if (!self->have_loop[t] && self->od_count[t] == 0)
+  {
+    return;
+  }
+
   /*
    * Quantized undo:
    * - First press schedules one undo at the next bar downbeat.
@@ -1498,7 +1507,6 @@ void run_events(Alo* self, const uint32_t n_samples)
   }
 
   const bool sampler_enabled = true;
-
   /* 2) MIDI slice triggers (one-shot, sample-accurate start within the block). */
   const LV2_Atom_Sequence* midiin = self->ports.midiin;
   if (midiin)
@@ -1616,8 +1624,8 @@ void run_events(Alo* self, const uint32_t n_samples)
         fade_samples = (uint32_t)fs;
       }
 
-      alo_slice_sampler_schedule(&self->slice_sampler, start_offset_samples, phase_samples,
-                                 slice_len, fade_samples, 1.0f);
+      alo_slice_sampler_schedule(&self->slice_sampler, self, start_offset_samples,
+                                 phase_samples, slice_len, fade_samples, 1.0f);
     }
   }
 
@@ -1648,6 +1656,7 @@ void run_loops(Alo* self, uint32_t n_samples)
   }
 
   const bool sampler_enabled = true;
+  const float duck_amt = (self->ports.sidechain_amt) ? fmaxf(0.0f, fminf(*(self->ports.sidechain_amt), 1.0f)) : 0.0f;
 
   const float* const input_l  = self->ports.input_l;
   const float* const input_r  = self->ports.input_r;
@@ -1697,18 +1706,21 @@ void run_loops(Alo* self, uint32_t n_samples)
       self->have_transport && self->have_last_transport_beats &&
       (self->transport_blocks_without_update <= 2u) && (!self->have_speed || self->speed != 0.0f) &&
       (self->transport_updated_this_cycle ? self->transport_moving : true);
+  const bool just_resumed = transport_running && !self->transport_prev_running;
+  self->transport_prev_running = transport_running;
 
   /* If transport stops, do not advance or record; keep arms latched. */
   if (!transport_running)
   {
-    /* If the host reports a real transport stop, abort any in-flight
-     * arming/recording so nothing triggers on restart.
+    /* If the host reports a real transport stop, abort any RECORDING states
+     * but keep ARM states so the user can arm before start.
      */
     if (self->have_speed && self->speed == 0.0f)
     {
       for (int t = 0; t < NUM_TRACKS; ++t)
       {
-        if (self->track_state[t] != TRACK_IDLE)
+        if (self->track_state[t] == TRACK_REC_BASE ||
+            self->track_state[t] == TRACK_REC_OVERDUB)
         {
           clear_track_state(self, t);
         }
@@ -1981,12 +1993,13 @@ void run_loops(Alo* self, uint32_t n_samples)
     const double target_beats = compute_next_cycle_start_beats(self, global_beats0);
     const double beats_until  = target_beats - global_beats0;
     uint64_t     offset_s     = 0;
-    if (beats_until > 0.0)
+    if (beats_until > 0.0 && !just_resumed)
     {
-      /* Never start early: ceil to the next sample at/after the boundary. */
+      /* normal quantization path */
       const double samples_until = beats_until * samples_per_beat;
       offset_s                   = (uint64_t)ceil(samples_until - 1e-9);
     }
+    /* if we just resumed, keep offset_s=0 for immediate start */
 
     for (int t = 0; t < NUM_TRACKS; ++t)
     {
@@ -2142,8 +2155,17 @@ void run_loops(Alo* self, uint32_t n_samples)
       slice_r *= sampler_gain;
 
       /* Dry input + precomputed playback + slice one-shots */
-      output_l[pos_in_block] = inmix * in_l + play_l_s[pos] + slice_l;
-      output_r[pos_in_block] = inmix * in_r + play_r_s[pos] + slice_r;
+      float out_l_val = inmix * in_l + play_l_s[pos] + slice_l;
+      float out_r_val = inmix * in_r + play_r_s[pos] + slice_r;
+      if (duck_amt > 0.0f && self->ports.sidechain_in) {
+        float sc = fabsf(self->ports.sidechain_in[pos_in_block]);
+        float duck = 1.0f - sc * duck_amt;
+        if (duck < 0.0f) duck = 0.0f;
+        out_l_val *= duck;
+        out_r_val *= duck;
+      }
+      output_l[pos_in_block] = out_l_val;
+      output_r[pos_in_block] = out_r_val;
 
       /* Prevent clipping when summing multiple tracks / heavy overdubs / slice
        * polyphony. Only engage when the signal would actually clip, so normal
