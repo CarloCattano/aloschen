@@ -8,6 +8,8 @@
 #include <lv2/midi/midi.h>
 #include <lv2/core/lv2.h>
 
+#include "slice_sampler.h"
+
 #define ALO_URI "http://ktano-studio.com/aloschen"
 
 #define LOOP_SIZE 2880000
@@ -24,6 +26,14 @@
 #define HIGH_BEAT_FREQ 880
 #define LOW_BEAT_FREQ 440
 #define START_BEAT_FREQ 1760
+
+/* Upper bound for preallocated per-block scratch buffers used in the audio
+ * thread. If a host provides blocks larger than this, the engine will process
+ * them in bounded chunks (still no heap allocation in run()).
+ */
+#ifndef ALO_RT_BLOCK_CAP
+#define ALO_RT_BLOCK_CAP 65536u
+#endif
 
 
 
@@ -47,7 +57,7 @@ typedef enum {
   ALO_LOOP3 = 8,
   ALO_UNDO3 = 9,
   ALO_MIDIIN = 10,
-  ALO_MIDI_BASE = 11,
+  ALO_SLICE_ROOT = 11,
   ALO_CLICK = 12,
   ALO_BARS = 13,
   ALO_CONTROL = 14,
@@ -69,14 +79,17 @@ typedef enum {
   /* Debug/visualization outputs (MOD GUI rings). */
   ALO_CYCLE_PHASE = 30,
   ALO_HOST_BAR_PHASE = 31,
+  ALO_SAMPLER_VOL = 32,
+  ALO_FREEZE_MODE = 33,
 } PortIndex;
 
 /* Keep in sync with the highest port index + 1. */
-#define ALO_PORT_COUNT 32
+#define ALO_PORT_COUNT 34
 
 typedef struct {
   LV2_URID atom_Blank;
   LV2_URID atom_Float;
+  LV2_URID atom_Int;
   LV2_URID atom_Long;
   LV2_URID atom_Object;
   LV2_URID midi_MidiEvent;
@@ -97,6 +110,10 @@ typedef struct {
   /** Loop length in beats (bpb * bars). */
   LV2_URID time_speed;
   /** Loop length in samples (derived from loop_beats, bpm, sample rate). */
+
+  /* LV2 options / buf-size (instantiate-time only). */
+  LV2_URID bufsz_maxBlockLength;
+  LV2_URID bufsz_nominalBlockLength;
 } AloURIs;
 
 typedef struct {
@@ -109,8 +126,12 @@ typedef struct {
   float *undo_btn[NUM_TRACKS];
   /** Per-track playback gain coefficient (0..1). */
   float *loop_vol[NUM_TRACKS];
+  /** Sampler (slice one-shot) output gain coefficient (0..1). */
+  float *sampler_vol;
+  /** Dump mode (sampler isolation): capture a snapshot of the current looper mix for the sampler to read (0/1). */
+  float *freeze_mode;
   float *bars;
-  float *midi_base;
+  float *slice_root;
   float *click;
   float *mix;
   float *enabled;
@@ -131,7 +152,7 @@ typedef struct {
   LV2_Atom_Sequence *midiin;
 } AloPorts;
 
-typedef struct {
+typedef struct Alo {
   LV2_URID_Map *map;
   AloURIs uris;
   AloPorts ports;
@@ -163,7 +184,27 @@ typedef struct {
   double loop_origin_beats;
   bool have_loop_origin;
 
-  bool midi_control;
+  AloSliceSampler slice_sampler;
+
+  /* Preallocated per-block scratch buffers (RT-safe; allocated once at init). */
+  uint32_t rt_block_cap;
+  float* rt_play_l;
+  float* rt_play_r;
+  float* rt_slice_l;
+  float* rt_slice_r;
+
+  /** When enabled, playback and sampler source use a frozen mix buffer. */
+  bool freeze_mode;
+  bool last_freeze_mode;
+  /** Frozen full-loop stereo mix buffer (same layout as loop_buf: L then R). */
+  float *freeze_buf;
+  /** Peak absolute value observed during the most recent freeze capture. */
+  float freeze_peak_abs;
+  /** Linear gain applied to freeze_buf playback to avoid clipping (<= 1). */
+  float freeze_norm_gain;
+  bool freeze_valid;
+  bool freeze_capture_active;
+  uint32_t freeze_capture_pos;
 
   /** Per-track loop audio buffer (stereo stored as [0..LOOP_SIZE) L, [LOOP_SIZE..2*LOOP_SIZE) R). */
   float *loop_buf[NUM_TRACKS];
@@ -234,7 +275,7 @@ void update_loop_state_ports(Alo *self);
 
 void reset(Alo *self);
 void reset_timing(Alo *self);
-void run_events(Alo *self);
+void run_events(Alo *self, uint32_t n_samples);
 void run_loops(Alo *self, uint32_t n_samples);
 void run_clicks(Alo *self, uint32_t n_samples);
 

@@ -1,4 +1,5 @@
 @prefix doap:  <http://usefulinc.com/ns/doap#> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
 @prefix lv2:   <http://lv2plug.in/ns/lv2core#> .
 @prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
@@ -11,18 +12,19 @@
 @prefix ui:    <http://lv2plug.in/ns/extensions/ui#> .
 
 <http://ktano-studio.com/aloschen>
-a lv2:Plugin, lv2:UtilityPlugin;
+a lv2:Plugin, lv2:UtilityPlugin, doap:Project;
 lv2:requiredFeature urid:map;
 lv2:optionalFeature lv2:hardRTCapable;
 doap:name "ALO";
 doap:license <http://opensource.org/licenses/isc>;
 doap:maintainer [
-  doap:name "Carlo Cattano" ;
+	a foaf:Person ;
+	foaf:name "Carlo Cattano" ;
 ] ;
 ui:ui <http://ktano-studio.com/aloschen#ui>;
 
 
-lv2:minorVersion 3;
+lv2:minorVersion 6;
 lv2:microVersion 0;
 
 rdfs:comment """
@@ -136,11 +138,11 @@ lv2:port
 [
 	a lv2:ControlPort, lv2:InputPort;
 	lv2:index 11;
-	lv2:symbol "midi_base";
-	lv2:name "MIDI Base";
-	lv2:default 60;
-	lv2:minimum 1;
-	lv2:maximum 120;
+	lv2:symbol "slice_root";
+	lv2:name "Slice Root";
+	lv2:default 36;
+	lv2:minimum 0;
+	lv2:maximum 127;
 	lv2:portProperty lv2:integer;
 ],
 [
@@ -255,6 +257,26 @@ lv2:port
 	lv2:minimum 0;
 	lv2:maximum 1.0;
 	units:unit units:coef ;
+],
+[
+	a lv2:ControlPort, lv2:InputPort;
+	lv2:index 32;
+	lv2:symbol "sampler_vol";
+	lv2:name "Sampler Vol";
+	lv2:default 1.0;
+	lv2:minimum 0.0;
+	lv2:maximum 1.0;
+	units:unit units:coef ;
+],
+[
+	a lv2:ControlPort, lv2:InputPort;
+	lv2:index 33;
+	lv2:symbol "freeze_mode";
+	lv2:name "Dump To Sampler";
+	lv2:default 0.0;
+	lv2:minimum 0.0;
+	lv2:maximum 1.0;
+	lv2:portProperty lv2:toggled;
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;
@@ -406,4 +428,16 @@ lv2:port
 		] , [
 			ui:plugin <http://ktano-studio.com/aloschen> ;
 			ui:portIndex 29
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 30
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 31
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 32
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 33
 	] .

@@ -72,6 +72,7 @@
 
     <!-- Global controls (footer): knobs moved to bottom -->
     <div class="mod-control-group alo-global-group clearfix" aria-label="Global Controls">
+        <div class="alo-global-left" aria-label="Global Knobs">
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
             <div class="mod-knob-image-wrapper">
                 <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="bars"></div>
@@ -94,16 +95,27 @@
         </div>
         <div class="mod-separator"></div>
 
-        <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
-            <div class="mod-knob-image-wrapper">
-                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="midi_base"></div>
+            <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
+                <div class="mod-knob-image-wrapper">
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="slice_root"></div>
+                </div>
             </div>
-        </div>
-        <div class="mod-knob">
-            <div class="mod-knob-title">MIDI Base</div>
-            <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="midi_base">60.000</div>
-        </div>
+            <div class="mod-knob">
+                <div class="mod-knob-title">Slice Root</div>
+                <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="slice_root">36.000</div>
+            </div>
         <div class="mod-separator"></div>
+
+            <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
+                <div class="mod-knob-image-wrapper">
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="sampler_vol"></div>
+                </div>
+            </div>
+            <div class="mod-knob">
+                <div class="mod-knob-title">Sampler Vol</div>
+                <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="sampler_vol">1.000</div>
+            </div>
+            <div class="mod-separator"></div>
 
         <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
             <div class="mod-knob-image-wrapper">
@@ -115,17 +127,28 @@
             <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="mix">50.000</div>
         </div>
 
+        </div>
+
+        <div class="alo-global-right" aria-label="Global Switches">
         <div class="alo-footer-switch alo-footer-switch-bypass">
             <div class="alo-footer-switch-label">ON/OFF</div>
             <div class="mod-switch" mod-role="bypass" title="Bypass">
                 <div class="mod-switch-image" mod-role="bypass-light"></div>
             </div>
         </div>
-        <div class="alo-footer-switch alo-footer-switch-seq">
-            <div class="alo-footer-switch-label">SEQ</div>
-            <div class="mod-switch alo-ring-toggle" title="Toggle transport rings">
-                <div class="mod-switch-image alo-ring-toggle-image off"></div>
+        <div class="alo-footer-switch alo-footer-switch-mute">
+            <div class="alo-footer-switch-label">MUTE</div>
+            <div class="mod-switch alo-mute-all" title="Mute all loop volumes">
+                <div class="mod-switch-image"></div>
             </div>
+        </div>
+        <div class="alo-footer-switch alo-footer-switch-freeze">
+            <div class="alo-footer-switch-label">DUMP</div>
+            <div class="mod-switch" title="Dump looper mix for sampler">
+                <div class="mod-switch-image" mod-role="input-control-port" mod-port-symbol="freeze_mode" mod-widget="switch"></div>
+            </div>
+        </div>
+
         </div>
     </div>
 

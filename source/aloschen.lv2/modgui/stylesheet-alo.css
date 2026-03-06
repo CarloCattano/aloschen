@@ -76,15 +76,37 @@
     bottom: 8px;
     /* Must be above MOD's drag-handle overlay (z-index: 20) */
     z-index: 30;
+
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
 }
 
-/* Footer switches (bypass + UI rings) live next to Mix.
- * Wrap to allow a small label above each switch.
- */
+/* Footer layout: left column = knobs, right column = switches (2x2). */
+.alo{{{cns}}} .alo-global-group .alo-global-left {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.alo{{{cns}}} .alo-global-group .alo-global-right {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 6px;
+    flex: 0 0 auto;
+    margin-top: 2px;
+}
+
+/* Footer switches: no floats; they live in the right grid. */
 .alo{{{cns}}} .alo-global-group .alo-footer-switch {
-    float: right;
-    margin-top: 0px;
-    margin-left: 6px;
+    float: none;
+    margin: 0;
     text-align: center;
 }
 
@@ -105,6 +127,16 @@
 .alo{{{cns}}} .alo-global-group > div {
     margin-right: 1px;
     margin-left: 1px;
+}
+
+.alo{{{cns}}} .alo-global-group .alo-global-left > div {
+    margin-right: 1px;
+    margin-left: 1px;
+}
+
+.alo{{{cns}}} .alo-global-group .alo-global-right > div {
+    margin-right: 0;
+    margin-left: 0;
 }
 
 .alo{{{cns}}} .mod-pedal-input,

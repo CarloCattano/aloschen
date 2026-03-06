@@ -24,6 +24,8 @@
 #include <string.h>
 
 #include "alo_engine.h"
+#include "lv2/buf-size/buf-size.h"
+#include "lv2/options/options.h"
 #include "lv2/time/time.h"
 #include "lv2/urid/urid.h"
 
@@ -98,11 +100,34 @@ static void free_instance(Alo* self) {
   free(self->high_beat);
   free(self->low_beat);
   free(self->start_beat);
+  free(self->freeze_buf);
+  free(self->rt_play_l);
+  free(self->rt_play_r);
+  free(self->rt_slice_l);
+  free(self->rt_slice_r);
   free(self);
 }
 
 static bool alloc_track_buffers(Alo* self) {
   if (!self) {
+    return false;
+  }
+
+  self->freeze_buf = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
+  if (!self->freeze_buf) {
+    fprintf(stderr, "ALO: freeze buffer allocation failed\n");
+    return false;
+  }
+
+  if (self->rt_block_cap == 0u) {
+    self->rt_block_cap = ALO_RT_BLOCK_CAP;
+  }
+  self->rt_play_l = (float*)calloc((size_t)self->rt_block_cap, sizeof(float));
+  self->rt_play_r = (float*)calloc((size_t)self->rt_block_cap, sizeof(float));
+  self->rt_slice_l = (float*)calloc((size_t)self->rt_block_cap, sizeof(float));
+  self->rt_slice_r = (float*)calloc((size_t)self->rt_block_cap, sizeof(float));
+  if (!self->rt_play_l || !self->rt_play_r || !self->rt_slice_l || !self->rt_slice_r) {
+    fprintf(stderr, "ALO: RT scratch buffer allocation failed\n");
     return false;
   }
 
@@ -153,10 +178,6 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
   self->have_last_enabled = false;
   self->last_enabled = true;
 
-  if (!alloc_track_buffers(self)) {
-    goto fail;
-  }
-
   LV2_URID_Map *map = NULL;
   for (int i = 0; features[i]; ++i) {
     if (!strcmp(features[i]->URI, LV2_URID_URI "#map")) {
@@ -174,6 +195,7 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
   AloURIs *const uris = &self->uris;
   uris->atom_Blank = map->map(map->handle, LV2_ATOM__Blank);
   uris->atom_Float = map->map(map->handle, LV2_ATOM__Float);
+  uris->atom_Int = map->map(map->handle, LV2_ATOM__Int);
   uris->atom_Long = map->map(map->handle, LV2_ATOM__Long);
   uris->atom_Object = map->map(map->handle, LV2_ATOM__Object);
   uris->atom_Path = map->map(map->handle, LV2_ATOM__Path);
@@ -189,6 +211,64 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
   uris->time_beatsPerBar =
       map->map(map->handle, LV2_TIME__beatsPerBar);
   uris->midi_MidiEvent = map->map(map->handle, LV2_MIDI__MidiEvent);
+
+  uris->bufsz_maxBlockLength = map->map(map->handle, LV2_BUF_SIZE__maxBlockLength);
+  uris->bufsz_nominalBlockLength = map->map(map->handle, LV2_BUF_SIZE__nominalBlockLength);
+
+  /* Determine RT scratch capacity from LV2 options (instantiate-time only). */
+  uint32_t opt_nominal = 0u;
+  uint32_t opt_max = 0u;
+  const LV2_Options_Option* options = NULL;
+  for (int i = 0; features[i]; ++i) {
+    if (!strcmp(features[i]->URI, LV2_OPTIONS__options)) {
+      options = (const LV2_Options_Option*)features[i]->data;
+      break;
+    }
+  }
+  if (options) {
+    for (const LV2_Options_Option* o = options; o->key; ++o) {
+      uint32_t v = 0u;
+      if (o->type == uris->atom_Int && o->value) {
+        const int32_t vi = *(const int32_t*)o->value;
+        if (vi > 0) {
+          v = (uint32_t)vi;
+        }
+      } else if (o->type == uris->atom_Long && o->value) {
+        const int64_t vl = *(const int64_t*)o->value;
+        if (vl > 0 && vl <= (int64_t)UINT32_MAX) {
+          v = (uint32_t)vl;
+        }
+      }
+
+      if (v == 0u) {
+        continue;
+      }
+
+      if (o->key == uris->bufsz_nominalBlockLength) {
+        opt_nominal = v;
+      } else if (o->key == uris->bufsz_maxBlockLength) {
+        opt_max = v;
+      }
+    }
+  }
+
+  uint32_t cap = ALO_RT_BLOCK_CAP;
+  if (opt_max > 0u) {
+    cap = opt_max;
+  } else if (opt_nominal > 0u) {
+    cap = opt_nominal;
+  }
+  if (cap == 0u) {
+    cap = ALO_RT_BLOCK_CAP;
+  }
+  if (cap > ALO_RT_BLOCK_CAP) {
+    cap = ALO_RT_BLOCK_CAP;
+  }
+  self->rt_block_cap = cap;
+
+  if (!alloc_track_buffers(self)) {
+    goto fail;
+  }
 
   /* Generate pulses for the metronome */
   self->beat_len = (uint32_t)(0.02f * self->rate);
@@ -248,8 +328,8 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
     self->ports.midiin = (LV2_Atom_Sequence *)data;
     break;
 
-  case ALO_MIDI_BASE:
-    self->ports.midi_base = (float *)data;
+  case ALO_SLICE_ROOT:
+    self->ports.slice_root = (float *)data;
     break;
 
   case ALO_CLICK:
@@ -293,6 +373,10 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
     self->ports.loop_vol[2] = (float *)data;
     break;
 
+  case ALO_SAMPLER_VOL:
+    self->ports.sampler_vol = (float *)data;
+    break;
+
   case ALO_LOOP1_STATE:
     self->ports.loop_state_out[0] = (float *)data;
     break;
@@ -317,6 +401,9 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
     self->ports.has_audio_out[0] = (float *)data;
     break;
   case ALO_LOOP2_HAS_AUDIO:
+      case ALO_FREEZE_MODE:
+        self->ports.freeze_mode = (float*)data;
+        break;
     self->ports.has_audio_out[1] = (float *)data;
     break;
   case ALO_LOOP3_HAS_AUDIO:
@@ -406,7 +493,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
   }
 
   /* Handle control and MIDI events first so we quantize to the right boundary. */
-  run_events(self);
+  run_events(self, n_samples);
 
   /* Process audio loops (record + playback). */
   run_loops(self, n_samples);

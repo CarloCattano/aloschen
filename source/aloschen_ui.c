@@ -60,6 +60,7 @@ typedef struct {
 
 #define CTL_TRIGGER_(port_, label_) {port_, port_, label_, CTL_TRIGGER, 0.0f, 1.0f}
 #define CTL_LOOP_(port_, state_port_, label_) {port_, state_port_, label_, CTL_TRIGGER, 0.0f, 1.0f}
+#define CTL_TOGGLE_(port_, label_) {port_, port_, label_, CTL_TOGGLE, 0.0f, 1.0f}
 #define CTL_SLIDER_INT_(port_, label_, min_, max_) {port_, port_, label_, CTL_SLIDER_INT, min_, max_}
 #define CTL_SLIDER_FLOAT_(port_, label_, min_, max_) {port_, port_, label_, CTL_SLIDER_FLOAT, min_, max_}
 
@@ -68,6 +69,9 @@ typedef enum {
   ALO_T2 = 1,
   ALO_T3 = 2,
 } AloTrack;
+
+/* UI-only actions (not LV2 ports). */
+#define ALO_UI_ACTION_MUTE_ALL (UINT32_MAX - 1u)
 
 static inline bool ui_is_undo_port(const uint32_t port_index) {
   return port_index == ALO_UNDO1 || port_index == ALO_UNDO2 || port_index == ALO_UNDO3;
@@ -140,14 +144,19 @@ static const Control kControls[] = {
   CTL_LOOP_(ALO_LOOP3, ALO_LOOP3_STATE, "Loop3"),
   CTL_LOOP_(ALO_UNDO3, ALO_UNDO3_STATE, "Undo3"),
 
+  /* Isolation helpers */
+  {ALO_UI_ACTION_MUTE_ALL, ALO_UI_ACTION_MUTE_ALL, "Mute All", CTL_TRIGGER, 0.0f, 1.0f},
+  CTL_TOGGLE_(ALO_FREEZE_MODE, "Dump"),
+
   CTL_SLIDER_FLOAT_(ALO_LOOP1_VOL, "Loop1 Vol", 0.0f, 1.0f),
   CTL_SLIDER_FLOAT_(ALO_LOOP2_VOL, "Loop2 Vol", 0.0f, 1.0f),
   CTL_SLIDER_FLOAT_(ALO_LOOP3_VOL, "Loop3 Vol", 0.0f, 1.0f),
+  CTL_SLIDER_FLOAT_(ALO_SAMPLER_VOL, "Sampler Vol", 0.0f, 1.0f),
 
   CTL_SLIDER_INT_(ALO_BARS, "Bars", 1.0f, 16.0f),
   CTL_SLIDER_INT_(ALO_CLICK, "Click", 0.0f, 10.0f),
   CTL_SLIDER_INT_(ALO_MIX, "Mix", 0.0f, 100.0f),
-  CTL_SLIDER_INT_(ALO_MIDI_BASE, "MIDI Base", 1.0f, 120.0f),
+  CTL_SLIDER_INT_(ALO_SLICE_ROOT, "Slice Root", 0.0f, 127.0f),
 };
 
 typedef enum {
@@ -185,6 +194,10 @@ typedef struct {
 
   int active_control; /* index into kControls */
   HitType active_hit;
+
+  bool mute_all_on;
+  bool have_saved_vols;
+  float saved_loop_vol[NUM_TRACKS];
 } AloUI;
 
 static inline bool undo_is_enabled(const AloUI* ui, uint32_t undo_port_index) {
@@ -575,6 +588,10 @@ static void ui_send_port(AloUI* ui, const uint32_t port_index, float value) {
     return;
   }
 
+  if (port_index >= ALO_PORT_COUNT) {
+    return;
+  }
+
   ui->port_values[port_index] = value;
   ui->write(ui->controller, port_index, sizeof(float), 0, &value);
 }
@@ -588,6 +605,10 @@ static void draw_string(AloUI* ui, int x, int y, const char* text) {
 
 static bool ui_button_is_on(const AloUI* ui, const Control* c, const bool blink_on) {
   if (!ui || !c) {
+    return false;
+  }
+
+  if (c->port_index >= ALO_PORT_COUNT || c->display_port_index >= ALO_PORT_COUNT) {
     return false;
   }
 
@@ -830,6 +851,36 @@ static void handle_button_press(AloUI* ui, const XButtonEvent* e) {
 
   const Control* c = &kControls[index];
   if (hit_type == HIT_BUTTON) {
+    if (c->port_index == ALO_UI_ACTION_MUTE_ALL) {
+      const float v1 = (ALO_LOOP1_VOL < ALO_PORT_COUNT) ? ui->port_values[ALO_LOOP1_VOL] : 1.0f;
+      const float v2 = (ALO_LOOP2_VOL < ALO_PORT_COUNT) ? ui->port_values[ALO_LOOP2_VOL] : 1.0f;
+      const float v3 = (ALO_LOOP3_VOL < ALO_PORT_COUNT) ? ui->port_values[ALO_LOOP3_VOL] : 1.0f;
+
+      const bool any_on = (v1 > 1e-6f) || (v2 > 1e-6f) || (v3 > 1e-6f);
+      if (any_on) {
+        ui->saved_loop_vol[0] = v1;
+        ui->saved_loop_vol[1] = v2;
+        ui->saved_loop_vol[2] = v3;
+        ui->have_saved_vols = true;
+        ui->mute_all_on = true;
+        ui_send_port(ui, ALO_LOOP1_VOL, 0.0f);
+        ui_send_port(ui, ALO_LOOP2_VOL, 0.0f);
+        ui_send_port(ui, ALO_LOOP3_VOL, 0.0f);
+      } else {
+        const float r1 = ui->have_saved_vols ? ui->saved_loop_vol[0] : 1.0f;
+        const float r2 = ui->have_saved_vols ? ui->saved_loop_vol[1] : 1.0f;
+        const float r3 = ui->have_saved_vols ? ui->saved_loop_vol[2] : 1.0f;
+        ui->mute_all_on = false;
+        ui_send_port(ui, ALO_LOOP1_VOL, r1);
+        ui_send_port(ui, ALO_LOOP2_VOL, r2);
+        ui_send_port(ui, ALO_LOOP3_VOL, r3);
+      }
+      ui->needs_redraw = true;
+      ui->active_control = -1;
+      ui->active_hit = HIT_NONE;
+      return;
+    }
+
     if ((c->port_index == ALO_UNDO1 || c->port_index == ALO_UNDO2 || c->port_index == ALO_UNDO3) &&
         !undo_is_enabled(ui, c->port_index)) {
       ui->active_control = -1;
@@ -1112,10 +1163,11 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->port_values[ALO_LOOP1_VOL] = 1.0f;
   ui->port_values[ALO_LOOP2_VOL] = 1.0f;
   ui->port_values[ALO_LOOP3_VOL] = 1.0f;
+  ui->port_values[ALO_SAMPLER_VOL] = 1.0f;
   ui->port_values[ALO_BARS] = 2.0f;
   ui->port_values[ALO_CLICK] = 1.0f;
   ui->port_values[ALO_MIX] = 50.0f;
-  ui->port_values[ALO_MIDI_BASE] = 60.0f;
+  ui->port_values[ALO_SLICE_ROOT] = 36.0f;
   ui->port_values[ALO_BAR_STEP] = 0.0f;
   ui->port_values[ALO_CYCLE_PHASE] = 0.0f;
   ui->port_values[ALO_HOST_BAR_PHASE] = 0.0f;

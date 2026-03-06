@@ -22,12 +22,39 @@ endif
 BASE_FLAGS = -Wall -Wextra -pipe -Wno-unused-parameter
 BASE_OPTS  = -O3 -ffast-math
 
+# --------------------------------------------------------------
+# Optional debug toggles (off by default)
+#
+# - SAFE_MATH=true: disable -ffast-math to rule out UB/precision artifacts
+# - MATH_CHECKS=true: adds -DALO_MATH_CHECKS (RT-safe clamps for NaN/Inf)
+# - SANITIZE=address|undefined|...: enables compiler sanitizers (debugging)
+
+SANITIZE_CFLAGS  =
+SANITIZE_LDFLAGS =
+
+ifeq ($(SAFE_MATH),true)
+BASE_OPTS  = -O3 -fno-fast-math -fno-unsafe-math-optimizations -fno-finite-math-only -fno-associative-math
+endif
+
+ifeq ($(MATH_CHECKS),true)
+BASE_FLAGS += -DALO_MATH_CHECKS
+endif
+
+ifneq ($(SANITIZE),)
+SANITIZE_CFLAGS  = -fno-omit-frame-pointer -fsanitize=$(SANITIZE)
+SANITIZE_LDFLAGS = -fsanitize=$(SANITIZE)
+endif
+
 ifeq ($(MACOS),true)
 # MacOS linker flags
 LINK_OPTS  = -Wl,-dead_strip -Wl,-dead_strip_dylibs
 else
 # Common linker flags
+ifneq ($(SANITIZE),)
+LINK_OPTS  = -Wl,-O1 -Wl,--as-needed
+else
 LINK_OPTS  = -Wl,-O1 -Wl,--as-needed -Wl,--strip-all
+endif
 endif
 
 ifneq ($(WIN32),true)
@@ -42,6 +69,9 @@ else
 BASE_FLAGS += -DNDEBUG $(BASE_OPTS) -fvisibility=hidden
 CXXFLAGS   += -fvisibility-inlines-hidden
 endif
+
+BASE_FLAGS += $(SANITIZE_CFLAGS)
+LINK_OPTS  += $(SANITIZE_LDFLAGS)
 
 BUILD_C_FLAGS   = $(BASE_FLAGS) -std=c99 -std=gnu99 $(CFLAGS)
 BUILD_CXX_FLAGS = $(BASE_FLAGS) -std=c++11 $(CXXFLAGS) $(CPPFLAGS)

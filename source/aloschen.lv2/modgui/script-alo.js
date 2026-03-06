@@ -157,6 +157,13 @@ function (event, funcs) {
         data.ring_toggle = icon.find('.alo-ring-toggle');
         data.ring_toggle_img = icon.find('.alo-ring-toggle-image');
 
+        // If the UI toggle was removed, always show rings.
+        if (!data.ring_toggle || !data.ring_toggle.length) {
+            setRingsVisible(icon, data, true);
+            data.ring_toggle_ready = true;
+            return;
+        }
+
         var stored = safeGetLocalStorage(RINGS_LS_KEY);
         var visible = true;
         if (stored === '0') visible = false;
@@ -371,6 +378,12 @@ function (event, funcs) {
                 setActiveStep(icon, data.bar_step);
             }
             setActiveStepDot(icon, data);
+        } else if (symbol === 'loop1_vol') {
+            data.loop1_vol = value;
+        } else if (symbol === 'loop2_vol') {
+            data.loop2_vol = value;
+        } else if (symbol === 'loop3_vol') {
+            data.loop3_vol = value;
         } else if (symbol === 'bar_step') {
             data.bar_step = Math.round(value);
             rebuildStepDots(icon, data);
@@ -435,6 +448,72 @@ function (event, funcs) {
         var icon = event.icon;
         var data = icon.data('alo') || { bars: 2, steps: 8, bar_step: 0 };
         ensureRings(icon, data);
+
+        function setPortValue(symbol, value) {
+            if (!symbol) return;
+            if (event.api_version >= 1 && funcs && funcs.set_port_value) {
+                funcs.set_port_value(symbol, value);
+            } else {
+                /* Fallback (older MOD / prototyping): set the widget directly. */
+                var ctrl = icon.find('[mod-role="input-control-port"][mod-port-symbol="' + symbol + '"]');
+                if (ctrl && ctrl.length) {
+                    ctrl.controlWidget('setValue', value);
+                }
+            }
+        }
+
+        var mute = icon.find('.alo-mute-all');
+        if (mute && mute.length) {
+            mute.off('click.aloMute');
+            mute.on('click.aloMute', function (e) {
+                if (e) {
+                    if (e.preventDefault) e.preventDefault();
+                    if (e.stopPropagation) e.stopPropagation();
+                }
+                var d = icon.data('alo') || {};
+
+                var img = mute.find('.mod-switch-image');
+                var isOn = !!d.muteIsOn;
+
+                if (!isOn) {
+                    var v1 = (d.loop1_vol > -Infinity) ? d.loop1_vol : 1.0;
+                    var v2 = (d.loop2_vol > -Infinity) ? d.loop2_vol : 1.0;
+                    var v3 = (d.loop3_vol > -Infinity) ? d.loop3_vol : 1.0;
+                    d.muteSaved = { v1: v1, v2: v2, v3: v3 };
+
+                    setPortValue('loop1_vol', 0.0);
+                    setPortValue('loop2_vol', 0.0);
+                    setPortValue('loop3_vol', 0.0);
+
+                    d.loop1_vol = 0.0;
+                    d.loop2_vol = 0.0;
+                    d.loop3_vol = 0.0;
+                    d.muteIsOn = true;
+                } else {
+                    var r1 = (d.muteSaved && d.muteSaved.v1 > -Infinity) ? d.muteSaved.v1 : 1.0;
+                    var r2 = (d.muteSaved && d.muteSaved.v2 > -Infinity) ? d.muteSaved.v2 : 1.0;
+                    var r3 = (d.muteSaved && d.muteSaved.v3 > -Infinity) ? d.muteSaved.v3 : 1.0;
+
+                    setPortValue('loop1_vol', r1);
+                    setPortValue('loop2_vol', r2);
+                    setPortValue('loop3_vol', r3);
+
+                    d.loop1_vol = r1;
+                    d.loop2_vol = r2;
+                    d.loop3_vol = r3;
+                    d.muteIsOn = false;
+                }
+
+                if (img && img.length) {
+                    img.removeClass('on off');
+                    img.addClass(d.muteIsOn ? 'on' : 'off');
+                }
+
+                icon.data('alo', d);
+                return false;
+            });
+        }
+
         setAnyRecordingClass(icon, data);
         rebuildStepDots(icon, data);
         setActiveStepDot(icon, data);
