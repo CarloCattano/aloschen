@@ -11,7 +11,7 @@ function (event, funcs) {
     function clampBars(bars) {
         if (!(bars > 0)) return 1;
         if (bars < 1) return 1;
-        if (bars > 32) return 32;
+        if (bars > 16) return 16;
         return Math.round(bars);
     }
 
@@ -70,7 +70,7 @@ function (event, funcs) {
 
         var steps = data.steps || 4;
         if (steps < 1) steps = 1;
-        if (steps > 128) steps = 128;
+        if (steps > 64) steps = 64;
 
         if (data.stepDotsCount === steps && data.step_dots.children().length === steps) {
             return;
@@ -222,7 +222,7 @@ function (event, funcs) {
 
         var steps = data.steps || 4;
         if (steps < 1) steps = 1;
-        if (steps > 128) steps = 128;
+        if (steps > 64) steps = 64;
 
         var seg = data.ring_steps_c / steps;
         var onLen = seg * 0.55;

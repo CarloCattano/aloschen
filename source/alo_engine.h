@@ -147,6 +147,10 @@ typedef struct {
 
   bool have_transport;
   bool transport_moving;
+  /** True when run_events() observed a time:Position update this cycle. */
+  bool transport_updated_this_cycle;
+  /** Number of consecutive cycles without time:Position updates. */
+  uint32_t transport_blocks_without_update;
   uint32_t transport_loop_index;
   bool transport_loop_index_pending;
   float last_bar_beat;

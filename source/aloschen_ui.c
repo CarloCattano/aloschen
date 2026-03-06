@@ -1,5 +1,5 @@
 /*
-  Minimal native X11 UI for the ALO LV2 plugin.
+  Minimal native X11 UI for the ALOSCHEN LV2 plugin.
 
   This UI is a separate shared object (aloschen_ui.so) and communicates with the
   DSP only via LV2 UI callbacks (write_function / port_event).
@@ -144,7 +144,7 @@ static const Control kControls[] = {
   CTL_SLIDER_FLOAT_(ALO_LOOP2_VOL, "Loop2 Vol", 0.0f, 1.0f),
   CTL_SLIDER_FLOAT_(ALO_LOOP3_VOL, "Loop3 Vol", 0.0f, 1.0f),
 
-  CTL_SLIDER_INT_(ALO_BARS, "Bars", 1.0f, 32.0f),
+  CTL_SLIDER_INT_(ALO_BARS, "Bars", 1.0f, 16.0f),
   CTL_SLIDER_INT_(ALO_CLICK, "Click", 0.0f, 10.0f),
   CTL_SLIDER_INT_(ALO_MIX, "Mix", 0.0f, 100.0f),
   CTL_SLIDER_INT_(ALO_MIDI_BASE, "MIDI Base", 1.0f, 120.0f),
@@ -162,6 +162,15 @@ typedef struct {
   Window parent;
   Window win;
   GC gc;
+
+  Colormap cmap;
+  unsigned long col_fg;
+  unsigned long col_bg;
+  unsigned long col_grey;
+  unsigned long col_cycle;
+  unsigned long col_cycle_past;
+  unsigned long col_host;
+  unsigned long col_active;
 
   unsigned int width;
   unsigned int height;
@@ -194,13 +203,19 @@ static inline bool undo_is_enabled(const AloUI* ui, uint32_t undo_port_index) {
 typedef struct {
   int pad;
   int header_h;
+
+  int rings_x0;
+  int rings_y0;
+  int rings_d;
+
+  int buttons_x0;
+  int buttons_y0;
   int btn_w;
   int btn_h;
   int btn_gap;
   int slider_h;
   int row_h;
   int slider_y0;
-  int buttons_y0;
 } UILayout;
 
 static UILayout ui_layout(const AloUI* ui) {
@@ -208,13 +223,27 @@ static UILayout ui_layout(const AloUI* ui) {
   UILayout l;
   l.pad = UI_SI(10);
   l.header_h = UI_SI(22);
+
+  l.rings_x0 = l.pad;
+  l.rings_y0 = l.pad + l.header_h + UI_SI(6);
+  l.rings_d = UI_SI(120);
+
+  l.buttons_x0 = l.rings_x0 + l.rings_d + l.pad;
+  l.buttons_y0 = l.rings_y0;
+
   l.btn_w = UI_SI(104);
   l.btn_h = UI_SI(34);
   l.btn_gap = UI_SI(10);
   l.slider_h = UI_SI(18);
   l.row_h = UI_SI(44);
-  l.buttons_y0 = l.pad + l.header_h;
-  l.slider_y0 = l.buttons_y0 + l.btn_h + UI_SI(18);
+
+  /* Place sliders below the lower of: rings box, or button grid (2 rows). */
+  const int buttons_h = 2 * l.btn_h + l.btn_gap;
+  int content_h = l.rings_y0 + l.rings_d;
+  if (l.buttons_y0 + buttons_h > content_h) {
+    content_h = l.buttons_y0 + buttons_h;
+  }
+  l.slider_y0 = content_h + UI_SI(18);
   return l;
 }
 
@@ -224,8 +253,8 @@ static int ui_get_bars_i(const AloUI* ui) {
   if (bars_f < 1.0f) {
     bars_f = 1.0f;
   }
-  if (bars_f > 32.0f) {
-    bars_f = 32.0f;
+  if (bars_f > 16.0f) {
+    bars_f = 16.0f;
   }
   int bars_i = (int)lrintf(bars_f);
   return (bars_i > 0) ? bars_i : 1;
@@ -310,6 +339,237 @@ static float round_int_value(const float v) {
   return (float)((v >= 0.0f) ? (int)(v + 0.5f) : (int)(v - 0.5f));
 }
 
+static void draw_string(AloUI* ui, int x, int y, const char* text);
+
+static float clamp01f(const float v) {
+  if (!(v >= 0.0f)) {
+    return 0.0f;
+  }
+  if (v > 1.0f) {
+    return 1.0f;
+  }
+  return v;
+}
+
+static unsigned long ui_alloc_named_color(AloUI* ui, const char* name, unsigned long fallback) {
+  if (!ui || !ui->dpy || !name) {
+    return fallback;
+  }
+
+  XColor scr;
+  XColor exact;
+  if (XAllocNamedColor(ui->dpy, ui->cmap, name, &scr, &exact)) {
+    return scr.pixel;
+  }
+  return fallback;
+}
+
+static void ui_set_fg(AloUI* ui, unsigned long pixel) {
+  if (!ui || !ui->dpy) {
+    return;
+  }
+  XSetForeground(ui->dpy, ui->gc, pixel);
+}
+
+static void ui_draw_arc_deg(AloUI* ui, int cx, int cy, int r, int start_deg, int extent_deg) {
+  if (!ui || !ui->dpy || r <= 0) {
+    return;
+  }
+
+  const int d = 2 * r;
+  const int x = cx - r;
+  const int y = cy - r;
+  XDrawArc(ui->dpy, ui->win, ui->gc, x, y, (unsigned int)d, (unsigned int)d,
+           start_deg * 64, extent_deg * 64);
+}
+
+static void ui_draw_transport_rings(AloUI* ui, const UILayout* l) {
+  if (!ui || !l) {
+    return;
+  }
+
+  const int x0 = l->rings_x0;
+  const int y0 = l->rings_y0;
+  const int d0 = l->rings_d;
+  if (d0 < UI_SI(40)) {
+    return;
+  }
+
+  /* Map the MOD SVG radii (46/38/26/14) into pixels. */
+  const int stroke_outer = UI_SI(3);
+  const int outer_r = (d0 / 2) - stroke_outer - UI_SI(2);
+  if (outer_r < UI_SI(10)) {
+    return;
+  }
+  const float s = (float)outer_r / 46.0f;
+
+  const int r_bars = outer_r;
+  const int r_steps = (int)lrintf(38.0f * s);
+  const int r_cycle = (int)lrintf(26.0f * s);
+  const int r_host = (int)lrintf(14.0f * s);
+
+  const int cx = x0 + d0 / 2;
+  const int cy = y0 + d0 / 2;
+
+  const int bars = ui_get_bars_i(ui);
+  int steps = bars * DEFAULT_BEATS_PER_BAR;
+  if (steps < 1) {
+    steps = 1;
+  }
+  if (steps > 128) {
+    steps = 128;
+  }
+
+  int bar_step = -1;
+  if (ALO_BAR_STEP < ALO_PORT_COUNT) {
+    const float v = ui->port_values[ALO_BAR_STEP];
+    if (v >= -0.5f) {
+      bar_step = (int)lrintf(v);
+    }
+  }
+
+  float cycle_phase = 0.0f;
+  float host_phase = 0.0f;
+  if (ALO_CYCLE_PHASE < ALO_PORT_COUNT) {
+    cycle_phase = clamp01f(ui->port_values[ALO_CYCLE_PHASE]);
+  }
+  if (ALO_HOST_BAR_PHASE < ALO_PORT_COUNT) {
+    host_phase = clamp01f(ui->port_values[ALO_HOST_BAR_PHASE]);
+  }
+
+  /* Angles: X11 uses 0deg at 3 o'clock, CCW positive.
+   * We want 0 at 12 o'clock and clockwise progression.
+   */
+  const int start0 = 90;
+
+  /* Background circle (subtle). */
+  ui_set_fg(ui, ui->col_grey);
+  XSetLineAttributes(ui->dpy, ui->gc, (unsigned int)UI_SI(3), LineSolid, CapRound, JoinRound);
+  ui_draw_arc_deg(ui, cx, cy, r_cycle, 0, 360);
+
+  /* Bars ring: dashed segments + active bar segment. */
+  const float seg_bars = 360.0f / (float)bars;
+  const float on_bars = seg_bars * 0.78f;
+  const int w_bars = UI_SI(3);
+  XSetLineAttributes(ui->dpy, ui->gc, (unsigned int)w_bars, LineSolid, CapButt, JoinMiter);
+  ui_set_fg(ui, ui->col_grey);
+  for (int i = 0; i < bars; ++i) {
+    const int a0 = (int)lrintf((float)start0 - (float)i * seg_bars);
+    ui_draw_arc_deg(ui, cx, cy, r_bars, a0, (int)lrintf(-on_bars));
+  }
+
+  int bar_index = 0;
+  if (bar_step >= 0) {
+    bar_index = bar_step / 4;
+    if (bar_index < 0) {
+      bar_index = 0;
+    } else if (bar_index >= bars) {
+      bar_index = bars - 1;
+    }
+  }
+  ui_set_fg(ui, ui->col_active);
+  {
+    const int a0 = (int)lrintf((float)start0 - (float)bar_index * seg_bars);
+    ui_draw_arc_deg(ui, cx, cy, r_bars, a0, (int)lrintf(-on_bars));
+  }
+
+  /* Steps ring: dashed segments + active step segment. */
+  const float seg_steps = 360.0f / (float)steps;
+  const float on_steps = seg_steps * 0.55f;
+  const int w_steps = UI_SI(3);
+  XSetLineAttributes(ui->dpy, ui->gc, (unsigned int)w_steps, LineSolid, CapButt, JoinMiter);
+  ui_set_fg(ui, ui->col_cycle);
+  for (int i = 0; i < steps; ++i) {
+    const int a0 = (int)lrintf((float)start0 - (float)i * seg_steps);
+    ui_draw_arc_deg(ui, cx, cy, r_steps, a0, (int)lrintf(-on_steps));
+  }
+
+  int step_index = bar_step;
+  if (!(step_index >= 0 && step_index < steps)) {
+    step_index = -1;
+  }
+
+  /* Steps: future grey, past dark green, current bright green. */
+  for (int i = 0; i < steps; ++i) {
+    if (step_index < 0) {
+      ui_set_fg(ui, ui->col_grey);
+    } else if (i < step_index) {
+      ui_set_fg(ui, ui->col_cycle_past);
+    } else if (i == step_index) {
+      ui_set_fg(ui, ui->col_cycle);
+    } else {
+      ui_set_fg(ui, ui->col_grey);
+    }
+    const int a0 = (int)lrintf((float)start0 - (float)i * seg_steps);
+    ui_draw_arc_deg(ui, cx, cy, r_steps, a0, (int)lrintf(-on_steps));
+  }
+
+  /* Step dots (subtle), with active dot filled. */
+  const int dot_r = UI_SI(2);
+  const int dot_r_active = UI_SI(3);
+  const double kPi = 3.14159265358979323846;
+  for (int i = 0; i < steps; ++i) {
+    const double a = ((double)i / (double)steps) * (kPi * 2.0) - (kPi / 2.0);
+    const int dx = cx + (int)lrint(cos(a) * (double)r_steps);
+    const int dy = cy + (int)lrint(sin(a) * (double)r_steps);
+    const bool is_cur = (step_index >= 0 && i == step_index);
+    const int rr = is_cur ? dot_r_active : dot_r;
+
+    if (is_cur) {
+      ui_set_fg(ui, ui->col_cycle);
+      XFillArc(ui->dpy, ui->win, ui->gc, dx - rr, dy - rr, (unsigned int)(2 * rr),
+               (unsigned int)(2 * rr), 0, 360 * 64);
+    } else {
+      if (step_index < 0) {
+        ui_set_fg(ui, ui->col_grey);
+      } else if (i < step_index) {
+        ui_set_fg(ui, ui->col_cycle_past);
+      } else {
+        ui_set_fg(ui, ui->col_grey);
+      }
+      XDrawArc(ui->dpy, ui->win, ui->gc, dx - rr, dy - rr, (unsigned int)(2 * rr),
+               (unsigned int)(2 * rr), 0, 360 * 64);
+    }
+  }
+
+  /* Smooth rings: cycle phase (outer) + host bar phase (inner). */
+  const int w_cycle = UI_SI(6);
+  const int w_host = UI_SI(6);
+  XSetLineAttributes(ui->dpy, ui->gc, (unsigned int)w_cycle, LineSolid, CapRound, JoinRound);
+  ui_set_fg(ui, ui->col_cycle);
+  ui_draw_arc_deg(ui, cx, cy, r_cycle, start0, (int)lrintf(-360.0f * cycle_phase));
+
+  XSetLineAttributes(ui->dpy, ui->gc, (unsigned int)w_host, LineSolid, CapRound, JoinRound);
+  ui_set_fg(ui, ui->col_host);
+  ui_draw_arc_deg(ui, cx, cy, r_host, start0, (int)lrintf(-360.0f * host_phase));
+
+  /* Restore defaults for rest of UI. */
+  XSetLineAttributes(ui->dpy, ui->gc, (unsigned int)UI_SI(1), LineSolid, CapButt, JoinMiter);
+  ui_set_fg(ui, ui->col_fg);
+
+  draw_string(ui, x0, y0 - UI_SI(4), "SEQ");
+}
+
+static bool ui_trigger_grid_pos(const Control* c, int* out_col, int* out_row) {
+  if (!c || !out_col || !out_row) {
+    return false;
+  }
+
+  /* Arrange loop logic as:
+   * Row 0: Loop1 Loop2 Loop3
+   * Row 1: Undo1 Undo2 Undo3
+   */
+  const int t = ui_track_from_ui_port(c->port_index);
+  if (t < 0 || t >= NUM_TRACKS) {
+    return false;
+  }
+
+  const bool is_undo = ui_is_undo_port(c->port_index);
+  *out_col = t;
+  *out_row = is_undo ? 1 : 0;
+  return true;
+}
+
 static void ui_send_port(AloUI* ui, const uint32_t port_index, float value) {
   if (!ui || !ui->write) {
     return;
@@ -386,23 +646,40 @@ static void ui_redraw(AloUI* ui) {
   draw_string(ui, (int)ui->width - UI_SI(180), UI_SI(18), "Carlo Cattano");
   y += l.header_h;
 
+  /* Circular timing UI (transport rings). */
+  ui_draw_transport_rings(ui, &l);
+
   /* Trigger buttons row */
   const int btn_w = l.btn_w;
   const int btn_h = l.btn_h;
   const int btn_gap = l.btn_gap;
 
+  x = l.buttons_x0;
+  y = l.buttons_y0;
+
+  int fallback_i = 0;
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
     if (c->type != CTL_TOGGLE && c->type != CTL_TRIGGER) {
       continue;
     }
 
-    ui_draw_button(ui, x, y, btn_w, btn_h, c, blink_on);
-    x += btn_w + btn_gap;
+    int col = 0;
+    int row = 0;
+    if (!ui_trigger_grid_pos(c, &col, &row)) {
+      /* Fallback: place sequentially below the 2-row grid if new controls are added later. */
+      col = fallback_i % 3;
+      row = 2 + (fallback_i / 3);
+      fallback_i++;
+    }
+
+    const int bx = l.buttons_x0 + col * (btn_w + btn_gap);
+    const int by = l.buttons_y0 + row * (btn_h + btn_gap);
+    ui_draw_button(ui, bx, by, btn_w, btn_h, c, blink_on);
   }
 
   x = l.pad;
-  y += btn_h + UI_SI(16);
+  y = l.slider_y0;
 
   /* Sliders */
   const int slider_w = (int)ui->width - 2 * l.pad;
@@ -458,7 +735,7 @@ static bool point_in_rect(const int px, const int py, const int x, const int y, 
 
 static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type) {
   const UILayout l = ui_layout(ui);
-  int x = l.pad;
+  int x = l.buttons_x0;
   int y = l.buttons_y0;
 
   const int btn_w = l.btn_w;
@@ -466,18 +743,28 @@ static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type) {
   const int btn_gap = l.btn_gap;
 
   /* Toggles */
+  int fallback_i = 0;
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
     if (c->type != CTL_TOGGLE && c->type != CTL_TRIGGER) {
       continue;
     }
 
-    if (point_in_rect(px, py, x, y, btn_w, btn_h)) {
+    int col = 0;
+    int row = 0;
+    if (!ui_trigger_grid_pos(c, &col, &row)) {
+      col = fallback_i % 3;
+      row = 2 + (fallback_i / 3);
+      fallback_i++;
+    }
+
+    const int bx = l.buttons_x0 + col * (btn_w + btn_gap);
+    const int by = l.buttons_y0 + row * (btn_h + btn_gap);
+
+    if (point_in_rect(px, py, bx, by, btn_w, btn_h)) {
       *out_type = HIT_BUTTON;
       return i;
     }
-
-    x += btn_w + btn_gap;
   }
 
   /* Sliders */
@@ -715,6 +1002,15 @@ static void ui_port_event(LV2UI_Handle handle, uint32_t port_index, uint32_t buf
   }
 
   const float v = *(const float*)buffer;
+
+  /* Throttle redraw for high-rate phase outputs (keeps CPU reasonable). */
+  const float old = ui->port_values[port_index];
+  if (port_index == ALO_CYCLE_PHASE || port_index == ALO_HOST_BAR_PHASE) {
+    if (fabsf(v - old) < 0.0025f) {
+      return;
+    }
+  }
+
   ui->port_values[port_index] = v;
 
   /*
@@ -767,7 +1063,7 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->controller = controller;
   ui->parent = parent;
   ui->width = UI_SUI(640);
-  ui->height = UI_SUI(380);
+  ui->height = UI_SUI(520);
   ui->active_control = -1;
   ui->active_hit = HIT_NONE;
 
@@ -779,6 +1075,15 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
 
   ui->screen = DefaultScreen(ui->dpy);
 
+  ui->cmap = DefaultColormap(ui->dpy, ui->screen);
+  ui->col_fg = BlackPixel(ui->dpy, ui->screen);
+  ui->col_bg = WhitePixel(ui->dpy, ui->screen);
+  ui->col_grey = ui->col_fg;
+  ui->col_cycle = ui->col_fg;
+  ui->col_cycle_past = ui->col_fg;
+  ui->col_host = ui->col_fg;
+  ui->col_active = ui->col_fg;
+
   ui->win = XCreateSimpleWindow(ui->dpy, ui->parent, 0, 0, ui->width, ui->height, 0,
                                 BlackPixel(ui->dpy, ui->screen),
                                 WhitePixel(ui->dpy, ui->screen));
@@ -788,8 +1093,15 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
                    StructureNotifyMask);
 
   ui->gc = XCreateGC(ui->dpy, ui->win, 0, NULL);
-  XSetForeground(ui->dpy, ui->gc, BlackPixel(ui->dpy, ui->screen));
+  XSetForeground(ui->dpy, ui->gc, ui->col_fg);
   XSetLineAttributes(ui->dpy, ui->gc, (unsigned int)UI_SI(1), LineSolid, CapButt, JoinMiter);
+
+  /* Best-effort colors (fall back to black if unavailable). */
+  ui->col_grey = ui_alloc_named_color(ui, "gray55", ui->col_fg);
+  ui->col_cycle = ui_alloc_named_color(ui, "#00ff00", ui->col_fg);
+  ui->col_cycle_past = ui_alloc_named_color(ui, "#008800", ui->col_fg);
+  ui->col_host = ui_alloc_named_color(ui, "#0066cc", ui->col_fg);
+  ui->col_active = ui_alloc_named_color(ui, "black", ui->col_fg);
 
   XMapWindow(ui->dpy, ui->win);
   XFlush(ui->dpy);
@@ -804,6 +1116,9 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->port_values[ALO_CLICK] = 1.0f;
   ui->port_values[ALO_MIX] = 50.0f;
   ui->port_values[ALO_MIDI_BASE] = 60.0f;
+  ui->port_values[ALO_BAR_STEP] = 0.0f;
+  ui->port_values[ALO_CYCLE_PHASE] = 0.0f;
+  ui->port_values[ALO_HOST_BAR_PHASE] = 0.0f;
 
   ui->needs_redraw = true;
 

@@ -55,6 +55,29 @@ static void clear_track_audio(Alo* self, int t) {
   self->pending_clear_all[t] = false;
 }
 
+static void clear_inflight_actions_and_sync_controls(Alo* self) {
+  if (!self) {
+    return;
+  }
+
+  /* Cancel anything that could fire on the next downbeat/boundary. */
+  for (int t = 0; t < NUM_TRACKS; ++t) {
+    clear_track_state(self, t);
+    self->pending_undo[t] = 0;
+    self->pending_clear_all[t] = false;
+
+    /* Prime edge detectors from current port values, so we don't treat a
+     * latched/toggled "1" (or host glitches) as a new press after transport
+     * stop/start.
+     */
+    const bool loop_btn = port_is_pressed(self->ports.loop_btn[t]);
+    const bool undo_btn = port_is_pressed(self->ports.undo_btn[t]);
+    self->last_loop_input[t] = loop_btn;
+    self->last_undo_input[t] = undo_btn;
+    self->loop_btn_high_frames[t] = loop_btn ? 1u : 0u;
+  }
+}
+
 static inline void request_ui_cycle_resync(Alo* self) {
   if (!self) {
     return;
@@ -128,8 +151,8 @@ static uint32_t get_bars_i(const Alo* self) {
   if (bars_f < 1.0f) {
     bars_f = 1.0f;
   }
-  if (bars_f > 32.0f) {
-    bars_f = 32.0f;
+  if (bars_f > 16.0f) {
+    bars_f = 16.0f;
   }
   uint32_t bars_i = (uint32_t)lrintf(bars_f);
   if (!bars_i) {
@@ -308,6 +331,8 @@ void reset(Alo* self) {
 
   self->have_transport = false;
   self->transport_moving = false;
+  self->transport_updated_this_cycle = false;
+  self->transport_blocks_without_update = 0;
   self->have_speed = false;
   self->speed = 0.0f;
   self->transport_loop_index = 0;
@@ -355,7 +380,7 @@ void reset(Alo* self) {
 }
 
 static void update_bar_step_out(Alo* self) {
-  if (!self || !self->ports.bar_step_out) {
+  if (!self) {
     return;
   }
 
@@ -428,7 +453,9 @@ static void update_bar_step_out(Alo* self) {
   }
 
   if (step != (int)self->ui_last_bar_step) {
-    *(self->ports.bar_step_out) = (float)step;
+    if (self->ports.bar_step_out) {
+      *(self->ports.bar_step_out) = (float)step;
+    }
     self->ui_last_bar_step = (int8_t)step;
   }
 
@@ -497,11 +524,25 @@ static void update_transport_beats(Alo* self, double global_beats) {
   self->have_transport = true;
 
   if (self->have_last_transport_beats) {
+    /* Primary signal: beat position advancing. */
     if (global_beats > self->last_transport_beats + 1e-6) {
       self->transport_moving = true;
-    } else if (self->have_speed && self->speed == 0.0f) {
+    } else {
+      /* If beat position is not advancing, treat transport as stopped even if
+       * the host doesn't provide (or misreports) time:speed.
+       */
       self->transport_moving = false;
     }
+  } else {
+    /* First ever position: only claim "moving" if the host explicitly
+     * provides a non-zero speed.
+     */
+    self->transport_moving = (self->have_speed && self->speed != 0.0f);
+  }
+
+  /* Strong stop signal: speed==0 always means stopped. */
+  if (self->have_speed && self->speed == 0.0f) {
+    self->transport_moving = false;
   }
 
   if (self->have_last_transport_beats && global_beats < self->last_transport_beats - 0.5) {
@@ -530,6 +571,9 @@ static void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj) {
   if (!self || !obj) {
     return;
   }
+
+  /* Mark that we saw transport info this cycle (used for stop detection). */
+  self->transport_updated_this_cycle = true;
 
   AloURIs* const uris = &self->uris;
 
@@ -802,25 +846,75 @@ void run_clicks(Alo* self, uint32_t n_samples) {
 
   const bool can_click = play_click && (*(self->ports.click) > 0.0f) && self->speed;
 
-  const float old_beat = floorf(self->current_position);
-  self->current_position += n_samples / self->rate / 60.0f * self->bpm;
-  const float new_beat = floorf(self->current_position);
-  self->current_position = fmodf(self->current_position, self->bpb);
-  const float beat = floorf(self->current_position);
+  const double bpm = (self->bpm > 1e-6f) ? (double)self->bpm : (double)DEFAULT_BPM;
+  const double samples_per_beat = (double)self->rate * 60.0 / bpm;
 
-  if (new_beat != old_beat) {
-    const uint32_t sample_offset =
-        (uint32_t)((self->current_position - beat) * self->rate);
+  const float pos0 = self->current_position;
+  const float delta_beats = (float)((samples_per_beat > 1e-9) ? ((double)n_samples / samples_per_beat) : 0.0);
+  const float pos1 = pos0 + delta_beats;
 
-    /* Absolute transport beat position at the beat boundary inside this block. */
-    const double bpm = (self->bpm > 1e-6f) ? (double)self->bpm : (double)DEFAULT_BPM;
-    const double samples_per_beat = (double)self->rate * 60.0 / bpm;
-    const double boundary_beats = self->last_transport_beats + ((double)sample_offset / samples_per_beat);
+  const int old_beat_i = (int)floorf(pos0);
+  const int new_beat_i = (int)floorf(pos1);
+
+  /* Keep current_position as a beat-in-bar phase for the next call. */
+  self->current_position = fmodf(pos1, self->bpb);
+  if (self->current_position < 0.0f) {
+    self->current_position += self->bpb;
+  }
+
+  /* If a beat boundary lands exactly at the start of the block, the
+   * "crossing" test won't catch it (old_beat_i==new_beat_i), which caused us
+   * to miss the START click when the downbeat aligns to block boundaries.
+   */
+  const float frac0 = pos0 - floorf(pos0);
+  const float kBeatBoundaryEps = 1e-3f; /* beats (~0.5ms at 120 BPM) */
+  const bool boundary_at_block_start = (frac0 >= 0.0f && frac0 <= kBeatBoundaryEps);
+
+  if (boundary_at_block_start || (new_beat_i != old_beat_i)) {
+    uint32_t sample_offset = 0;
+    double boundary_beats = self->last_transport_beats;
+
+    int boundary_beat_i = old_beat_i;
+    if (!boundary_at_block_start) {
+      /* Compute the beat boundary inside this block (first integer beat crossed). */
+      double beats_to_boundary = (double)(old_beat_i + 1) - (double)pos0;
+      if (beats_to_boundary < 0.0) {
+        beats_to_boundary = 0.0;
+      }
+
+      if (samples_per_beat > 1e-9) {
+        /* Never fire early: ceil to the first sample at/after the boundary. */
+        const double samples_until = beats_to_boundary * samples_per_beat;
+        uint64_t off = (uint64_t)ceil(samples_until - 1e-9);
+        if (off > (uint64_t)n_samples) {
+          off = (uint64_t)n_samples;
+        }
+        sample_offset = (uint32_t)off;
+      }
+
+      /* Absolute transport beat position exactly at the beat boundary. */
+      boundary_beats = self->last_transport_beats + beats_to_boundary;
+      boundary_beat_i = old_beat_i + 1;
+    } else {
+      /* Boundary at block start: snap boundary_beats to the integer beat. */
+      boundary_beats = self->last_transport_beats - (double)frac0;
+      if (boundary_beats < 0.0) {
+        boundary_beats = 0.0;
+      }
+      sample_offset = 0;
+    }
 
     const uint32_t bars_i = get_bars_i(self);
     bool is_cycle_start = false;
 
-    if (beat == 0.0f) {
+    /* Which beat-in-bar is this boundary? (0 = downbeat). */
+    int bpb_i = (int)lrintf((self->bpb > 1e-6f) ? self->bpb : (float)DEFAULT_BEATS_PER_BAR);
+    if (bpb_i < 1) {
+      bpb_i = DEFAULT_BEATS_PER_BAR;
+    }
+    const int beat_in_bar = (bpb_i > 0) ? (boundary_beat_i % bpb_i) : 0;
+
+    if (beat_in_bar == 0) {
       /* If resync is pending and the downbeat occurs within this block, lock
        * the Bars-cycle origin to this exact boundary.
        */
@@ -865,7 +959,7 @@ void run_clicks(Alo* self, uint32_t n_samples) {
     if (can_click) {
       click_mix(self, 0, sample_offset);
 
-      if (beat == 0.0f) {
+      if (beat_in_bar == 0) {
         /* Downbeat: start click only on cycle start, otherwise normal accent. */
         self->high_beat_offset = is_cycle_start ? self->beat_len : 0;
         self->low_beat_offset = self->beat_len;
@@ -880,7 +974,7 @@ void run_clicks(Alo* self, uint32_t n_samples) {
       click_mix(self, sample_offset, n_samples);
     }
 
-    if (beat == 0.0f) {
+    if (beat_in_bar == 0) {
       /* When the origin isn't locked yet, advance the fallback counter on
        * downbeats.
        */
@@ -910,6 +1004,7 @@ void run_events(Alo* self) {
   const AloURIs* uris = &self->uris;
 
   /* 1) Transport first. */
+  self->transport_updated_this_cycle = false;
   const LV2_Atom_Sequence* in = self->ports.control;
   if (in) {
     LV2_ATOM_SEQUENCE_FOREACH (in, ev) {
@@ -922,24 +1017,67 @@ void run_events(Alo* self) {
     }
   }
 
-  /* Transport stop/start resync: make the next downbeat be cycle start. */
-  if (self->have_speed) {
-    const bool stopped = (self->speed == 0.0f);
-    if (stopped != self->ui_transport_was_stopped) {
-      self->ui_transport_was_stopped = stopped;
-      request_ui_cycle_resync(self);
+  /* If the host stops sending time:Position updates, treat that as stopped
+   * after a short grace period.
+   */
+  if (self->transport_updated_this_cycle) {
+    self->transport_blocks_without_update = 0;
+  } else if (self->have_transport) {
+    if (self->transport_blocks_without_update < UINT32_MAX) {
+      self->transport_blocks_without_update++;
+    }
+  }
 
-      /* If transport stops, abort any in-flight arming/recording so we don't
-       * unexpectedly start recording/overdubbing on the next transport start.
+  /* Transport stop/start resync: make the next downbeat be cycle start. */
+    const bool stopped_now =
+      (self->have_speed && self->speed == 0.0f) ||
+      (self->have_transport && self->have_last_transport_beats &&
+       self->transport_updated_this_cycle && !self->transport_moving) ||
+      (self->have_transport && self->transport_blocks_without_update > 2u);
+
+  if (stopped_now != self->ui_transport_was_stopped) {
+    self->ui_transport_was_stopped = stopped_now;
+    request_ui_cycle_resync(self);
+
+    /* Always clear pending actions and sync button edge tracking on transport
+     * edges to prevent accidental triggers.
+     */
+    clear_inflight_actions_and_sync_controls(self);
+
+    if (!stopped_now) {
+      /* Transport resumed: restart playback from loop beginning.
+       *
+       * We only do this when there's existing recorded audio, otherwise we'd
+       * interfere with the special "first loop" quantization which depends
+       * on have_loop_origin being false.
        */
-      if (stopped) {
-        for (int t = 0; t < NUM_TRACKS; ++t) {
-          if (self->track_state[t] != TRACK_IDLE) {
-            clear_track_state(self, t);
-          }
+      bool any_audio = false;
+      for (int t = 0; t < NUM_TRACKS; ++t) {
+        if (self->have_loop[t]) {
+          any_audio = true;
+          break;
         }
       }
+
+      if (any_audio && self->have_last_transport_beats) {
+        self->loop_origin_beats = self->last_transport_beats;
+        self->have_loop_origin = true;
+        self->transport_loop_index = 0;
+        self->transport_loop_index_pending = true;
+        self->loop_index = self->loop_start;
+      }
     }
+  }
+
+  /* Hard rule: while transport is stopped, do not accept UI/MIDI actions.
+   * Many hosts leave toggled controls high or resend control values on
+   * transport changes; we don't want that to arm/undo/record.
+   */
+  if (stopped_now) {
+    clear_inflight_actions_and_sync_controls(self);
+    update_bar_step_out(self);
+    update_loop_state_ports(self);
+    return;
   }
 
   /*
@@ -955,12 +1093,16 @@ void run_events(Alo* self) {
       const bool have_speed = self->have_speed;
       const float speed = self->speed;
       const bool moving = self->transport_moving;
+      const uint32_t blocks_wo = self->transport_blocks_without_update;
+      const bool transport_updated = self->transport_updated_this_cycle;
 
       reset(self);
 
       self->have_speed = have_speed;
       self->speed = speed;
-      self->transport_moving = moving || (!have_speed || speed != 0.0f);
+      self->transport_moving = moving;
+      self->transport_blocks_without_update = blocks_wo;
+      self->transport_updated_this_cycle = transport_updated;
 
       if (have_pos) {
         self->have_transport = true;
@@ -1052,9 +1194,11 @@ void run_loops(Alo* self, uint32_t n_samples) {
     track_gain[t] = v;
   }
 
-  const bool transport_running =
-      self->have_transport && self->have_last_transport_beats &&
-      (self->transport_moving || !self->have_speed || self->speed != 0.0f);
+      const bool transport_running =
+        self->have_transport && self->have_last_transport_beats &&
+        (self->transport_blocks_without_update <= 2u) &&
+        (!self->have_speed || self->speed != 0.0f) &&
+        (self->transport_updated_this_cycle ? self->transport_moving : true);
 
   /* If transport stops, do not advance or record; keep arms latched. */
   if (!transport_running) {

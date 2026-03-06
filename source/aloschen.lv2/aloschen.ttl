@@ -160,7 +160,7 @@ lv2:port
 	lv2:name "Bars";
 	lv2:default 2;
 	lv2:minimum 1;
-	lv2:maximum 32;
+	lv2:maximum 16;
 	lv2:portProperty lv2:integer;
 ],
 [
@@ -223,7 +223,7 @@ lv2:port
 	lv2:name "Bar Step";
 	lv2:default 0;
 	lv2:minimum 0;
-	lv2:maximum 127;
+	lv2:maximum 63;
 	lv2:portProperty lv2:integer;
 ],
 [

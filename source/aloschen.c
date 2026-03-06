@@ -345,8 +345,11 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
  * ------------------------------------------------------------------------ */
 
 static void activate(LV2_Handle instance) {
-  (void)instance;
+  Alo* self = (Alo*)instance;
   alo_log("Activate");
+
+  /* Initialize transport/cycle/click state once ports are connected. */
+  reset(self);
 }
 
 static void deactivate(LV2_Handle instance) {
