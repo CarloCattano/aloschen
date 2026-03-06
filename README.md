@@ -1,6 +1,6 @@
-# ALO / Aloschen — transport-synced 3-track LV2 looper
+# Aloschen — transport-synced 3-track LV2 looper
 
-ALO is a lightweight, mistake-resistant looper that stays locked to the host transport.
+ALOSCHEN is a lightweight, mistake-resistant looper that stays locked to the host transport.
 It provides **3 independent loop slots**, each with **one-shot** record/overdub and **quantized undo**.
 
 Tested on amd64 and aarch64 (MOD).

@@ -15,7 +15,7 @@
 a lv2:Plugin, lv2:UtilityPlugin, doap:Project;
 lv2:requiredFeature urid:map;
 lv2:optionalFeature lv2:hardRTCapable;
-doap:name "ALO";
+doap:name "ALOSCHEN";
 doap:license <http://opensource.org/licenses/isc>;
 doap:maintainer [
 	a foaf:Person ;
@@ -189,8 +189,8 @@ lv2:port
 	lv2:symbol "ENABLED";
 	lv2:name "ENABLED";
 	lv2:default 1.0;
-	lv2:minimum 0.0;
-	lv2:maximum 1.0;
+	lv2:minimum 0.15;
+	lv2:maximum 2.5;
 	lv2:designation lv2:enabled;
 	lv2:portProperty lv2:toggled;
 ],
@@ -268,7 +268,7 @@ lv2:port
 	lv2:name "Sampler Vol";
 	lv2:default 1.0;
 	lv2:minimum 0.0;
-	lv2:maximum 1.0;
+	lv2:maximum 2.5;
 	units:unit units:coef ;
 ],
 [

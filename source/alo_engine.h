@@ -35,9 +35,8 @@
 #define ALO_RT_BLOCK_CAP 65536u
 #endif
 
-
-
-typedef enum {
+typedef enum
+{
   TRACK_IDLE = 0,
   TRACK_ARM_BASE,
   TRACK_REC_BASE,
@@ -45,48 +44,50 @@ typedef enum {
   TRACK_REC_OVERDUB,
 } TrackRecState;
 
-typedef enum {
-  ALO_INPUT_L = 0,
-  ALO_INPUT_R = 1,
-  ALO_OUTPUT_L = 2,
-  ALO_OUTPUT_R = 3,
-  ALO_LOOP1 = 4,
-  ALO_UNDO1 = 5,
-  ALO_LOOP2 = 6,
-  ALO_UNDO2 = 7,
-  ALO_LOOP3 = 8,
-  ALO_UNDO3 = 9,
-  ALO_MIDIIN = 10,
-  ALO_SLICE_ROOT = 11,
-  ALO_CLICK = 12,
-  ALO_BARS = 13,
-  ALO_CONTROL = 14,
-  ALO_MIX = 15,
-  ALO_ENABLED = 16,
-  ALO_LOOP1_STATE = 17,
-  ALO_LOOP2_STATE = 18,
-  ALO_LOOP3_STATE = 19,
-  ALO_BAR_STEP = 20,
-  ALO_LOOP1_VOL = 21,
-  ALO_LOOP2_VOL = 22,
-  ALO_LOOP3_VOL = 23,
-  ALO_UNDO1_STATE = 24,
-  ALO_UNDO2_STATE = 25,
-  ALO_UNDO3_STATE = 26,
+typedef enum
+{
+  ALO_INPUT_L         = 0,
+  ALO_INPUT_R         = 1,
+  ALO_OUTPUT_L        = 2,
+  ALO_OUTPUT_R        = 3,
+  ALO_LOOP1           = 4,
+  ALO_UNDO1           = 5,
+  ALO_LOOP2           = 6,
+  ALO_UNDO2           = 7,
+  ALO_LOOP3           = 8,
+  ALO_UNDO3           = 9,
+  ALO_MIDIIN          = 10,
+  ALO_SLICE_ROOT      = 11,
+  ALO_CLICK           = 12,
+  ALO_BARS            = 13,
+  ALO_CONTROL         = 14,
+  ALO_MIX             = 15,
+  ALO_ENABLED         = 16,
+  ALO_LOOP1_STATE     = 17,
+  ALO_LOOP2_STATE     = 18,
+  ALO_LOOP3_STATE     = 19,
+  ALO_BAR_STEP        = 20,
+  ALO_LOOP1_VOL       = 21,
+  ALO_LOOP2_VOL       = 22,
+  ALO_LOOP3_VOL       = 23,
+  ALO_UNDO1_STATE     = 24,
+  ALO_UNDO2_STATE     = 25,
+  ALO_UNDO3_STATE     = 26,
   ALO_LOOP1_HAS_AUDIO = 27,
   ALO_LOOP2_HAS_AUDIO = 28,
   ALO_LOOP3_HAS_AUDIO = 29,
   /* Debug/visualization outputs (MOD GUI rings). */
-  ALO_CYCLE_PHASE = 30,
+  ALO_CYCLE_PHASE    = 30,
   ALO_HOST_BAR_PHASE = 31,
-  ALO_SAMPLER_VOL = 32,
+  ALO_SAMPLER_VOL    = 32,
   ALO_SLICES_PER_BAR = 33,
 } PortIndex;
 
 /* Keep in sync with the highest port index + 1. */
 #define ALO_PORT_COUNT 34
 
-typedef struct {
+typedef struct
+{
   LV2_URID atom_Blank;
   LV2_URID atom_Float;
   LV2_URID atom_Int;
@@ -116,55 +117,57 @@ typedef struct {
   LV2_URID bufsz_nominalBlockLength;
 } AloURIs;
 
-typedef struct {
-  const float *input_l;
-  const float *input_r;
-  float *output_l;
+typedef struct
+{
+  const float* input_l;
+  const float* input_r;
+  float*       output_l;
   /** True when host beat position is advancing. */
-  float *output_r;
-  float *loop_btn[NUM_TRACKS];
-  float *undo_btn[NUM_TRACKS];
+  float* output_r;
+  float* loop_btn[NUM_TRACKS];
+  float* undo_btn[NUM_TRACKS];
   /** Per-track playback gain coefficient (0..1). */
-  float *loop_vol[NUM_TRACKS];
+  float* loop_vol[NUM_TRACKS];
   /** Sampler (slice one-shot) output gain coefficient (0..1). */
-  float *sampler_vol;
-  float *bars;
+  float* sampler_vol;
+  float* bars;
   /** Number of slices per bar for MIDI one-shots (integer 2..8). */
-  float *slices_per_bar;
-  float *slice_root;
-  float *click;
-  float *mix;
-  float *enabled;
+  float* slices_per_bar;
+  float* slice_root;
+  float* click;
+  float* mix;
+  float* enabled;
   /** Loop phase origin in host beats (set at first base start). */
-  float *loop_state_out[NUM_TRACKS];
+  float* loop_state_out[NUM_TRACKS];
   /** Undo queue indicator for UI (0=off, 0.25=queued). */
-  float *undo_state_out[NUM_TRACKS];
+  float* undo_state_out[NUM_TRACKS];
   /** Slot filled indicator for UI (0=empty, 1=has committed base loop). */
-  float *has_audio_out[NUM_TRACKS];
+  float* has_audio_out[NUM_TRACKS];
   /** Current beat-step within the Bars-length cycle (0..Bars*4-1). */
-  float *bar_step_out;
+  float* bar_step_out;
   /** Continuous phase through Bars-length cycle (0..1). */
-  float *cycle_phase_out;
+  float* cycle_phase_out;
   /** Continuous phase through the current host bar (0..1). */
-  float *host_bar_phase_out;
+  float* host_bar_phase_out;
   /** Whether loop_origin_beats has been set. */
-  LV2_Atom_Sequence *control;
-  LV2_Atom_Sequence *midiin;
+  LV2_Atom_Sequence* control;
+  LV2_Atom_Sequence* midiin;
 } AloPorts;
 
-typedef struct Alo {
-  LV2_URID_Map *map;
-  AloURIs uris;
-  AloPorts ports;
+typedef struct Alo
+{
+  LV2_URID_Map* map;
+  AloURIs       uris;
+  AloPorts      ports;
 
-  double rate;
-  float bpm;
-  float bpb;
-  float speed;
-  bool have_speed;
+  double   rate;
+  float    bpm;
+  float    bpb;
+  float    speed;
+  bool     have_speed;
   uint32_t loop_beats;
   uint32_t loop_samples;
-  float current_position;
+  float    current_position;
 
   bool have_transport;
   bool transport_moving;
@@ -173,45 +176,46 @@ typedef struct Alo {
   /** Number of consecutive cycles without time:Position updates. */
   uint32_t transport_blocks_without_update;
   uint32_t transport_loop_index;
-  bool transport_loop_index_pending;
-  float last_bar_beat;
-  bool have_last_bar_beat;
-  int64_t bar_counter_fallback;
-  double last_transport_beats;
-  bool have_last_transport_beats;
+  bool     transport_loop_index_pending;
+  float    last_bar_beat;
+  bool     have_last_bar_beat;
+  int64_t  bar_counter_fallback;
+  double   last_transport_beats;
+  bool     have_last_transport_beats;
 
   // Loop phase origin in host beats (set when the first base recording starts).
   double loop_origin_beats;
-  bool have_loop_origin;
+  bool   have_loop_origin;
 
   AloSliceSampler slice_sampler;
 
   /* Preallocated per-block scratch buffers (RT-safe; allocated once at init). */
   uint32_t rt_block_cap;
-  float* rt_play_l;
-  float* rt_play_r;
-  float* rt_slice_l;
-  float* rt_slice_r;
+  float*   rt_play_l;
+  float*   rt_play_r;
+  float*   rt_slice_l;
+  float*   rt_slice_r;
 
   /* Sampler source cache: committed full-loop stereo mix buffer (L then R).
    * Rebuilt automatically (RT-safe, bounded work per run call) whenever the
    * committed loop content changes.
    */
-  float* sampler_src_buf;
-  bool sampler_src_valid;
-  bool sampler_src_dirty;
-  bool sampler_src_rebuild_active;
+  float*   sampler_src_buf;
+  bool     sampler_src_valid;
+  bool     sampler_src_dirty;
+  bool     sampler_src_rebuild_active;
   uint32_t sampler_src_pos;
-  float sampler_src_peak_abs;
-  float sampler_src_norm_gain;
+  float    sampler_src_peak_abs;
+  float    sampler_src_norm_gain;
   uint32_t sampler_src_loop_samples;
 
-  /** Per-track loop audio buffer (stereo stored as [0..LOOP_SIZE) L, [LOOP_SIZE..2*LOOP_SIZE) R). */
-  float *loop_buf[NUM_TRACKS];
-  bool have_loop[NUM_TRACKS];
+  /** Per-track loop audio buffer (stereo stored as [0..LOOP_SIZE) L, [LOOP_SIZE..2*LOOP_SIZE) R).
+   */
+  float* loop_buf[NUM_TRACKS];
+  bool   have_loop[NUM_TRACKS];
 
   /** Per-track overdub layers (each layer is a full loop-sized stereo buffer). */
-  float *od_buf[NUM_TRACKS][ALO_MAX_UNDO_LAYERS];
+  float* od_buf[NUM_TRACKS][ALO_MAX_UNDO_LAYERS];
   /** Number of active overdub layers. */
   uint8_t od_count[NUM_TRACKS];
   /** Target overdub layer index while recording an overdub. */
@@ -219,7 +223,7 @@ typedef struct Alo {
 
   /** Pending quantized undo requests (applied at next bar downbeat). */
   uint8_t pending_undo[NUM_TRACKS];
-  bool pending_clear_all[NUM_TRACKS];
+  bool    pending_clear_all[NUM_TRACKS];
 
   TrackRecState track_state[NUM_TRACKS];
   /** Remaining samples until auto-stop (base/overdub). */
@@ -238,9 +242,9 @@ typedef struct Alo {
   uint32_t loop_start;
   uint32_t loop_index;
 
-  float *high_beat;
-  float *low_beat;
-  float *start_beat;
+  float*   high_beat;
+  float*   low_beat;
+  float*   start_beat;
   uint32_t beat_len;
   uint32_t high_beat_offset;
   uint32_t low_beat_offset;
@@ -258,10 +262,10 @@ typedef struct Alo {
   bool ui_transport_was_stopped;
   /** Host beat position of the Bars-cycle origin (set on the first downbeat after resync). */
   double ui_cycle_origin_beats;
-  bool ui_have_cycle_origin;
+  bool   ui_have_cycle_origin;
   /** Track barBeat wrap to detect downbeats at block boundaries. */
   float ui_prev_bar_beat;
-  bool ui_have_prev_bar_beat;
+  bool  ui_have_prev_bar_beat;
   float inmix;
   float loopmix;
 
@@ -270,13 +274,13 @@ typedef struct Alo {
   bool last_enabled;
 } Alo;
 
-void alo_log(const char *message, ...);
-void update_loop_state_ports(Alo *self);
+void alo_log(const char* message, ...);
+void update_loop_state_ports(Alo* self);
 
-void reset(Alo *self);
-void reset_timing(Alo *self);
-void run_events(Alo *self, uint32_t n_samples);
-void run_loops(Alo *self, uint32_t n_samples);
-void run_clicks(Alo *self, uint32_t n_samples);
+void reset(Alo* self);
+void reset_timing(Alo* self);
+void run_events(Alo* self, uint32_t n_samples);
+void run_loops(Alo* self, uint32_t n_samples);
+void run_clicks(Alo* self, uint32_t n_samples);
 
 #endif // ALO_ENGINE_H

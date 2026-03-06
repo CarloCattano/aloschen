@@ -15,10 +15,15 @@ DESTDIR ?=
 
 all: build
 
+safe:
+	$(MAKE) SAFE_MATH=true
+
 # --------------------------------------------------------------
 # aloschen build rules
 
 build: aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/aloschen_ui$(LIB_EXT) aloschen.lv2/manifest.ttl
+
+
 
 aloschen.lv2/aloschen$(LIB_EXT): aloschen.c loop_engine.c slice_sampler.c
 	$(CC) $^ $(BUILD_C_FLAGS) $(LINK_FLAGS) -lm $(SHARED) -o $@

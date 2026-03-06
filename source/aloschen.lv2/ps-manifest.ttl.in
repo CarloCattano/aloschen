@@ -8,8 +8,8 @@
         modgui:stylesheet <modgui/stylesheet-alo.css> ;
         modgui:screenshot <modgui/screenshot-alo.png> ;
         modgui:thumbnail <modgui/thumbnail-alo.png> ;
-        modgui:brand "devcurmudgeon" ;
-        modgui:label "ALO" ;
+        modgui:brand "ktano-studio" ;
+        modgui:label "ALOSCHEN" ;
         modgui:model "combo-model-001" ;
         modgui:panel "0600" ;
         modgui:port [

@@ -1,0 +1,20 @@
+BasedOnStyle: LLVM
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+ColumnLimit: 100
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: Empty
+PointerAlignment: Left
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles: false
+SpacesBeforeTrailingComments: 1
+SortIncludes: false
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignTrailingComments: true
+
+# Standard C readability
+Language: C
