@@ -978,6 +978,22 @@ static void handle_loop_press(Alo* self, int t)
     return;
   }
 
+  /* Only one slot may ever be in the armed/recording state.  If any other
+   * track is currently busy (recording/overdubbing) or already armed we
+   * ignore additional presses on the remaining slots.  This prevents two
+   * loops from attempting to record simultaneously when a downbeat arrives.
+   */
+  for (int u = 0; u < NUM_TRACKS; ++u)
+  {
+    if (u == t)
+      continue;
+    if (track_is_busy(self, u) || self->track_state[u] == TRACK_ARM_BASE ||
+        self->track_state[u] == TRACK_ARM_OVERDUB)
+    {
+      return;
+    }
+  }
+
   /* If the user presses while armed/recording, treat it as cancel/abort. */
   if (track_is_busy(self, t))
   {
