@@ -1920,6 +1920,22 @@ void run_loops(Alo* self, uint32_t n_samples)
         {
           self->sampler_src_norm_gain = 1.0f;
         }
+
+        /* completed rebuild: mark slice buffers valid and record length */
+        if (slice_count > 0 && slice_len > 0)
+        {
+          for (uint32_t si = 0; si < slice_count && si < ALO_SLICE_INFO_MAX; ++si)
+          {
+            AloSliceBuffer* sb = &self->slice_sampler.slice_buffers[si];
+            sb->valid = true; // capacity unchanged
+            self->slice_sampler.slice_audio_len[si] = slice_len;
+            self->slice_sampler.slice_audio_valid[si] = true;
+          }
+          for (uint32_t si = slice_count; si < ALO_SLICE_INFO_MAX; ++si)
+          {
+            self->slice_sampler.slice_audio_valid[si] = false;
+          }
+        }
       }
     }
   }
