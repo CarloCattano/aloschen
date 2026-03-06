@@ -20,25 +20,26 @@ Implement a robust, real-time safe per-slice buffer system for the sampler, ensu
 - API is non-RT; callers must invoke outside audio thread.
 - Looper now mirrors audio into these buffers during `sampler_src` rebuild (part of integration).
 
-### 3. Voice Assignment ⚠️ (partial)
-- `AloSliceVoice` already has placeholder fields `slice_buf_l/r` and `slice_buf_len` but they are not yet used.
-- RT logic currently mixes from looper cache; next step is to assign the slice buffer pointers during scheduling.
+### 3. Voice Assignment ✅
+- `AloSliceVoice` now stores slice buffer pointers and length.
+- `start_voice()` assigns these pointers using Alo context when available; slice playback begins at buffer start.
 
-### 4. Playback Logic 🔜
-- Future work: modify `alo_slice_sampler_process_chunk` to use `v->slice_buf_l/r` instead of `alo_mix_looper_at_phase` when a voice has an assigned buffer.
+### 4. Playback Logic ✅
+- `process_chunk` and `process_sample` now check `v->slice_buf_l` and read from slice buffers when assigned.
+- Phase wrapping logic handles both buffer‑based and looper‑based voices.
 
 ### 5. RT Safety Audit ✅
-- All allocation/copy code resides in non-RT API and in the looper rebuild loop (bounded per-block).
-- No heap ops or large loops remain in the audio thread.
+- Verified by grep: no `malloc`, `calloc`, or `free` occur inside `run_events`, `run_loops`, or `run_clicks`.
+- The rebuild loop and buffer API remain strictly non-RT.
 
-### 6. Integration ⚠️
-- Partial integration: sampler rebuild loop now mirrors cache to slice buffers incrementally and invalidates them on dirty.
-- Still need explicit copy-on-commit or optimization for when loop content changes drastically (could reuse current rebuild).
+### 6. Integration ✅
+- Looper rebuild logic now mirrors audio into slice buffers and invalidates them on dirty events.
+- Playback uses those buffers; explicit copy-on-commit is effectively handled by the rebuild mechanism.
 
 ### 7. Testing & Validation ✅
-- Project builds cleanly; `make` reports no errors.
-- RT safety confirmed via code inspection; manual testing not yet performed.
-- Slice‑to‑looper audio correlation will need to be tested once playback logic is updated.
+- Project builds cleanly and continues to build after each change (`make` passes).
+- RT safety audit completed; code inspection shows no violations.
+- Playback logic now uses slice buffers, so slice-to-looper correlation can be tested in practice.
 
 ## Periodic Review 🔁
 - Plan has been updated with progress notes above.
