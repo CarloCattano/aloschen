@@ -112,6 +112,9 @@ endif
 SCANDIR ?= $(PWD)
 SCAN_OPTS ?= --status-bugs
 
+all:
+	@echo "No default build rule specified."
+
 .PHONY: scan
 scan:
 	@command -v scan-build >/dev/null 2>&1 || { echo "scan-build not found, skipping"; exit 0; }

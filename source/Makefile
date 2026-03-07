@@ -23,8 +23,6 @@ safe:
 
 build: aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/aloschen_ui$(LIB_EXT) aloschen.lv2/manifest.ttl
 
-
-
 aloschen.lv2/aloschen$(LIB_EXT): aloschen.c loop_engine.c alo_util.c slice_sampler.c transport.c sampler_cache.c button_logic.c
 	$(CC) $^ $(BUILD_C_FLAGS) $(LINK_FLAGS) -Wall -Wextra -lm $(SHARED) -o $@
 

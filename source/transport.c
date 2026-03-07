@@ -35,7 +35,7 @@ bool compute_transport_phase_index(const Alo* self, double global_beats,
 }
 
 /* -------------------------------------------------------------------------
- * Loop/timing helpers (formerly in loop_engine.c)
+ * Loop/timing helpers 
  * ------------------------------------------------------------------------- */
 
 uint32_t compute_loop_beats(const Alo* self)
@@ -97,7 +97,7 @@ void update_transport_phase(Alo* self, double global_beats)
 }
 
 /* -------------------------------------------------------------------------
- * Transport beats update (moved from loop_engine.c)
+ * Transport beats update 
  * ------------------------------------------------------------------------- */
 
 static void update_transport_beats(Alo* self, double global_beats)

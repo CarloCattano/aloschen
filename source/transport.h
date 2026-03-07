@@ -4,8 +4,7 @@
 #include "alo_engine.h"
 
 /* Helpers for transport-derived timing.  These used to live in
- * loop_engine.c but have been moved to keep the core engine file smaller.
- */
+*/
 
 /* Compute the current phase index (in samples) for the looper based on the
  * host's absolute beat position.  The result is quantized to [0, loop_samples).
@@ -26,9 +25,6 @@ void request_ui_cycle_resync(Alo* self);
  */
 void update_transport_phase(Alo* self, double global_beats);
 
-/* Process an LV2 time:Position atom object, updating transport state in
- * `self`.  This is factored out so run_events() remains smaller.
- */
 void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj);
 
 #endif // TRANSPORT_H

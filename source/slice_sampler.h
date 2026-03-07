@@ -127,13 +127,11 @@ typedef struct
 struct Alo;
 
 // Buffer management API
+
 // Call at init/reset to allocate all slice buffers (outside RT)
 bool alo_slice_sampler_alloc_buffers(AloSliceSampler* s, uint32_t max_len, uint32_t channels);
 // Call to free all buffers (outside RT)
 void alo_slice_sampler_free_buffers(AloSliceSampler* s);
-// Copy audio into a slice buffer (outside RT)
-bool alo_slice_sampler_fill_slice(AloSliceSampler* s, uint32_t slice_idx, const float* src_l,
-                                  const float* src_r, uint32_t len);
 // Mark all slice buffers invalid (starts an incremental clear)
 void alo_slice_sampler_clear_buffers(AloSliceSampler* s);
 // Progress an in-flight clear job by up to max_samples zero operations

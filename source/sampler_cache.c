@@ -2,9 +2,6 @@
 #include "alo_util.h"
 #include <math.h>
 
-/* Helper functions moved to alo_util for DRY. */
-
-
 void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_audio)
 {
   if (!self)
@@ -83,10 +80,7 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
           mr += buf[idx_r];
         }
       }
-#ifdef ALO_MATH_CHECKS
-      ml = alo_sanitize_f32(ml);
-      mr = alo_sanitize_f32(mr);
-#endif
+
       self->sampler_src_buf_shadow[cap_pos]             = ml;
       self->sampler_src_buf_shadow[cap_pos + LOOP_SIZE] = mr;
       if (slice_len > 0 && slice_count > 0) {

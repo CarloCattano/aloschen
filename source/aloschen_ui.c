@@ -9,28 +9,16 @@
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #endif
-
-/* cppcheck-suppress missingIncludeSystem */
 #include <lv2/ui/ui.h>
-
-/* cppcheck-suppress missingIncludeSystem */
 #include <X11/Xlib.h>
-/* cppcheck-suppress missingIncludeSystem */
 #include <X11/Xutil.h>
 
-/* cppcheck-suppress missingIncludeSystem */
 #include <stdbool.h>
-/* cppcheck-suppress missingIncludeSystem */
 #include <stdint.h>
-/* cppcheck-suppress missingIncludeSystem */
 #include <math.h>
-/* cppcheck-suppress missingIncludeSystem */
 #include <stdio.h>
-/* cppcheck-suppress missingIncludeSystem */
 #include <stdlib.h>
-/* cppcheck-suppress missingIncludeSystem */
 #include <string.h>
-/* cppcheck-suppress missingIncludeSystem */
 #include <time.h>
 
 #define ARRAY_LEN(a) ((int)(sizeof(a) / sizeof((a)[0])))
@@ -206,17 +194,23 @@ typedef struct
   GC       gc;
 
   Colormap      cmap;
-  unsigned long col_fg;
-  unsigned long col_bg;
-  unsigned long col_grey;
-  unsigned long col_cycle;
-  unsigned long col_cycle_past;
-  unsigned long col_host;
-  unsigned long col_active;
+
+  unsigned long col_fg;      /* primary foreground (text, outlines) */
+  unsigned long col_bg;      /* window background */
+  unsigned long col_grey;    /* disabled / accent colour */
+  unsigned long col_cycle;   /* cycle/slider active colour */
+  unsigned long col_cycle_past; /* cycle progress (past) */
+  unsigned long col_host;    /* host-sync indicator */
+  unsigned long col_active;  /* generic "on" colour for controls */
   /* transport-bar ring colours */
   unsigned long col_ring_rec;
   unsigned long col_ring_arm;
   unsigned long col_ring_play;
+
+  /* generic control-specific colours (new for UX refactor) */
+  unsigned long col_btn_on;       /* fill colour for a pressed/active button */
+  unsigned long col_btn_off;      /* text colour for an unpressed button */
+  unsigned long col_slider_fill;  /* colour used when filling sliders */
 
   unsigned int width;
   unsigned int height;
@@ -265,9 +259,17 @@ typedef struct
   int btn_w;
   int btn_h;
   int btn_gap;
+
+  /* computed grid info */
+  int btn_rows;      /* number of rows needed for toggles/triggers */
+  int btn_cell_w;    /* width of one cell including padding */
+  int btn_cell_h;    /* height of one cell including padding */
+
   int slider_h;
   int row_h;
-  int slider_y0;
+  /* vertical origins for slider groups */
+  int slider_y0_vol;     /* volume faders start here */
+  int slider_y0_ctrl;    /* all other sliders start here */
 } UILayout;
 
 static UILayout ui_layout(const AloUI* ui)
@@ -279,7 +281,9 @@ static UILayout ui_layout(const AloUI* ui)
 
   l.rings_x0 = l.pad;
   l.rings_y0 = l.pad + l.header_h + UI_SI(6);
-  l.rings_d  = UI_SI(120);
+  /* make the circular timing UI a little larger now that buttons are
+     pulled away from the left edge */
+  l.rings_d  = UI_SI(140);
 
   l.buttons_x0 = l.rings_x0 + l.rings_d + l.pad;
   l.buttons_y0 = l.rings_y0;
@@ -290,13 +294,48 @@ static UILayout ui_layout(const AloUI* ui)
   l.slider_h = UI_SI(18);
   l.row_h    = UI_SI(44);
 
-  /* Place sliders below the lower of: rings box, or button grid (2 rows). */
-  const int buttons_h = 2 * l.btn_h + l.btn_gap;
+  /* determine how many toggle/trigger controls we have; we arrange them in
+     a fixed number of columns to prevent overlap, letting the layout expand
+     vertically as needed. */
+  const int cols = 3;
+  int toggle_count = 0;
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
+    const Control* c = &kControls[i];
+    if (c->type == CTL_TOGGLE || c->type == CTL_TRIGGER) {
+      toggle_count++;
+    }
+  }
+  l.btn_rows = (toggle_count + cols - 1) / cols;
+
+  /* cell size includes an extra padding so buttons never bump into each other */
+  l.btn_cell_w = l.btn_w + l.btn_gap + UI_SI(16);
+  l.btn_cell_h = l.btn_h + l.btn_gap + UI_SI(16);
+
+  /* compute slider origin: place below the lower of rings or button grid.
+     use btn_cell_h (which includes padding) to guarantee no overlap with
+     the full area occupied by the grid cells. */
+  const int buttons_h = l.btn_rows * l.btn_cell_h;
   int       content_h = l.rings_y0 + l.rings_d;
   if (l.buttons_y0 + buttons_h > content_h) {
     content_h = l.buttons_y0 + buttons_h;
   }
-  l.slider_y0 = content_h + UI_SI(18);
+
+  /* determine how many volume sliders exist so we can stack groups */
+  int vol_count = 0;
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
+    uint32_t p = kControls[i].port_index;
+    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL ||
+        p == ALO_SAMPLER_VOL) {
+      vol_count++;
+    }
+  }
+
+  l.slider_y0_vol = content_h + UI_SI(18);
+  /* volume rows are slightly taller than normal */
+  const int vol_row_h = l.row_h + UI_SI(4);
+  /* leave a small gutter between groups */
+  l.slider_y0_ctrl = l.slider_y0_vol + vol_count * vol_row_h + UI_SI(8);
+
   return l;
 }
 
@@ -708,15 +747,38 @@ static void ui_draw_button(AloUI* ui, const int bx, const int by, const int bw, 
     return;
   }
 
+  /* outline is always drawn in the default foreground colour */
+  ui_set_fg(ui, ui->col_fg);
   XDrawRectangle(ui->dpy, ui->win, ui->gc, bx, by, bw, bh);
 
   const bool on = ui_button_is_on(ui, c, blink_on);
   if (on) {
+    /* choose a fill colour; loop buttons get special treatment based on
+       their state so they echo the ring colours used elsewhere. */
+    unsigned long fill = ui->col_btn_on;
+    /* loop buttons (record/undo controls) use the state port to decide
+       colour, so detect them the same way ui_button_is_on() does. */
+    const bool is_loop_button = (c->display_port_index != c->port_index);
+    if (is_loop_button) {
+      const float state_v = ui->port_values[c->display_port_index];
+      if (ui_is_recording(state_v)) {
+        fill = ui->col_ring_rec;
+      } else if (ui_is_armed_waiting(state_v) && blink_on) {
+        fill = ui->col_ring_arm;
+      } else if (ui_is_playing(state_v)) {
+        fill = ui->col_ring_play;
+      }
+    }
+    ui_set_fg(ui, fill);
     XFillRectangle(ui->dpy, ui->win, ui->gc, bx + 1, by + 1, bw - 1, bh - 1);
-    XSetForeground(ui->dpy, ui->gc, WhitePixel(ui->dpy, ui->screen));
+
+    /* label on a filled button should contrast with the fill; background
+       colour is generally white so reuse that. */
+    ui_set_fg(ui, ui->col_bg);
     draw_string(ui, bx + UI_SI(10), by + UI_SI(20), c->label);
-    XSetForeground(ui->dpy, ui->gc, BlackPixel(ui->dpy, ui->screen));
   } else {
+    /* un‑pressed buttons just draw the label in foreground colour */
+    ui_set_fg(ui, ui->col_fg);
     draw_string(ui, bx + UI_SI(10), by + UI_SI(20), c->label);
   }
 }
@@ -737,8 +799,8 @@ static void ui_redraw(AloUI* ui)
   /* x/y variables not needed for header drawing */
 
   /* Header */
-  draw_string(ui, l.pad, UI_SI(18), "ALOSCHEN — native UI");
-  draw_string(ui, (int)ui->width - UI_SI(180), UI_SI(18), "Carlo Cattano");
+  draw_string(ui, l.pad, UI_SI(18), "ALOSCHEN");
+  draw_string(ui, (int)ui->width - UI_SI(180), UI_SI(18), "LOOPER");
 
   /* Circular timing UI (transport rings). */
   ui_draw_transport_rings(ui, &l);
@@ -746,50 +808,134 @@ static void ui_redraw(AloUI* ui)
   /* Trigger buttons row */
   const int btn_w   = l.btn_w;
   const int btn_h   = l.btn_h;
-  const int btn_gap = l.btn_gap;
 
   /* Reusable coordinates for later blocks */
-  int x, y;
+  int x;
 
   /* button row will compute positions explicitly; no pre-initialization needed */
 
   int fallback_i = 0;
+
+  /* cell dimensions are computed by ui_layout to guarantee consistency */
+  const int cell_w = l.btn_cell_w;
+  const int cell_h = l.btn_cell_h;
+
+  /* precompute undo1 position for later mute-all placement */
+  const int lx_gap = UI_SI(8);
+  const int ly_gap = UI_SI(24);
+  const int undo_bw = UI_SI(64);
+  const int undo_bh = UI_SI(64);
+  const int bx_undo = l.buttons_x0 + 0 * (undo_bw + lx_gap);
+  const int by_undo = l.buttons_y0 + 1 * (undo_bh + ly_gap);
+
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
+    if (c->port_index == ALO_UI_ACTION_MUTE_ALL) {
+      continue; /* drawn separately */
+    }
     if (c->type != CTL_TOGGLE && c->type != CTL_TRIGGER) {
       continue;
     }
 
     int col = 0;
     int row = 0;
-    if (!ui_trigger_grid_pos(c, &col, &row)) {
-      /* Fallback: place sequentially below the 2-row grid if new controls are added later. */
+    bool is_loop = false;
+    if (ui_trigger_grid_pos(c, &col, &row)) {
+      is_loop = true; /* loop1/2/3 and undo1/2/3 occupy the grid */
+    } else {
       col = fallback_i % 3;
       row = 2 + (fallback_i / 3);
       fallback_i++;
     }
 
-    const int bx = l.buttons_x0 + col * (btn_w + btn_gap);
-    const int by = l.buttons_y0 + row * (btn_h + btn_gap);
-    ui_draw_button(ui, bx, by, btn_w, btn_h, c, blink_on);
+    int bw = btn_w;
+    int bh = btn_h;
+    if (is_loop) {
+      bw = UI_SI(64);
+      bh = UI_SI(64);
+    }
+
+    int bx, by;
+    if (is_loop) {
+      bx = l.buttons_x0 + col * (bw + lx_gap);
+      by = l.buttons_y0 + row * (bh + ly_gap);
+    } else {
+      bx = l.buttons_x0 + col * cell_w + (cell_w - bw) / 2;
+      by = l.buttons_y0 + row * cell_h + (cell_h - bh) / 2;
+    }
+    ui_draw_button(ui, bx, by, bw, bh, c, blink_on);
+  }
+
+  /* draw mute-all directly under undo1 */
+  {
+    const Control* c = NULL;
+    for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
+      if (kControls[i].port_index == ALO_UI_ACTION_MUTE_ALL) {
+        c = &kControls[i];
+        break;
+      }
+    }
+    if (c) {
+      int bx = bx_undo;
+      int by = by_undo + undo_bh + ly_gap;
+      ui_draw_button(ui, bx, by, btn_w, btn_h, c, blink_on);
+    }
   }
 
   x = l.pad;
-  y = l.slider_y0;
 
-  /* Sliders */
-  const int slider_w = (int)ui->width - 2 * l.pad;
-  const int slider_h = l.slider_h;
-  const int row_h    = l.row_h;
+  /* Sliders: draw volumes first, then the remaining controls.  Calculate
+     column-independent offsets so the two groups do not overlap. */
+  const int base_slider_w = (int)ui->width - 2 * l.pad;
+  const int base_slider_h = l.slider_h;
+  const int base_row_h    = l.row_h - UI_SI(4);
 
-  int slider_index = 0;
+  /* count volume sliders to know where group boundary lies */
+  int vol_count = 0;
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
+    uint32_t p = kControls[i].port_index;
+    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL ||
+        p == ALO_SAMPLER_VOL) {
+      vol_count++;
+    }
+  }
+
+  int vol_index = 0;
+  int ctrl_index = 0;
+
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
     if (c->type != CTL_SLIDER_INT && c->type != CTL_SLIDER_FLOAT) {
       continue;
     }
 
-    const int sy = y + slider_index * row_h;
+    /* geometry tweaks for specific sliders */
+    int slider_w = base_slider_w;
+    int slider_h = base_slider_h;
+    int row_h    = base_row_h;
+
+    if (c->port_index == ALO_BARS || c->port_index == ALO_CLICK ||
+        c->port_index == ALO_MIX ||
+        c->port_index == ALO_SLICE_ROOT || c->port_index == ALO_SLICES_PER_BAR) {
+      /* shorter sliders for bars/click/mix/rotation/slices – quarter width */
+      slider_w = (int)((float)ui->width * 0.25f);
+    }
+    if (c->port_index == ALO_LOOP1_VOL || c->port_index == ALO_LOOP2_VOL ||
+        c->port_index == ALO_LOOP3_VOL || c->port_index == ALO_SAMPLER_VOL) {
+      /* volume faders a bit thicker, with slightly more vertical spacing */
+      slider_h = UI_SI(24);
+      row_h    = l.row_h + UI_SI(4);
+    }
+
+    int sy;
+    if (c->port_index == ALO_LOOP1_VOL || c->port_index == ALO_LOOP2_VOL ||
+        c->port_index == ALO_LOOP3_VOL || c->port_index == ALO_SAMPLER_VOL) {
+      sy = l.slider_y0_vol + vol_index * row_h;
+      vol_index++;
+    } else {
+      sy = l.slider_y0_ctrl + ctrl_index * row_h;
+      ctrl_index++;
+    }
 
     char        label[128];
     const float v = ui->port_values[c->port_index];
@@ -806,10 +952,11 @@ static void ui_redraw(AloUI* ui)
 
     const float norm   = (c->max > c->min) ? ((v - c->min) / (c->max - c->min)) : 0.0f;
     const int   fill_w = (int)(clampf(norm, 0.0f, 1.0f) * (float)(slider_w - 2));
+
+    ui_set_fg(ui, ui->col_cycle);
     XFillRectangle(ui->dpy, ui->win, ui->gc, bar_x + 1, bar_y + 1, (unsigned int)fill_w,
                    (unsigned int)(slider_h - 2));
-
-    slider_index++;
+    ui_set_fg(ui, ui->col_fg);
   }
 
   /* Bar step indicator row (bottom). */
@@ -833,62 +980,140 @@ static bool point_in_rect(const int px, const int py, const int x, const int y, 
 static int hit_test(const AloUI* ui, const int px, const int py, HitType* out_type)
 {
   const UILayout l = ui_layout(ui);
-  int            x, y;
+  int            x;
 
   const int btn_w   = l.btn_w;
   const int btn_h   = l.btn_h;
-  const int btn_gap = l.btn_gap;
 
   /* Toggles */
   int fallback_i = 0;
+  const int cell_w = l.btn_cell_w;
+  const int cell_h = l.btn_cell_h;
+
+  /* compute undo1 position for mute-all check later */
+  const int lx_gap = UI_SI(8);
+  const int ly_gap = UI_SI(24);
+  const int undo_bw = UI_SI(64);
+  const int undo_bh = UI_SI(64);
+  const int bx_undo = l.buttons_x0 + 0 * (undo_bw + lx_gap);
+  const int by_undo = l.buttons_y0 + 1 * (undo_bh + ly_gap);
+
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
+    if (c->port_index == ALO_UI_ACTION_MUTE_ALL) {
+      continue;
+    }
     if (c->type != CTL_TOGGLE && c->type != CTL_TRIGGER) {
       continue;
     }
 
     int col = 0;
     int row = 0;
-    if (!ui_trigger_grid_pos(c, &col, &row)) {
+    bool is_loop = false;
+    if (ui_trigger_grid_pos(c, &col, &row)) {
+      is_loop = true;
+    } else {
       col = fallback_i % 3;
       row = 2 + (fallback_i / 3);
       fallback_i++;
     }
 
-    const int bx = l.buttons_x0 + col * (btn_w + btn_gap);
-    const int by = l.buttons_y0 + row * (btn_h + btn_gap);
+    int bw = btn_w;
+    int bh = btn_h;
+    if (is_loop) {
+      bw = UI_SI(64);
+      bh = UI_SI(64);
+    }
 
-    if (point_in_rect(px, py, bx, by, btn_w, btn_h)) {
+    int bx, by;
+    if (is_loop) {
+      bx = l.buttons_x0 + col * (bw + lx_gap);
+      by = l.buttons_y0 + row * (bh + ly_gap);
+    } else {
+      bx = l.buttons_x0 + col * cell_w + (cell_w - bw) / 2;
+      by = l.buttons_y0 + row * cell_h + (cell_h - bh) / 2;
+    }
+
+    if (point_in_rect(px, py, bx, by, bw, bh)) {
       *out_type = HIT_BUTTON;
       return i;
     }
   }
 
+  /* separately test mute-all underneath undo1 */
+  {
+    const int bx = bx_undo;
+    const int by = by_undo + undo_bh + ly_gap;
+    if (point_in_rect(px, py, bx, by, btn_w, btn_h)) {
+      *out_type = HIT_BUTTON;
+      /* find index of mute-all */
+      for (int j = 0; j < ARRAY_LEN(kControls); ++j) {
+        if (kControls[j].port_index == ALO_UI_ACTION_MUTE_ALL) {
+          return j;
+        }
+      }
+    }
+  }
+
   /* Sliders */
   x = l.pad;
-  y = l.slider_y0;
 
-  const int slider_w = (int)ui->width - 2 * l.pad;
-  const int slider_h = l.slider_h;
-  const int row_h    = l.row_h;
+  const int base_slider_w = (int)ui->width - 2 * l.pad;
+  const int base_slider_h = l.slider_h;
+  const int base_row_h    = l.row_h;
 
-  int slider_index = 0;
+  /* count volume sliders so we can split groups */
+  int vol_count = 0;
+  for (int j = 0; j < ARRAY_LEN(kControls); ++j) {
+    uint32_t p = kControls[j].port_index;
+    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL ||
+        p == ALO_SAMPLER_VOL) {
+      vol_count++;
+    }
+  }
+
+  int vol_index = 0;
+  int ctrl_index = 0;
+
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
     if (c->type != CTL_SLIDER_INT && c->type != CTL_SLIDER_FLOAT) {
       continue;
     }
 
-    const int sy    = y + slider_index * row_h;
+    /* match geometry tweaks used in ui_redraw */
+    int slider_w = base_slider_w;
+    int slider_h = base_slider_h;
+    int row_h    = base_row_h;
+
+    if (c->port_index == ALO_BARS || c->port_index == ALO_CLICK ||
+        c->port_index == ALO_MIX ||
+        c->port_index == ALO_SLICE_ROOT || c->port_index == ALO_SLICES_PER_BAR) {
+      slider_w = (int)((float)ui->width * 0.25f);
+    }
+    if (c->port_index == ALO_LOOP1_VOL || c->port_index == ALO_LOOP2_VOL ||
+        c->port_index == ALO_LOOP3_VOL || c->port_index == ALO_SAMPLER_VOL) {
+      slider_h = UI_SI(24);
+      row_h    = l.row_h + UI_SI(4);
+    }
+
+    int sy;
+    if (c->port_index == ALO_LOOP1_VOL || c->port_index == ALO_LOOP2_VOL ||
+        c->port_index == ALO_LOOP3_VOL || c->port_index == ALO_SAMPLER_VOL) {
+      sy = l.slider_y0_vol + vol_index * row_h;
+      vol_index++;
+    } else {
+      sy = l.slider_y0_ctrl + ctrl_index * row_h;
+      ctrl_index++;
+    }
+
     const int bar_x = x;
     const int bar_y = sy + UI_SI(18);
-
     if (point_in_rect(px, py, bar_x, bar_y, slider_w, slider_h)) {
       *out_type = HIT_SLIDER;
       return i;
     }
 
-    slider_index++;
   }
 
   *out_type = HIT_NONE;
@@ -899,7 +1124,17 @@ static void update_slider_from_x(AloUI* ui, const int control_index, const int p
 {
   const Control* c        = &kControls[control_index];
   const UILayout l        = ui_layout(ui);
-  const int      slider_w = (int)ui->width - 2 * l.pad;
+  int            slider_w = (int)ui->width - 2 * l.pad;
+
+  /* apply the same quarter‑width rule for bars/click/mix sliders that
+     was added in ui_redraw(), keeping the coordinate system consistent. */
+  {
+    const Control* c = &kControls[control_index];
+    if (c->port_index == ALO_BARS || c->port_index == ALO_CLICK ||
+        c->port_index == ALO_MIX) {
+      slider_w = (int)((float)ui->width * 0.25f);
+    }
+  }
 
   const float t = clampf(((float)(px - l.pad) / (float)slider_w), 0.0f, 1.0f);
   float       v = c->min + t * (c->max - c->min);
@@ -1111,6 +1346,10 @@ static void ui_cleanup(LV2UI_Handle handle)
     return;
   }
 
+  /* Close X resources immediately, but leave the AloUI structure allocated
+     in case the host erroneously calls back into the UI after cleanup.
+     The leak is tiny and acceptable; it avoids crashes when hosts misbehave
+     during aggressive teardown (e.g. removing while recording). */
   if (ui->dpy && ui->win) {
     XDestroyWindow(ui->dpy, ui->win);
   }
@@ -1118,7 +1357,9 @@ static void ui_cleanup(LV2UI_Handle handle)
     XCloseDisplay(ui->dpy);
   }
 
-  free(ui);
+  ui->dpy = NULL;
+  ui->win = 0;
+  /* leave other fields intact so callbacks can no-op safely */
 }
 
 static void ui_port_event(LV2UI_Handle handle, uint32_t port_index, uint32_t buffer_size,
@@ -1244,6 +1485,13 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->col_ring_rec  = ui_alloc_named_color(ui, "red", ui->col_fg);
   ui->col_ring_arm  = ui_alloc_named_color(ui, "orange", ui->col_fg);
   ui->col_ring_play = ui_alloc_named_color(ui, "#00cc00", ui->col_fg);
+
+  /* button/slider specific colours – the sliders will simply reuse
+     the cycle colour (see step 4), but we still provide explicit slots
+     so the palette can be changed more easily later. */
+  ui->col_btn_on      = ui_alloc_named_color(ui, "#777777", ui->col_active);
+  ui->col_btn_off     = ui_alloc_named_color(ui, "black", ui->col_fg);
+  ui->col_slider_fill = ui->col_cycle;
 
   XMapWindow(ui->dpy, ui->win);
   XFlush(ui->dpy);

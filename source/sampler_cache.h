@@ -8,7 +8,6 @@
  * so MIDI slice voices remain uninterrupted while the new mix is being prepared.
  */
 
-
 /* Perform rebuild/update actions for this block.  "any_committed_audio" should
  * be true if at least one loop slot currently contains audio.
  * `n_samples` is the host block size; this function will copy at most a bounded

@@ -9,8 +9,6 @@
 #include <math.h>
 #include <string.h>
 
-/* Sanitize helper now lives in alo_util.h when ALO_MATH_CHECKS is defined. */
-
 /*
  * loop_engine.c — core looper DSP/engine (simplified)
  *
@@ -26,18 +24,6 @@
  *
  * Real-time: no malloc/free in run_events/run_loops/run_clicks.
  */
-
-/* track helpers now live in alo_util.c */
-
-/* `alo_port_pressed` helper lives in alo_util.h now. */
-
-/* utility function moved to alo_util.h: alo_soft_clip_unit */
-
-/* edge fade helper now in alo_util: alo_edge_fade_samples_u32 */
-
-/* fade helper now in alo_util: alo_apply_edge_fade_stereo */
-
-/* clear_track_state defined in alo_util.c */
 
 static void clear_track_audio(Alo* self, int t)
 {
@@ -159,12 +145,6 @@ void update_loop_state_ports(Alo* self)
 /* -------------------------------------------------------------------------
  * Timing helpers
  * ------------------------------------------------------------------------- */
-
-/* get_bars_i moved to alo_util (alo_get_bars_i).
- *
- * compute_next_cycle_start_beats() and compute_loop_beats() are defined in
- * transport.c along with other time/transport helpers.
- */
 
 static uint32_t compute_loop_samples(const Alo* self, uint32_t loop_beats)
 {
@@ -355,8 +335,6 @@ static inline int get_slice_root_note(const Alo* self)
   return v;
 }
 
-/* get_slices_per_bar_u moved to alo_util (alo_get_slices_per_bar_u). */
-
 static void update_bar_step_out(Alo* self)
 {
   if (!self) {
@@ -493,8 +471,6 @@ static void update_bar_step_out(Alo* self)
 /* -------------------------------------------------------------------------
  * Button handling
  * ------------------------------------------------------------------------- */
-
-/* loop and undo press helpers have been moved into button_logic.c */
 
 static void handle_button_edges(Alo* self, int t, bool loop_btn, bool undo_btn)
 {

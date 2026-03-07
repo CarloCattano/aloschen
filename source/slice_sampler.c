@@ -9,8 +9,6 @@
  * Internal Helpers (Optimized for RT)
  * ------------------------------------------------------------------------ */
 
-/* The math-check helper `alo_sanitize_f32` is now provided by alo_util. */
-
 static inline bool alo_voice_is_active(const AloSliceVoice* v)
 {
   return v && v->active && (v->remaining_samples > 0);
@@ -21,19 +19,11 @@ static inline uint32_t alo_wrap_phase(uint32_t phase, uint32_t limit)
   return (phase < limit) ? phase : (phase - limit);
 }
 
-/* Forward declarations for functions used later in this file.  They are
- * declared static so they are not visible outside this translation unit, but
- * the prototypes must appear before the first call (process_chunk).
- */
 static void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* alo,
                                          uint32_t key, uint32_t start_delay_samples,
                                          uint32_t phase_samples, uint32_t length_samples,
                                          uint32_t fade_samples, float gain);
 static float alo_env_tick(AloEnvState* e);
-
-/* ------------------------------------------------------------------------
- * State Management & Utility (Resolves Linker Errors)
- * ------------------------------------------------------------------------ */
 
 void alo_slice_sampler_reset(AloSliceSampler* s)
 {
@@ -67,10 +57,6 @@ void alo_slice_sampler_clear_buffers(AloSliceSampler* s)
   s->clear_offset      = 0;
 }
 
-/* Perform a bounded amount of clearing work.  This should be called from the
- * audio thread (e.g. from run_loops) once per block so the memory-zeroing is
- * distributed across many small chunks rather than a single gigantic memset.
- */
 void alo_slice_sampler_step_clear(AloSliceSampler* s, uint32_t max_samples)
 {
   if (!s || !s->clear_in_progress || max_samples == 0)
@@ -266,7 +252,6 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
   }
 }
 
-/* internal helper; exposed in header only for legacy reasons until refactor completes */
 static void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* alo, uint32_t key,
                                    uint32_t start_delay_samples, uint32_t phase_samples,
                                    uint32_t length_samples, uint32_t fade_samples, float gain)

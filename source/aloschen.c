@@ -541,8 +541,6 @@ static void run(LV2_Handle instance, uint32_t n_samples)
 static void cleanup(LV2_Handle instance)
 {
   alo_log("Cleanup");
-
-  free_instance((Alo*)instance);
 }
 
 /* ------------------------------------------------------------------------

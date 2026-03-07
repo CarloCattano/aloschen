@@ -1,5 +1,5 @@
 #include "button_logic.h"
-#include "transport.h" /* for compute_next_cycle_start_beats */
+#include "transport.h"
 
 static inline bool any_other_track_busy(const Alo* self, int exclude)
 {
