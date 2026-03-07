@@ -6,4 +6,5 @@ compile_commands.json
 Doxyfile
 .cache
 AGENTS.md
+plan.md
 examples/
