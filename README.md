@@ -1,5 +1,30 @@
 # Aloschen — transport-synced 3-track LV2 looper
 
+## Static analysis (Linux)
+
+You can run a quick analyzer from the terminal using LLVM's `scan-build` or
+`clang-tidy`.  These targets are optional; just install `clang`/`scan-build`
+via your package manager.
+
+```sh
+# run the Clang static analyzer once using the Makefile target
+cd source && make scan
+# or manually:
+scan-build make
+
+# lint individual files with clang-tidy (requires a compilation database)
+clang-tidy source/*.c source/*.cpp -- -Isource
+```
+
+The Makefile also provides convenient wrappers:
+
+```sh
+cd source && make scan      # run scan-build
+cd source && make tidy      # run clang-tidy on all C files
+```
+
+
+
 ALOSCHEN is a lightweight, mistake-resistant looper that stays locked to the host transport.
 It provides **3 independent loop slots**, each with **one-shot** record/overdub and **quantized undo**.
 

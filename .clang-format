@@ -3,7 +3,24 @@ IndentWidth: 2
 TabWidth: 2
 UseTab: Never
 ColumnLimit: 100
-BreakBeforeBraces: Allman
+# Change "Allman" to "Custom" to enable granular control
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: false   # if, for, while, switch stay on same line
+  AfterFunction: true            # Functions move to new line
+  AfterStruct: true              # Structs move to new line
+  AfterClass: true               
+  AfterEnum: true
+  BeforeElse: false              # keeps "else" attached to the "}"
+  AfterExternBlock: false
+  AfterNamespace: false
+  AfterObjCDeclaration: false
+  AfterUnion: true
+  BeforeCatch: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
 AllowShortFunctionsOnASingleLine: Empty
 PointerAlignment: Left
 SpaceBeforeParens: ControlStatements

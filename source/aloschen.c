@@ -4,7 +4,7 @@
   Copyright 2018 Stevie <modplugins@radig.com>
   Copyright 2018 Paul Sherwood <devcurmudgeon@gmail.com>
   Copyright 2025-2026 Carlo Cattano <contact@ktano-studio.com>
-  
+
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
   copyright notice and this permission notice appear in all copies.
@@ -18,10 +18,15 @@
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+/* cppcheck-suppress missingIncludeSystem */
 #include <math.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <stdarg.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <stdio.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <stdlib.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <string.h>
 
 #include "alo_engine.h"
@@ -42,14 +47,12 @@ static bool log_enabled(void)
 
 void alo_log(const char* message, ...)
 {
-  if (!log_enabled())
-  {
+  if (!log_enabled()) {
     return;
   }
 
   FILE* f = fopen("/tmp/alo.log", "a");
-  if (!f)
-  {
+  if (!f) {
     return;
   }
 
@@ -79,14 +82,12 @@ static void sine_pulse(float* target, double frequency, double sample_rate, uint
   const double   sample_sin_step = 2.0 * M_PI * frequency / sample_rate;
   float          amplitude       = 0.0f;
 
-  for (uint32_t i = 0; i < half_length; ++i)
-  {
+  for (uint32_t i = 0; i < half_length; ++i) {
     amplitude = fminf(amplitude + amplitude_step, 1.0f);
     target[i] = 0.5f * amplitude * (float)sin(i * sample_sin_step);
   }
 
-  for (uint32_t i = half_length; i < num_samples; ++i)
-  {
+  for (uint32_t i = half_length; i < num_samples; ++i) {
     amplitude = fmaxf(amplitude - amplitude_step, 0.0f);
     target[i] = 0.5f * amplitude * (float)sin(i * sample_sin_step);
   }
@@ -94,16 +95,13 @@ static void sine_pulse(float* target, double frequency, double sample_rate, uint
 
 static void free_instance(Alo* self)
 {
-  if (!self)
-  {
+  if (!self) {
     return;
   }
 
-  for (int t = 0; t < NUM_TRACKS; ++t)
-  {
+  for (int t = 0; t < NUM_TRACKS; ++t) {
     free(self->loop_buf[t]);
-    for (int l = 0; l < ALO_MAX_UNDO_LAYERS; ++l)
-    {
+    for (int l = 0; l < ALO_MAX_UNDO_LAYERS; ++l) {
       free(self->od_buf[t][l]);
     }
   }
@@ -112,6 +110,7 @@ static void free_instance(Alo* self)
   free(self->low_beat);
   free(self->start_beat);
   free(self->sampler_src_buf);
+  free(self->sampler_src_buf_shadow);
   /* release slice sampler buffers as well */
   alo_slice_sampler_free_buffers(&self->slice_sampler);
   free(self->rt_play_l);
@@ -123,46 +122,43 @@ static void free_instance(Alo* self)
 
 static bool alloc_track_buffers(Alo* self)
 {
-  if (!self)
-  {
+  if (!self) {
     return false;
   }
 
   self->sampler_src_buf = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
-  if (!self->sampler_src_buf)
-  {
+  if (!self->sampler_src_buf) {
     fprintf(stderr, "ALO: sampler source buffer allocation failed\n");
     return false;
   }
+  self->sampler_src_buf_shadow = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
+  if (!self->sampler_src_buf_shadow) {
+    fprintf(stderr, "ALO: sampler shadow buffer allocation failed\n");
+    return false;
+  }
 
-  if (self->rt_block_cap == 0u)
-  {
+  if (self->rt_block_cap == 0u) {
     self->rt_block_cap = ALO_RT_BLOCK_CAP;
   }
   self->rt_play_l  = (float*)calloc((size_t)self->rt_block_cap, sizeof(float));
   self->rt_play_r  = (float*)calloc((size_t)self->rt_block_cap, sizeof(float));
   self->rt_slice_l = (float*)calloc((size_t)self->rt_block_cap, sizeof(float));
   self->rt_slice_r = (float*)calloc((size_t)self->rt_block_cap, sizeof(float));
-  if (!self->rt_play_l || !self->rt_play_r || !self->rt_slice_l || !self->rt_slice_r)
-  {
+  if (!self->rt_play_l || !self->rt_play_r || !self->rt_slice_l || !self->rt_slice_r) {
     fprintf(stderr, "ALO: RT scratch buffer allocation failed\n");
     return false;
   }
 
-  for (int t = 0; t < NUM_TRACKS; ++t)
-  {
+  for (int t = 0; t < NUM_TRACKS; ++t) {
     self->loop_buf[t] = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
-    if (!self->loop_buf[t])
-    {
+    if (!self->loop_buf[t]) {
       fprintf(stderr, "ALO: loop buffer allocation failed\n");
       return false;
     }
 
-    for (int l = 0; l < ALO_MAX_UNDO_LAYERS; ++l)
-    {
+    for (int l = 0; l < ALO_MAX_UNDO_LAYERS; ++l) {
       self->od_buf[t][l] = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
-      if (!self->od_buf[t][l])
-      {
+      if (!self->od_buf[t][l]) {
         fprintf(stderr, "ALO: overdub buffer allocation failed\n");
         return false;
       }
@@ -185,20 +181,19 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor, double rate,
   alo_log("Instantiate");
 
   Alo* self = (Alo*)calloc(1, sizeof(Alo));
-  if (!self)
-  {
+  if (!self) {
     return NULL;
   }
 
-  self->rate         = rate;
-  self->slice_sampler.rate = (float)rate;
+  self->rate                     = rate;
+  self->slice_sampler.rate       = (float)rate;
+  self->sampler_src_shadow_valid = false;
 
   /* Preallocate per-slice audio buffers so the sampler can copy data
    * without any heap allocation in the audio thread. LOOP_SIZE is the
    * worst-case slice length (one full loop) and we always use stereo.
    */
-  if (!alo_slice_sampler_alloc_buffers(&self->slice_sampler, LOOP_SIZE, 2))
-  {
+  if (!alo_slice_sampler_alloc_buffers(&self->slice_sampler, LOOP_SIZE, 2)) {
     fprintf(stderr, "ALO: slice sampler buffer allocation failed\n");
     goto fail;
   }
@@ -212,16 +207,13 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor, double rate,
   self->last_enabled      = true;
 
   LV2_URID_Map* map = NULL;
-  for (int i = 0; features[i]; ++i)
-  {
-    if (!strcmp(features[i]->URI, LV2_URID_URI "#map"))
-    {
+  for (int i = 0; features[i]; ++i) {
+    if (!strcmp(features[i]->URI, LV2_URID_URI "#map")) {
       map = (LV2_URID_Map*)features[i]->data;
     }
   }
 
-  if (!map)
-  {
+  if (!map) {
     fprintf(stderr, "Host does not support urid:map.\n");
     goto fail;
   }
@@ -253,73 +245,55 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor, double rate,
   uint32_t                  opt_nominal = 0u;
   uint32_t                  opt_max     = 0u;
   const LV2_Options_Option* options     = NULL;
-  for (int i = 0; features[i]; ++i)
-  {
-    if (!strcmp(features[i]->URI, LV2_OPTIONS__options))
-    {
+  for (int i = 0; features[i]; ++i) {
+    if (!strcmp(features[i]->URI, LV2_OPTIONS__options)) {
       options = (const LV2_Options_Option*)features[i]->data;
       break;
     }
   }
-  if (options)
-  {
-    for (const LV2_Options_Option* o = options; o->key; ++o)
-    {
+  if (options) {
+    for (const LV2_Options_Option* o = options; o->key; ++o) {
       uint32_t v = 0u;
-      if (o->type == uris->atom_Int && o->value)
-      {
+      if (o->type == uris->atom_Int && o->value) {
         const int32_t vi = *(const int32_t*)o->value;
-        if (vi > 0)
-        {
+        if (vi > 0) {
           v = (uint32_t)vi;
         }
-      }
-      else if (o->type == uris->atom_Long && o->value)
-      {
+      } else if (o->type == uris->atom_Long && o->value) {
         const int64_t vl = *(const int64_t*)o->value;
-        if (vl > 0 && vl <= (int64_t)UINT32_MAX)
-        {
+        if (vl > 0 && vl <= (int64_t)UINT32_MAX) {
           v = (uint32_t)vl;
         }
       }
 
-      if (v == 0u)
-      {
+      if (v == 0u) {
         continue;
       }
 
-      if (o->key == uris->bufsz_nominalBlockLength)
-      {
+      if (o->key == uris->bufsz_nominalBlockLength) {
         opt_nominal = v;
-      }
-      else if (o->key == uris->bufsz_maxBlockLength)
-      {
+      } else if (o->key == uris->bufsz_maxBlockLength) {
         opt_max = v;
       }
     }
   }
 
+  // TODO: Comment this logic
   uint32_t cap = ALO_RT_BLOCK_CAP;
-  if (opt_max > 0u)
-  {
+  if (opt_max != 0u) {
     cap = opt_max;
-  }
-  else if (opt_nominal > 0u)
-  {
+  } else if (opt_nominal != 0u) {
     cap = opt_nominal;
   }
-  if (cap == 0u)
-  {
+  if (cap == 0u) {
     cap = ALO_RT_BLOCK_CAP;
   }
-  if (cap > ALO_RT_BLOCK_CAP)
-  {
+  if (cap > ALO_RT_BLOCK_CAP) {
     cap = ALO_RT_BLOCK_CAP;
   }
   self->rt_block_cap = cap;
 
-  if (!alloc_track_buffers(self))
-  {
+  if (!alloc_track_buffers(self)) {
     goto fail;
   }
 
@@ -329,8 +303,7 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor, double rate,
   self->low_beat   = (float*)malloc(self->beat_len * sizeof(float));
   self->start_beat = (float*)malloc(self->beat_len * sizeof(float));
 
-  if (!self->high_beat || !self->low_beat || !self->start_beat)
-  {
+  if (!self->high_beat || !self->low_beat || !self->start_beat) {
     fprintf(stderr, "ALO: click allocation failed\n");
     goto fail;
   }
@@ -357,8 +330,7 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
 {
   Alo* self = (Alo*)instance;
 
-  switch ((PortIndex)port)
-  {
+  switch ((PortIndex)port) {
   case ALO_INPUT_L:
     self->ports.input_l = (const float*)data;
     break;
@@ -515,22 +487,17 @@ static void run(LV2_Handle instance, uint32_t n_samples)
    * processing and reset counters/state.
    */
   bool enabled_now = true;
-  if (self->ports.enabled)
-  {
+  if (self->ports.enabled) {
     enabled_now = (*(self->ports.enabled) >= 0.5f);
   }
 
-  if (!self->have_last_enabled)
-  {
+  if (!self->have_last_enabled) {
     self->have_last_enabled = true;
     self->last_enabled      = enabled_now;
-    if (!enabled_now)
-    {
+    if (!enabled_now) {
       reset(self);
     }
-  }
-  else if (self->last_enabled != enabled_now)
-  {
+  } else if (self->last_enabled != enabled_now) {
     /* Reset on both edges so re-enabling picks up any changed timing params
      * while the plugin was disabled.
      */
@@ -538,28 +505,19 @@ static void run(LV2_Handle instance, uint32_t n_samples)
     self->last_enabled = enabled_now;
   }
 
-  if (!enabled_now)
-  {
+  if (!enabled_now) {
     /* Dry passthrough when bypassed/disabled. */
-    if (self->ports.output_l)
-    {
-      if (self->ports.input_l)
-      {
+    if (self->ports.output_l) {
+      if (self->ports.input_l) {
         memcpy(self->ports.output_l, self->ports.input_l, n_samples * sizeof(float));
-      }
-      else
-      {
+      } else {
         memset(self->ports.output_l, 0, n_samples * sizeof(float));
       }
     }
-    if (self->ports.output_r)
-    {
-      if (self->ports.input_r)
-      {
+    if (self->ports.output_r) {
+      if (self->ports.input_r) {
         memcpy(self->ports.output_r, self->ports.input_r, n_samples * sizeof(float));
-      }
-      else
-      {
+      } else {
         memset(self->ports.output_r, 0, n_samples * sizeof(float));
       }
     }
@@ -613,10 +571,10 @@ static const LV2_Descriptor descriptor = {
 };
 
 LV2_SYMBOL_EXPORT
+/* cppcheck-suppress unusedFunction - required by LV2 host loader */
 const LV2_Descriptor* lv2_descriptor(uint32_t index)
 {
-  switch (index)
-  {
+  switch (index) {
   case 0:
     return &descriptor;
   default:

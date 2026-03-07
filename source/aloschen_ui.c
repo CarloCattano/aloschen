@@ -10,17 +10,27 @@
 #define _POSIX_C_SOURCE 200809L
 #endif
 
+/* cppcheck-suppress missingIncludeSystem */
 #include <lv2/ui/ui.h>
 
+/* cppcheck-suppress missingIncludeSystem */
 #include <X11/Xlib.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <X11/Xutil.h>
 
+/* cppcheck-suppress missingIncludeSystem */
 #include <stdbool.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <stdint.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <math.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <stdio.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <stdlib.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <string.h>
+/* cppcheck-suppress missingIncludeSystem */
 #include <time.h>
 
 #define ARRAY_LEN(a) ((int)(sizeof(a) / sizeof((a)[0])))
@@ -29,6 +39,7 @@
 
 /* Reuse the DSP's canonical port indices + plugin URI. */
 #include "alo_engine.h"
+#include "alo_ui_util.h"
 
 /*
  * UI scaling (integer geometry only).
@@ -104,8 +115,7 @@ static inline bool ui_is_recording(const float state_v)
 
 static inline int ui_track_from_ui_port(const uint32_t port_index)
 {
-  switch (port_index)
-  {
+  switch (port_index) {
   case ALO_LOOP1:
   case ALO_UNDO1:
   case ALO_LOOP1_STATE:
@@ -131,8 +141,7 @@ static inline int ui_track_from_ui_port(const uint32_t port_index)
 
 static inline uint32_t ui_loop_has_audio_port_for_track(const int t)
 {
-  switch (t)
-  {
+  switch (t) {
   case 0:
     return ALO_LOOP1_HAS_AUDIO;
   case 1:
@@ -146,8 +155,7 @@ static inline uint32_t ui_loop_has_audio_port_for_track(const int t)
 
 static inline uint32_t ui_loop_input_port_for_state_port(const uint32_t state_port)
 {
-  switch (state_port)
-  {
+  switch (state_port) {
   case ALO_LOOP1_STATE:
     return ALO_LOOP1;
   case ALO_LOOP2_STATE:
@@ -205,6 +213,10 @@ typedef struct
   unsigned long col_cycle_past;
   unsigned long col_host;
   unsigned long col_active;
+  /* transport-bar ring colours */
+  unsigned long col_ring_rec;
+  unsigned long col_ring_arm;
+  unsigned long col_ring_play;
 
   unsigned int width;
   unsigned int height;
@@ -227,14 +239,12 @@ typedef struct
 
 static inline bool undo_is_enabled(const AloUI* ui, uint32_t undo_port_index)
 {
-  if (!ui)
-  {
+  if (!ui) {
     return true;
   }
 
   const int t = ui_track_from_ui_port(undo_port_index);
-  if (t < 0)
-  {
+  if (t < 0) {
     return true;
   }
 
@@ -283,42 +293,29 @@ static UILayout ui_layout(const AloUI* ui)
   /* Place sliders below the lower of: rings box, or button grid (2 rows). */
   const int buttons_h = 2 * l.btn_h + l.btn_gap;
   int       content_h = l.rings_y0 + l.rings_d;
-  if (l.buttons_y0 + buttons_h > content_h)
-  {
+  if (l.buttons_y0 + buttons_h > content_h) {
     content_h = l.buttons_y0 + buttons_h;
   }
   l.slider_y0 = content_h + UI_SI(18);
   return l;
 }
 
-static int ui_get_bars_i(const AloUI* ui)
+/* replaced by helper in alo_ui_util.h to reduce duplication */
+static inline int ui_get_bars_i(const AloUI* ui)
 {
-  float bars_f =
-      (ui && ALO_BARS < ALO_PORT_COUNT) ? ui->port_values[ALO_BARS] : (float)DEFAULT_NUM_BARS;
-  if (bars_f < 1.0f)
-  {
-    bars_f = 1.0f;
-  }
-  if (bars_f > 16.0f)
-  {
-    bars_f = 16.0f;
-  }
-  int bars_i = (int)lrintf(bars_f);
-  return (bars_i > 0) ? bars_i : 1;
+  return alo_ui_get_bars_i(ui ? ui->port_values : NULL);
 }
 
 static void ui_draw_bar_steps(AloUI* ui, int x, int y)
 {
-  if (!ui)
-  {
+  if (!ui) {
     return;
   }
 
   /* A lightweight loop-position indicator: one step per beat (4 per bar). */
   const int bars_i = ui_get_bars_i(ui);
   const int steps  = bars_i * DEFAULT_BEATS_PER_BAR;
-  if (steps <= 0)
-  {
+  if (steps <= 0) {
     return;
   }
 
@@ -326,28 +323,20 @@ static void ui_draw_bar_steps(AloUI* ui, int x, int y)
   const int box_max = UI_SI(14);
   const int box_min = 1;
   int       gap     = UI_SI(4);
-  if (gap < 1)
-  {
-    gap = 1;
-  }
-
+      /* gap always >=1 at current scale; no need to clamp */
   int box = box_max;
-  if (avail_w > 0)
-  {
+  if (avail_w > 0) {
     const int denom = steps;
     const int numer = avail_w - (steps - 1) * gap;
-    int       fit   = (denom > 0) ? (numer / denom) : box_max;
-    if (fit > box_max)
-    {
+    int       fit   = numer / denom;
+    if (fit > box_max) {
       fit = box_max;
     }
-    if (fit < box_min)
-    {
+    if (fit < box_min) {
       gap              = 1;
       const int numer2 = avail_w - (steps - 1) * gap;
-      fit              = (denom > 0) ? (numer2 / denom) : box_min;
-      if (fit < box_min)
-      {
+      fit              = numer2 / denom;
+      if (fit < box_min) {
         fit = box_min;
       }
     }
@@ -355,26 +344,21 @@ static void ui_draw_bar_steps(AloUI* ui, int x, int y)
   }
 
   int cur = -1;
-  if (ALO_BAR_STEP < ALO_PORT_COUNT)
-  {
+  if (ALO_BAR_STEP < ALO_PORT_COUNT) {
     const float v = ui->port_values[ALO_BAR_STEP];
-    if (v >= -0.5f)
-    {
+    if (v >= -0.5f) {
       cur = (int)lrintf(v);
     }
   }
 
-  if (cur < 0 || cur >= steps)
-  {
+  if (cur < 0 || cur >= steps) {
     cur = -1;
   }
 
-  for (int i = 0; i < steps; ++i)
-  {
+  for (int i = 0; i < steps; ++i) {
     const int bx = x + i * (box + gap);
     XDrawRectangle(ui->dpy, ui->win, ui->gc, bx, y, (unsigned int)box, (unsigned int)box);
-    if (i == cur)
-    {
+    if (i == cur) {
       XFillRectangle(ui->dpy, ui->win, ui->gc, bx + 1, y + 1, (unsigned int)(box - 1),
                      (unsigned int)(box - 1));
     }
@@ -407,12 +391,10 @@ static void draw_string(AloUI* ui, int x, int y, const char* text);
 
 static float clamp01f(const float v)
 {
-  if (!(v >= 0.0f))
-  {
+  if (!(v >= 0.0f)) {
     return 0.0f;
   }
-  if (v > 1.0f)
-  {
+  if (v > 1.0f) {
     return 1.0f;
   }
   return v;
@@ -420,15 +402,13 @@ static float clamp01f(const float v)
 
 static unsigned long ui_alloc_named_color(AloUI* ui, const char* name, unsigned long fallback)
 {
-  if (!ui || !ui->dpy || !name)
-  {
+  if (!ui || !ui->dpy || !name) {
     return fallback;
   }
 
   XColor scr;
   XColor exact;
-  if (XAllocNamedColor(ui->dpy, ui->cmap, name, &scr, &exact))
-  {
+  if (XAllocNamedColor(ui->dpy, ui->cmap, name, &scr, &exact)) {
     return scr.pixel;
   }
   return fallback;
@@ -436,8 +416,7 @@ static unsigned long ui_alloc_named_color(AloUI* ui, const char* name, unsigned 
 
 static void ui_set_fg(AloUI* ui, unsigned long pixel)
 {
-  if (!ui || !ui->dpy)
-  {
+  if (!ui || !ui->dpy) {
     return;
   }
   XSetForeground(ui->dpy, ui->gc, pixel);
@@ -445,8 +424,7 @@ static void ui_set_fg(AloUI* ui, unsigned long pixel)
 
 static void ui_draw_arc_deg(AloUI* ui, int cx, int cy, int r, int start_deg, int extent_deg)
 {
-  if (!ui || !ui->dpy || r <= 0)
-  {
+  if (!ui || !ui->dpy || r <= 0) {
     return;
   }
 
@@ -459,24 +437,21 @@ static void ui_draw_arc_deg(AloUI* ui, int cx, int cy, int r, int start_deg, int
 
 static void ui_draw_transport_rings(AloUI* ui, const UILayout* l)
 {
-  if (!ui || !l)
-  {
+  if (!ui || !l) {
     return;
   }
 
   const int x0 = l->rings_x0;
   const int y0 = l->rings_y0;
   const int d0 = l->rings_d;
-  if (d0 < UI_SI(40))
-  {
+  if (d0 < UI_SI(40)) {
     return;
   }
 
   /* Map the MOD SVG radii (46/38/26/14) into pixels. */
   const int stroke_outer = UI_SI(3);
   const int outer_r      = (d0 / 2) - stroke_outer - UI_SI(2);
-  if (outer_r < UI_SI(10))
-  {
+  if (outer_r < UI_SI(10)) {
     return;
   }
   const float s = (float)outer_r / 46.0f;
@@ -491,33 +466,27 @@ static void ui_draw_transport_rings(AloUI* ui, const UILayout* l)
 
   const int bars  = ui_get_bars_i(ui);
   int       steps = bars * DEFAULT_BEATS_PER_BAR;
-  if (steps < 1)
-  {
+  if (steps < 1) {
     steps = 1;
   }
-  if (steps > 128)
-  {
+  if (steps > 128) {
     steps = 128;
   }
 
   int bar_step = -1;
-  if (ALO_BAR_STEP < ALO_PORT_COUNT)
-  {
+  if (ALO_BAR_STEP < ALO_PORT_COUNT) {
     const float v = ui->port_values[ALO_BAR_STEP];
-    if (v >= -0.5f)
-    {
+    if (v >= -0.5f) {
       bar_step = (int)lrintf(v);
     }
   }
 
   float cycle_phase = 0.0f;
   float host_phase  = 0.0f;
-  if (ALO_CYCLE_PHASE < ALO_PORT_COUNT)
-  {
+  if (ALO_CYCLE_PHASE < ALO_PORT_COUNT) {
     cycle_phase = clamp01f(ui->port_values[ALO_CYCLE_PHASE]);
   }
-  if (ALO_HOST_BAR_PHASE < ALO_PORT_COUNT)
-  {
+  if (ALO_HOST_BAR_PHASE < ALO_PORT_COUNT) {
     host_phase = clamp01f(ui->port_values[ALO_HOST_BAR_PHASE]);
   }
 
@@ -537,26 +506,48 @@ static void ui_draw_transport_rings(AloUI* ui, const UILayout* l)
   const int   w_bars   = UI_SI(3);
   XSetLineAttributes(ui->dpy, ui->gc, (unsigned int)w_bars, LineSolid, CapButt, JoinMiter);
   ui_set_fg(ui, ui->col_grey);
-  for (int i = 0; i < bars; ++i)
-  {
+  for (int i = 0; i < bars; ++i) {
     const int a0 = (int)lrintf((float)start0 - (float)i * seg_bars);
     ui_draw_arc_deg(ui, cx, cy, r_bars, a0, (int)lrintf(-on_bars));
   }
 
   int bar_index = 0;
-  if (bar_step >= 0)
-  {
+  if (bar_step >= 0) {
     bar_index = bar_step / 4;
-    if (bar_index < 0)
-    {
+    if (bar_index < 0) {
       bar_index = 0;
-    }
-    else if (bar_index >= bars)
-    {
+    } else if (bar_index >= bars) {
       bar_index = bars - 1;
     }
   }
-  ui_set_fg(ui, ui->col_active);
+  /* choose colour based on any track state */
+  unsigned long ring_col = ui->col_grey;
+  bool          any_rec = false, any_arm = false, any_play = false;
+  for (int t = 0; t < NUM_TRACKS; ++t) {
+    int idx = ALO_LOOP1_STATE + t;
+    if (idx < ALO_PORT_COUNT) {
+      float v = ui->port_values[idx];
+      if (v >= 0.75f) {
+        any_rec = true;
+      } else if (v >= 0.25f) {
+        any_arm = true;
+      } else if (v > 0.0f) {
+        any_play = true;
+      }
+    }
+  }
+  if (any_rec) {
+    ring_col = ui->col_ring_rec;
+  } else if (any_arm) {
+    if (ui_blink_on()) {
+      ring_col = ui->col_ring_arm;
+    } else {
+      ring_col = ui->col_grey;
+    }
+  } else if (any_play) {
+    ring_col = ui->col_ring_play;
+  }
+  ui_set_fg(ui, ring_col);
   {
     const int a0 = (int)lrintf((float)start0 - (float)bar_index * seg_bars);
     ui_draw_arc_deg(ui, cx, cy, r_bars, a0, (int)lrintf(-on_bars));
@@ -568,35 +559,25 @@ static void ui_draw_transport_rings(AloUI* ui, const UILayout* l)
   const int   w_steps   = UI_SI(3);
   XSetLineAttributes(ui->dpy, ui->gc, (unsigned int)w_steps, LineSolid, CapButt, JoinMiter);
   ui_set_fg(ui, ui->col_cycle);
-  for (int i = 0; i < steps; ++i)
-  {
+  for (int i = 0; i < steps; ++i) {
     const int a0 = (int)lrintf((float)start0 - (float)i * seg_steps);
     ui_draw_arc_deg(ui, cx, cy, r_steps, a0, (int)lrintf(-on_steps));
   }
 
   int step_index = bar_step;
-  if (!(step_index >= 0 && step_index < steps))
-  {
+  if (!(step_index >= 0 && step_index < steps)) {
     step_index = -1;
   }
 
   /* Steps: future grey, past dark green, current bright green. */
-  for (int i = 0; i < steps; ++i)
-  {
-    if (step_index < 0)
-    {
+  for (int i = 0; i < steps; ++i) {
+    if (step_index < 0) {
       ui_set_fg(ui, ui->col_grey);
-    }
-    else if (i < step_index)
-    {
+    } else if (i < step_index) {
       ui_set_fg(ui, ui->col_cycle_past);
-    }
-    else if (i == step_index)
-    {
+    } else if (i == step_index) {
       ui_set_fg(ui, ui->col_cycle);
-    }
-    else
-    {
+    } else {
       ui_set_fg(ui, ui->col_grey);
     }
     const int a0 = (int)lrintf((float)start0 - (float)i * seg_steps);
@@ -607,32 +588,23 @@ static void ui_draw_transport_rings(AloUI* ui, const UILayout* l)
   const int    dot_r        = UI_SI(2);
   const int    dot_r_active = UI_SI(3);
   const double kPi          = 3.14159265358979323846;
-  for (int i = 0; i < steps; ++i)
-  {
+  for (int i = 0; i < steps; ++i) {
     const double a      = ((double)i / (double)steps) * (kPi * 2.0) - (kPi / 2.0);
     const int    dx     = cx + (int)lrint(cos(a) * (double)r_steps);
     const int    dy     = cy + (int)lrint(sin(a) * (double)r_steps);
     const bool   is_cur = (step_index >= 0 && i == step_index);
     const int    rr     = is_cur ? dot_r_active : dot_r;
 
-    if (is_cur)
-    {
+    if (is_cur) {
       ui_set_fg(ui, ui->col_cycle);
       XFillArc(ui->dpy, ui->win, ui->gc, dx - rr, dy - rr, (unsigned int)(2 * rr),
                (unsigned int)(2 * rr), 0, 360 * 64);
-    }
-    else
-    {
-      if (step_index < 0)
-      {
+    } else {
+      if (step_index < 0) {
         ui_set_fg(ui, ui->col_grey);
-      }
-      else if (i < step_index)
-      {
+      } else if (i < step_index) {
         ui_set_fg(ui, ui->col_cycle_past);
-      }
-      else
-      {
+      } else {
         ui_set_fg(ui, ui->col_grey);
       }
       XDrawArc(ui->dpy, ui->win, ui->gc, dx - rr, dy - rr, (unsigned int)(2 * rr),
@@ -660,8 +632,7 @@ static void ui_draw_transport_rings(AloUI* ui, const UILayout* l)
 
 static bool ui_trigger_grid_pos(const Control* c, int* out_col, int* out_row)
 {
-  if (!c || !out_col || !out_row)
-  {
+  if (!c || !out_col || !out_row) {
     return false;
   }
 
@@ -670,8 +641,7 @@ static bool ui_trigger_grid_pos(const Control* c, int* out_col, int* out_row)
    * Row 1: Undo1 Undo2 Undo3
    */
   const int t = ui_track_from_ui_port(c->port_index);
-  if (t < 0 || t >= NUM_TRACKS)
-  {
+  if (t < 0 || t >= NUM_TRACKS) {
     return false;
   }
 
@@ -683,13 +653,11 @@ static bool ui_trigger_grid_pos(const Control* c, int* out_col, int* out_row)
 
 static void ui_send_port(AloUI* ui, const uint32_t port_index, float value)
 {
-  if (!ui || !ui->write)
-  {
+  if (!ui || !ui->write) {
     return;
   }
 
-  if (port_index >= ALO_PORT_COUNT)
-  {
+  if (port_index >= ALO_PORT_COUNT) {
     return;
   }
 
@@ -699,8 +667,7 @@ static void ui_send_port(AloUI* ui, const uint32_t port_index, float value)
 
 static void draw_string(AloUI* ui, int x, int y, const char* text)
 {
-  if (!text)
-  {
+  if (!text) {
     return;
   }
   XDrawString(ui->dpy, ui->win, ui->gc, x, y, text, (int)strlen(text));
@@ -708,13 +675,11 @@ static void draw_string(AloUI* ui, int x, int y, const char* text)
 
 static bool ui_button_is_on(const AloUI* ui, const Control* c, const bool blink_on)
 {
-  if (!ui || !c)
-  {
+  if (!ui || !c) {
     return false;
   }
 
-  if (c->port_index >= ALO_PORT_COUNT || c->display_port_index >= ALO_PORT_COUNT)
-  {
+  if (c->port_index >= ALO_PORT_COUNT || c->display_port_index >= ALO_PORT_COUNT) {
     return false;
   }
 
@@ -722,14 +687,12 @@ static bool ui_button_is_on(const AloUI* ui, const Control* c, const bool blink_
   const float in_v    = ui->port_values[c->port_index];
 
   const bool is_loop_button = (c->display_port_index != c->port_index);
-  if (is_loop_button)
-  {
+  if (is_loop_button) {
     return ui_is_recording(state_v) || ui_is_playing(state_v) ||
            (ui_is_armed_waiting(state_v) && blink_on);
   }
 
-  if (ui_is_undo_port(c->port_index))
-  {
+  if (ui_is_undo_port(c->port_index)) {
     /* Undo buttons: show queued undo (blink) from undo*_state output */
     const bool queued = (state_v >= 0.20f);
     return queued && blink_on;
@@ -741,31 +704,26 @@ static bool ui_button_is_on(const AloUI* ui, const Control* c, const bool blink_
 static void ui_draw_button(AloUI* ui, const int bx, const int by, const int bw, const int bh,
                            const Control* c, const bool blink_on)
 {
-  if (!ui || !c)
-  {
+  if (!ui || !c) {
     return;
   }
 
   XDrawRectangle(ui->dpy, ui->win, ui->gc, bx, by, bw, bh);
 
   const bool on = ui_button_is_on(ui, c, blink_on);
-  if (on)
-  {
+  if (on) {
     XFillRectangle(ui->dpy, ui->win, ui->gc, bx + 1, by + 1, bw - 1, bh - 1);
     XSetForeground(ui->dpy, ui->gc, WhitePixel(ui->dpy, ui->screen));
     draw_string(ui, bx + UI_SI(10), by + UI_SI(20), c->label);
     XSetForeground(ui->dpy, ui->gc, BlackPixel(ui->dpy, ui->screen));
-  }
-  else
-  {
+  } else {
     draw_string(ui, bx + UI_SI(10), by + UI_SI(20), c->label);
   }
 }
 
 static void ui_redraw(AloUI* ui)
 {
-  if (!ui || !ui->dpy)
-  {
+  if (!ui || !ui->dpy) {
     return;
   }
 
@@ -775,13 +733,12 @@ static void ui_redraw(AloUI* ui)
 
   const UILayout l = ui_layout(ui);
 
-  int x = l.pad;
-  int y = l.pad;
+  /* start at padded origin for header text */
+  /* x/y variables not needed for header drawing */
 
   /* Header */
   draw_string(ui, l.pad, UI_SI(18), "ALOSCHEN — native UI");
   draw_string(ui, (int)ui->width - UI_SI(180), UI_SI(18), "Carlo Cattano");
-  y += l.header_h;
 
   /* Circular timing UI (transport rings). */
   ui_draw_transport_rings(ui, &l);
@@ -791,22 +748,21 @@ static void ui_redraw(AloUI* ui)
   const int btn_h   = l.btn_h;
   const int btn_gap = l.btn_gap;
 
-  x = l.buttons_x0;
-  y = l.buttons_y0;
+  /* Reusable coordinates for later blocks */
+  int x, y;
+
+  /* button row will compute positions explicitly; no pre-initialization needed */
 
   int fallback_i = 0;
-  for (int i = 0; i < ARRAY_LEN(kControls); ++i)
-  {
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
-    if (c->type != CTL_TOGGLE && c->type != CTL_TRIGGER)
-    {
+    if (c->type != CTL_TOGGLE && c->type != CTL_TRIGGER) {
       continue;
     }
 
     int col = 0;
     int row = 0;
-    if (!ui_trigger_grid_pos(c, &col, &row))
-    {
+    if (!ui_trigger_grid_pos(c, &col, &row)) {
       /* Fallback: place sequentially below the 2-row grid if new controls are added later. */
       col = fallback_i % 3;
       row = 2 + (fallback_i / 3);
@@ -827,11 +783,9 @@ static void ui_redraw(AloUI* ui)
   const int row_h    = l.row_h;
 
   int slider_index = 0;
-  for (int i = 0; i < ARRAY_LEN(kControls); ++i)
-  {
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
-    if (c->type != CTL_SLIDER_INT && c->type != CTL_SLIDER_FLOAT)
-    {
+    if (c->type != CTL_SLIDER_INT && c->type != CTL_SLIDER_FLOAT) {
       continue;
     }
 
@@ -839,12 +793,9 @@ static void ui_redraw(AloUI* ui)
 
     char        label[128];
     const float v = ui->port_values[c->port_index];
-    if (c->type == CTL_SLIDER_FLOAT)
-    {
+    if (c->type == CTL_SLIDER_FLOAT) {
       snprintf(label, sizeof(label), "%s: %.2f", c->label, v);
-    }
-    else
-    {
+    } else {
       snprintf(label, sizeof(label), "%s: %.0f", c->label, v);
     }
     draw_string(ui, x, sy + UI_SI(12), label);
@@ -879,11 +830,10 @@ static bool point_in_rect(const int px, const int py, const int x, const int y, 
   return px >= x && px < (x + w) && py >= y && py < (y + h);
 }
 
-static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type)
+static int hit_test(const AloUI* ui, const int px, const int py, HitType* out_type)
 {
   const UILayout l = ui_layout(ui);
-  int            x = l.buttons_x0;
-  int            y = l.buttons_y0;
+  int            x, y;
 
   const int btn_w   = l.btn_w;
   const int btn_h   = l.btn_h;
@@ -891,18 +841,15 @@ static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type)
 
   /* Toggles */
   int fallback_i = 0;
-  for (int i = 0; i < ARRAY_LEN(kControls); ++i)
-  {
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
-    if (c->type != CTL_TOGGLE && c->type != CTL_TRIGGER)
-    {
+    if (c->type != CTL_TOGGLE && c->type != CTL_TRIGGER) {
       continue;
     }
 
     int col = 0;
     int row = 0;
-    if (!ui_trigger_grid_pos(c, &col, &row))
-    {
+    if (!ui_trigger_grid_pos(c, &col, &row)) {
       col = fallback_i % 3;
       row = 2 + (fallback_i / 3);
       fallback_i++;
@@ -911,8 +858,7 @@ static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type)
     const int bx = l.buttons_x0 + col * (btn_w + btn_gap);
     const int by = l.buttons_y0 + row * (btn_h + btn_gap);
 
-    if (point_in_rect(px, py, bx, by, btn_w, btn_h))
-    {
+    if (point_in_rect(px, py, bx, by, btn_w, btn_h)) {
       *out_type = HIT_BUTTON;
       return i;
     }
@@ -927,11 +873,9 @@ static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type)
   const int row_h    = l.row_h;
 
   int slider_index = 0;
-  for (int i = 0; i < ARRAY_LEN(kControls); ++i)
-  {
+  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
-    if (c->type != CTL_SLIDER_INT && c->type != CTL_SLIDER_FLOAT)
-    {
+    if (c->type != CTL_SLIDER_INT && c->type != CTL_SLIDER_FLOAT) {
       continue;
     }
 
@@ -939,8 +883,7 @@ static int hit_test(AloUI* ui, const int px, const int py, HitType* out_type)
     const int bar_x = x;
     const int bar_y = sy + UI_SI(18);
 
-    if (point_in_rect(px, py, bar_x, bar_y, slider_w, slider_h))
-    {
+    if (point_in_rect(px, py, bar_x, bar_y, slider_w, slider_h)) {
       *out_type = HIT_SLIDER;
       return i;
     }
@@ -960,13 +903,10 @@ static void update_slider_from_x(AloUI* ui, const int control_index, const int p
 
   const float t = clampf(((float)(px - l.pad) / (float)slider_w), 0.0f, 1.0f);
   float       v = c->min + t * (c->max - c->min);
-  if (c->type == CTL_SLIDER_INT)
-  {
+  if (c->type == CTL_SLIDER_INT) {
     v = round_int_value(v);
     v = clampf(v, c->min, c->max);
-  }
-  else
-  {
+  } else {
     /* Keep float sliders reasonably stable (2 decimal places). */
     v = floorf(v * 100.0f + 0.5f) * 0.01f;
     v = clampf(v, c->min, c->max);
@@ -980,8 +920,7 @@ static void handle_button_press(AloUI* ui, const XButtonEvent* e)
 {
   HitType   hit_type = HIT_NONE;
   const int index    = hit_test(ui, e->x, e->y, &hit_type);
-  if (index < 0)
-  {
+  if (index < 0) {
     return;
   }
 
@@ -989,17 +928,14 @@ static void handle_button_press(AloUI* ui, const XButtonEvent* e)
   ui->active_hit     = hit_type;
 
   const Control* c = &kControls[index];
-  if (hit_type == HIT_BUTTON)
-  {
-    if (c->port_index == ALO_UI_ACTION_MUTE_ALL)
-    {
+  if (hit_type == HIT_BUTTON) {
+    if (c->port_index == ALO_UI_ACTION_MUTE_ALL) {
       const float v1 = (ALO_LOOP1_VOL < ALO_PORT_COUNT) ? ui->port_values[ALO_LOOP1_VOL] : 1.0f;
       const float v2 = (ALO_LOOP2_VOL < ALO_PORT_COUNT) ? ui->port_values[ALO_LOOP2_VOL] : 1.0f;
       const float v3 = (ALO_LOOP3_VOL < ALO_PORT_COUNT) ? ui->port_values[ALO_LOOP3_VOL] : 1.0f;
 
       const bool any_on = (v1 > 1e-6f) || (v2 > 1e-6f) || (v3 > 1e-6f);
-      if (any_on)
-      {
+      if (any_on) {
         ui->saved_loop_vol[0] = v1;
         ui->saved_loop_vol[1] = v2;
         ui->saved_loop_vol[2] = v3;
@@ -1008,9 +944,7 @@ static void handle_button_press(AloUI* ui, const XButtonEvent* e)
         ui_send_port(ui, ALO_LOOP1_VOL, 0.0f);
         ui_send_port(ui, ALO_LOOP2_VOL, 0.0f);
         ui_send_port(ui, ALO_LOOP3_VOL, 0.0f);
-      }
-      else
-      {
+      } else {
         const float r1  = ui->have_saved_vols ? ui->saved_loop_vol[0] : 1.0f;
         const float r2  = ui->have_saved_vols ? ui->saved_loop_vol[1] : 1.0f;
         const float r3  = ui->have_saved_vols ? ui->saved_loop_vol[2] : 1.0f;
@@ -1026,21 +960,17 @@ static void handle_button_press(AloUI* ui, const XButtonEvent* e)
     }
 
     if ((c->port_index == ALO_UNDO1 || c->port_index == ALO_UNDO2 || c->port_index == ALO_UNDO3) &&
-        !undo_is_enabled(ui, c->port_index))
-    {
+        !undo_is_enabled(ui, c->port_index)) {
       ui->active_control = -1;
       ui->active_hit     = HIT_NONE;
       return;
     }
 
-    if (c->type == CTL_TRIGGER)
-    {
+    if (c->type == CTL_TRIGGER) {
       /* Momentary trigger: press sends 1, release sends 0 */
       ui_send_port(ui, c->port_index, 1.0f);
       ui->needs_redraw = true;
-    }
-    else if (c->type == CTL_TOGGLE)
-    {
+    } else if (c->type == CTL_TOGGLE) {
       /* Latching toggle: each press flips state */
       const float state_v = ui->port_values[c->display_port_index];
       const float in_v    = ui->port_values[c->port_index];
@@ -1049,17 +979,14 @@ static void handle_button_press(AloUI* ui, const XButtonEvent* e)
       ui_send_port(ui, c->port_index, next);
       ui->needs_redraw = true;
     }
-  }
-  else if (hit_type == HIT_SLIDER)
-  {
+  } else if (hit_type == HIT_SLIDER) {
     update_slider_from_x(ui, index, e->x);
   }
 }
 
 static void handle_motion(AloUI* ui, const XMotionEvent* e)
 {
-  if (ui->active_hit != HIT_SLIDER || ui->active_control < 0)
-  {
+  if (ui->active_hit != HIT_SLIDER || ui->active_control < 0) {
     return;
   }
   update_slider_from_x(ui, ui->active_control, e->x);
@@ -1068,11 +995,9 @@ static void handle_motion(AloUI* ui, const XMotionEvent* e)
 static void handle_button_release(AloUI* ui, const XButtonEvent* e)
 {
   (void)e;
-  if (ui->active_hit == HIT_BUTTON && ui->active_control >= 0)
-  {
+  if (ui->active_hit == HIT_BUTTON && ui->active_control >= 0) {
     const Control* c = &kControls[ui->active_control];
-    if (c->type == CTL_TRIGGER)
-    {
+    if (c->type == CTL_TRIGGER) {
       ui_send_port(ui, c->port_index, 0.0f);
       ui->needs_redraw = true;
     }
@@ -1083,12 +1008,10 @@ static void handle_button_release(AloUI* ui, const XButtonEvent* e)
 
 static void handle_configure(AloUI* ui, const XConfigureEvent* e)
 {
-  if (!ui)
-  {
+  if (!ui) {
     return;
   }
-  if (ui->width != (unsigned int)e->width || ui->height != (unsigned int)e->height)
-  {
+  if (ui->width != (unsigned int)e->width || ui->height != (unsigned int)e->height) {
     ui->width        = (unsigned int)e->width;
     ui->height       = (unsigned int)e->height;
     ui->needs_redraw = true;
@@ -1097,17 +1020,14 @@ static void handle_configure(AloUI* ui, const XConfigureEvent* e)
 
 static bool ui_any_armed_waiting(const AloUI* ui)
 {
-  if (!ui)
-  {
+  if (!ui) {
     return false;
   }
 
   const uint32_t ports[] = {ALO_LOOP1_STATE, ALO_LOOP2_STATE, ALO_LOOP3_STATE};
-  for (int i = 0; i < (int)ARRAY_LEN(ports); ++i)
-  {
+  for (int i = 0; i < (int)ARRAY_LEN(ports); ++i) {
     const uint32_t p = ports[i];
-    if (p < ALO_PORT_COUNT && ui_is_armed_waiting(ui->port_values[p]))
-    {
+    if (p < ALO_PORT_COUNT && ui_is_armed_waiting(ui->port_values[p])) {
       return true;
     }
   }
@@ -1118,29 +1038,24 @@ static bool ui_any_armed_waiting(const AloUI* ui)
 static int ui_idle(LV2UI_Handle handle)
 {
   AloUI* ui = (AloUI*)handle;
-  if (!ui || !ui->dpy)
-  {
+  if (!ui || !ui->dpy) {
     return 0;
   }
 
   /* Force periodic redraw while any loop is armed (waiting-to-record) to blink. */
-  if (ui_any_armed_waiting(ui))
-  {
+  if (ui_any_armed_waiting(ui)) {
     const bool blink_on = ui_blink_on();
-    if (blink_on != ui->last_blink_on)
-    {
+    if (blink_on != ui->last_blink_on) {
       ui->last_blink_on = blink_on;
       ui->needs_redraw  = true;
     }
   }
 
-  while (XPending(ui->dpy) > 0)
-  {
+  while (XPending(ui->dpy) > 0) {
     XEvent ev;
     XNextEvent(ui->dpy, &ev);
 
-    switch (ev.type)
-    {
+    switch (ev.type) {
     case Expose:
       ui->needs_redraw = true;
       break;
@@ -1161,8 +1076,7 @@ static int ui_idle(LV2UI_Handle handle)
     }
   }
 
-  if (ui->needs_redraw)
-  {
+  if (ui->needs_redraw) {
     ui_redraw(ui);
   }
 
@@ -1172,8 +1086,7 @@ static int ui_idle(LV2UI_Handle handle)
 static int ui_show(LV2UI_Handle handle)
 {
   AloUI* ui = (AloUI*)handle;
-  if (!ui || !ui->dpy)
-  {
+  if (!ui || !ui->dpy) {
     return 1;
   }
   XMapRaised(ui->dpy, ui->win);
@@ -1184,8 +1097,7 @@ static int ui_show(LV2UI_Handle handle)
 static int ui_hide(LV2UI_Handle handle)
 {
   AloUI* ui = (AloUI*)handle;
-  if (!ui || !ui->dpy)
-  {
+  if (!ui || !ui->dpy) {
     return 1;
   }
   XUnmapWindow(ui->dpy, ui->win);
@@ -1195,17 +1107,14 @@ static int ui_hide(LV2UI_Handle handle)
 static void ui_cleanup(LV2UI_Handle handle)
 {
   AloUI* ui = (AloUI*)handle;
-  if (!ui)
-  {
+  if (!ui) {
     return;
   }
 
-  if (ui->dpy && ui->win)
-  {
+  if (ui->dpy && ui->win) {
     XDestroyWindow(ui->dpy, ui->win);
   }
-  if (ui->dpy)
-  {
+  if (ui->dpy) {
     XCloseDisplay(ui->dpy);
   }
 
@@ -1218,18 +1127,15 @@ static void ui_port_event(LV2UI_Handle handle, uint32_t port_index, uint32_t buf
   AloUI* ui = (AloUI*)handle;
   (void)format;
 
-  if (!ui || !buffer)
-  {
+  if (!ui || !buffer) {
     return;
   }
 
-  if (port_index >= ALO_PORT_COUNT)
-  {
+  if (port_index >= ALO_PORT_COUNT) {
     return;
   }
 
-  if (buffer_size < sizeof(float))
-  {
+  if (buffer_size < sizeof(float)) {
     return;
   }
 
@@ -1237,10 +1143,8 @@ static void ui_port_event(LV2UI_Handle handle, uint32_t port_index, uint32_t buf
 
   /* Throttle redraw for high-rate phase outputs (keeps CPU reasonable). */
   const float old = ui->port_values[port_index];
-  if (port_index == ALO_CYCLE_PHASE || port_index == ALO_HOST_BAR_PHASE)
-  {
-    if (fabsf(v - old) < 0.0025f)
-    {
+  if (port_index == ALO_CYCLE_PHASE || port_index == ALO_HOST_BAR_PHASE) {
+    if (fabsf(v - old) < 0.0025f) {
       return;
     }
   }
@@ -1252,13 +1156,11 @@ static void ui_port_event(LV2UI_Handle handle, uint32_t port_index, uint32_t buf
    * parameter in sync. This matters for auto-stop: the DSP can turn the loop
    * off, but it cannot write to the *input* control port, so we do it here.
    */
-  if (ui_is_loop_state_port(port_index))
-  {
+  if (ui_is_loop_state_port(port_index)) {
     const uint32_t in_port = ui_loop_input_port_for_state_port(port_index);
 
     /* When DSP turns state off (auto-stop, undo), ensure the host parameter is also set to 0. */
-    if (in_port != UINT32_MAX && v < 0.5f && ui->write)
-    {
+    if (in_port != UINT32_MAX && v < 0.5f && ui->write) {
       ui->port_values[in_port] = 0.0f;
       const float zero         = 0.0f;
       ui->write(ui->controller, in_port, sizeof(float), 0, &zero);
@@ -1276,28 +1178,23 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   (void)descriptor;
   (void)bundle_path;
 
-  if (!plugin_uri || strcmp(plugin_uri, ALO_URI))
-  {
+  if (!plugin_uri || strcmp(plugin_uri, ALO_URI)) {
     return NULL;
   }
 
   Window parent = 0;
-  for (int i = 0; features && features[i]; ++i)
-  {
-    if (!strcmp(features[i]->URI, LV2_UI__parent))
-    {
+  for (int i = 0; features && features[i]; ++i) {
+    if (!strcmp(features[i]->URI, LV2_UI__parent)) {
       parent = (Window)(uintptr_t)features[i]->data;
     }
   }
 
-  if (!parent)
-  {
+  if (!parent) {
     return NULL;
   }
 
   AloUI* ui = (AloUI*)calloc(1, sizeof(AloUI));
-  if (!ui)
-  {
+  if (!ui) {
     return NULL;
   }
 
@@ -1310,8 +1207,7 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->active_hit     = HIT_NONE;
 
   ui->dpy = XOpenDisplay(NULL);
-  if (!ui->dpy)
-  {
+  if (!ui->dpy) {
     free(ui);
     return NULL;
   }
@@ -1344,6 +1240,10 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->col_cycle_past = ui_alloc_named_color(ui, "#008800", ui->col_fg);
   ui->col_host       = ui_alloc_named_color(ui, "#0066cc", ui->col_fg);
   ui->col_active     = ui_alloc_named_color(ui, "black", ui->col_fg);
+  /* transport ring state colours */
+  ui->col_ring_rec  = ui_alloc_named_color(ui, "red", ui->col_fg);
+  ui->col_ring_arm  = ui_alloc_named_color(ui, "orange", ui->col_fg);
+  ui->col_ring_play = ui_alloc_named_color(ui, "#00cc00", ui->col_fg);
 
   XMapWindow(ui->dpy, ui->win);
   XFlush(ui->dpy);
@@ -1378,17 +1278,14 @@ static const LV2UI_Show_Interface kShowInterface = {
 
 static const void* ui_extension_data(const char* uri)
 {
-  if (!uri)
-  {
+  if (!uri) {
     return NULL;
   }
 
-  if (!strcmp(uri, LV2_UI__idleInterface))
-  {
+  if (!strcmp(uri, LV2_UI__idleInterface)) {
     return &kIdleInterface;
   }
-  if (!strcmp(uri, LV2_UI__showInterface))
-  {
+  if (!strcmp(uri, LV2_UI__showInterface)) {
     return &kShowInterface;
   }
 
@@ -1399,10 +1296,10 @@ static const LV2UI_Descriptor kUIDescriptor = {
     ALO_UI_URI, ui_instantiate, ui_cleanup, ui_port_event, ui_extension_data,
 };
 
+/* cppcheck-suppress unusedFunction - required by LV2 host loader */
 LV2_SYMBOL_EXPORT const LV2UI_Descriptor* lv2ui_descriptor(uint32_t index)
 {
-  switch (index)
-  {
+  switch (index) {
   case 0:
     return &kUIDescriptor;
   default:

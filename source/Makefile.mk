@@ -98,6 +98,51 @@ LIB_EXT = .dll
 endif
 
 # --------------------------------------------------------------
+# Static analysis helpers
+#
+# The `scan` target runs the Clang static analyzer, using any options passed
+# via SCAN_OPTS.  If `scan-build` is not installed the target is a no‑op
+# and simply prints a message.  The invocation intentionally does not fail
+# the build so you can integrate this into CI without breaking on warnings.
+#
+# The `tidy` target uses clang-tidy and will consult an existing
+# compile_commands.json when present (use Bear or CMake to generate one).
+# It is also tolerant of missing binaries.
+
+SCANDIR ?= $(PWD)
+SCAN_OPTS ?= --status-bugs
+
+.PHONY: scan
+scan:
+	@command -v scan-build >/dev/null 2>&1 || { echo "scan-build not found, skipping"; exit 0; }
+	@echo "Running scan-build once on the build rules..."
+	# run analyzer over a single invocation of make to avoid recursive targets
+	scan-build $(SCAN_OPTS) $(MAKE) all || true
+SRCS := $(shell find . -name '*.c' -o -name '*.cpp')
+
+.PHONY: tidy
+tidy:
+	@command -v clang-tidy >/dev/null 2>&1 || { echo "clang-tidy not found, skipping"; exit 0; }
+	@echo "Running clang-tidy on $(SRCS)..."
+	@if [ -f compile_commands.json ]; then \
+		exec clang-tidy -p . $(SRCS) -- -I. ; \
+	else \
+		exec clang-tidy $(SRCS) -- -I.; \
+	fi || true
+
+# --------------------------------------------------------------
+# Optional cppcheck static analysis
+# The `cppcheck` rule is quiet by default and tolerates missing binary.
+# It mirrors the command documented in AGENTS.md so developers can quickly
+# run a broad style check without memorizing the full invocation.
+
+.PHONY: cppcheck
+cppcheck:
+	@command -v cppcheck >/dev/null 2>&1 || { echo "cppcheck not found, skipping"; exit 0; }
+	@echo "Running cppcheck on source tree..."
+	cppcheck --enable=all --inconclusive --quiet . || true
+
+# --------------------------------------------------------------
 # Set shared library CLI arg
 
 SHARED = -shared

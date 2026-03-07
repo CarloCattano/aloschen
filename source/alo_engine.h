@@ -1,12 +1,12 @@
 #ifndef ALO_ENGINE_H
 #define ALO_ENGINE_H
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <lv2/atom/atom.h>
-#include <lv2/urid/urid.h>
-#include <lv2/midi/midi.h>
-#include <lv2/core/lv2.h>
+#include <stdbool.h> /* cppcheck-suppress missingIncludeSystem */
+#include <stdint.h> /* cppcheck-suppress missingIncludeSystem */
+#include <lv2/atom/atom.h> /* cppcheck-suppress missingIncludeSystem */
+#include <lv2/urid/urid.h> /* cppcheck-suppress missingIncludeSystem */
+#include <lv2/midi/midi.h> /* cppcheck-suppress missingIncludeSystem */
+#include <lv2/core/lv2.h> /* cppcheck-suppress missingIncludeSystem */
 
 #include "slice_sampler.h"
 
@@ -200,7 +200,14 @@ typedef struct Alo
    * Rebuilt automatically (RT-safe, bounded work per run call) whenever the
    * committed loop content changes.
    */
-  float*   sampler_src_buf;
+  float* sampler_src_buf;
+  /* Secondary buffer used while rebuilding the mix so that existing MIDI
+   * slice voices can continue reading from the old audio without interruption.
+   * When a rebuild completes the two pointers are swapped atomically.
+   */
+  float* sampler_src_buf_shadow;
+  bool   sampler_src_shadow_valid;
+
   bool     sampler_src_valid;
   bool     sampler_src_dirty;
   bool     sampler_src_rebuild_active;
@@ -240,7 +247,14 @@ typedef struct Alo
   uint32_t loop_btn_high_frames[NUM_TRACKS];
 
   uint32_t loop_start;
-  uint32_t loop_index;
+  /* Playhead uses double precision to support sub-sample positioning.  The
+   * fractional part is used for linear interpolation during playback to
+   * eliminate jitter when the loop length does not divide evenly into the
+   * sample rate.  `loop_phase` is the corresponding integer offset (0..len-1)
+   * used for quantized events and wrap detection without modulo ops.
+   */
+  double   loop_playhead;
+  uint32_t loop_phase;
 
   float*   high_beat;
   float*   low_beat;
@@ -273,7 +287,7 @@ typedef struct Alo
   bool have_last_enabled;
   bool last_enabled;
 
-  int pending_arm_track; // -1 if none
+  int           pending_arm_track; // -1 if none
   TrackRecState pending_arm_type;
 } Alo;
 
