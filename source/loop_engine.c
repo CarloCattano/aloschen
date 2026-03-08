@@ -195,7 +195,7 @@ void reset_timing(Alo* self)
   update_loop_state_ports(self);
 }
 
-/* reinitialize engine state to defaults */
+/* reinitialize engine state to defaults
  * flags.  Intended to be called when the plugin is instantiated or when the
  * host sends a full reset.
  *

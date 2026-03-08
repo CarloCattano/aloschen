@@ -109,19 +109,19 @@ endif
 # compile_commands.json when present (use Bear or CMake to generate one).
 # It is also tolerant of missing binaries.
 
-SCANDIR ?= $(PWD)
+SCANDIR ?= $(PWD)/source
 SCAN_OPTS ?= --status-bugs
 
-all:
-	@echo "No default build rule specified."
-
+all: ;
+# No-op placeholder.  The real default target is defined in the
+# top-level Makefile (which includes this file).
 .PHONY: scan
 scan:
 	@command -v scan-build >/dev/null 2>&1 || { echo "scan-build not found, skipping"; exit 0; }
 	@echo "Running scan-build once on the build rules..."
 	# run analyzer over a single invocation of make to avoid recursive targets
 	scan-build $(SCAN_OPTS) $(MAKE) all || true
-SRCS := $(shell find . -name '*.c' -o -name '*.cpp')
+SRCS := $(shell find source -name '*.c' -o -name '*.cpp')
 
 .PHONY: tidy
 tidy:

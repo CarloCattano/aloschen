@@ -15,18 +15,48 @@ DESTDIR ?=
 
 all: build
 
+# --------------------------------------------------------------
+# unit test harness
+
+TEST_BIN := tests/run_transport_tests tests/run_dsp_tests
+TEST_SRCS_TRANSPORT := tests/transport_test.c
+TEST_SRCS_DSP := tests/dsp_test.c
+
+.PHONY: tests
+# build separate test executables for transport and DSP helpers
+tests: $(TEST_BIN)
+	@echo "Tests are up-to-date (binaries built). To force rebuild, use 'make -B tests' or 'make clean && make tests'."
+	@echo "Running transport tests..."
+	@./tests/run_transport_tests; rc1=$$?; \
+	if [ $$rc1 -ne 0 ]; then echo "ERROR: transport tests FAILED (rc=$$rc1)"; exit $$rc1; fi; \
+	echo "transport tests PASSED"
+	@echo "Running dsp tests..."
+	@./tests/run_dsp_tests; rc2=$$?; \
+	if [ $$rc2 -ne 0 ]; then echo "ERROR: dsp tests FAILED (rc=$$rc2)"; exit $$rc2; fi; \
+	echo "dsp tests PASSED"
+	@echo "All tests completed successfully."
+
+tests/run_transport_tests: $(TEST_SRCS_TRANSPORT) source/transport.c source/transport.h source/alo_util.c
+	$(CC) -Isource $^ $(BUILD_C_FLAGS) $(LINK_FLAGS) -lm -o $@
+	chmod +x $@
+
+tests/run_dsp_tests: $(TEST_SRCS_DSP) source/alo_util.c
+	$(CC) -Isource $^ $(BUILD_C_FLAGS) $(LINK_FLAGS) -lm -o $@
+	chmod +x $@
+
 safe:
 	$(MAKE) SAFE_MATH=true
+
 
 # --------------------------------------------------------------
 # aloschen build rules
 
 build: aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/aloschen_ui$(LIB_EXT) aloschen.lv2/manifest.ttl
 
-aloschen.lv2/aloschen$(LIB_EXT): aloschen.c loop_engine.c alo_util.c slice_sampler.c transport.c sampler_cache.c button_logic.c
+aloschen.lv2/aloschen$(LIB_EXT): source/aloschen.c source/loop_engine.c source/alo_util.c source/slice_sampler.c source/transport.c source/sampler_cache.c source/button_logic.c
 	$(CC) $^ $(BUILD_C_FLAGS) $(LINK_FLAGS) -Wall -Wextra -lm $(SHARED) -o $@
 
-aloschen.lv2/aloschen_ui$(LIB_EXT): aloschen_ui.c
+aloschen.lv2/aloschen_ui$(LIB_EXT): source/aloschen_ui.c
 	$(CC) $^ $(BUILD_C_FLAGS) $(LINK_FLAGS) -Wall -Wextra -lX11 -lm $(SHARED) -o $@
 
 aloschen.lv2/manifest.ttl: aloschen.lv2/manifest.ttl.in
@@ -35,7 +65,7 @@ aloschen.lv2/manifest.ttl: aloschen.lv2/manifest.ttl.in
 # --------------------------------------------------------------
 
 clean:
-	rm -f aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/aloschen_ui$(LIB_EXT) aloschen.lv2/manifest.ttl
+	rm -f aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/aloschen_ui$(LIB_EXT) aloschen.lv2/manifest.ttl tests/run_transport_tests tests/run_dsp_tests
 
 # --------------------------------------------------------------
 

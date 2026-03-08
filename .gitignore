@@ -5,6 +5,8 @@ tags
 compile_commands.json
 Doxyfile
 .cache
-AGENTS.md
 plan.md
 examples/
+
+# test binaries
+/tests/run_tests

@@ -30,7 +30,7 @@ It provides **3 independent loop slots**, each with **one-shot** record/overdub 
 
 Tested on amd64 and aarch64 (MOD).
 
-![screenshot](source/aloschen.lv2/modgui/screenshot-alo.png)
+![screenshot](aloschen.lv2/modgui/screenshot-alo.png)
 
 ## Quick start
 

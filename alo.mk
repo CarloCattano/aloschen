@@ -12,7 +12,9 @@ ALO_SITE_METHOD = local
 ALO_SITE = /tmp/moddevices/alo/
 
 # call make with the current arguments and path. "$(@D)" is the build directory.
-ALO_TARGET_MAKE = $(TARGET_MAKE_ENV) $(TARGET_CONFIGURE_OPTS) $(MAKE) -C $(@D)/source
+# after repository reorganization, the Makefile lives in the root,
+# not in a subdirectory.
+ALO_TARGET_MAKE = $(TARGET_MAKE_ENV) $(TARGET_CONFIGURE_OPTS) $(MAKE) -C $(@D)
 
 # build command
 define ALO_BUILD_CMDS
