@@ -1,0 +1,31 @@
+\doxysection{transport.\+h}
+\hypertarget{transport_8h_source}{}\label{transport_8h_source}\index{source/transport.h@{source/transport.h}}
+\doxymbox{\hyperlink{transport_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#ifndef\ TRANSPORT\_H}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#define\ TRANSPORT\_H}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ "{}\doxymbox{\hyperlink{alo__engine_8h}{alo\_engine.h}}"{}}}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00018\ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{transport_8h_a9885e723f03133341beb2504be1a0691}{compute\_transport\_phase\_index}}(\textcolor{keyword}{const}\ \doxymbox{\hyperlink{structAlo}{Alo}}*\ self,\ \textcolor{keywordtype}{double}\ global\_beats,}
+\DoxyCodeLine{00019\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint32\_t*\ out\_phase\_samples);}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00024\ uint32\_t\ \doxymbox{\hyperlink{transport_8h_a5d13f2b4e3bc3210a95ee7f5a208fdfa}{compute\_loop\_beats}}(\textcolor{keyword}{const}\ \doxymbox{\hyperlink{structAlo}{Alo}}*\ self);}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00030\ \textcolor{keywordtype}{double}\ \doxymbox{\hyperlink{transport_8h_aff1c7ee08c60427659d265b18bad89bd}{compute\_next\_cycle\_start\_beats}}(\textcolor{keyword}{const}\ \doxymbox{\hyperlink{structAlo}{Alo}}*\ self,\ \textcolor{keywordtype}{double}\ global\_beats0);}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00035\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{transport_8h_a544acf177d6f99ba77c2b86f799d776f}{clear\_inflight\_actions\_and\_sync\_controls}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self);}
+\DoxyCodeLine{00036\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{transport_8h_afa9abe2644bfdc52939e623114bf5a55}{request\_ui\_cycle\_resync}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self);}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{comment}{/*\ Update\ the\ transport\_loop\_index\ pending\ field\ from\ a\ beat\ value.\ \ This}}
+\DoxyCodeLine{00039\ \textcolor{comment}{\ *\ schedules\ a\ phase\ alignment\ at\ the\ start\ of\ the\ next\ audio\ block.}}
+\DoxyCodeLine{00040\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00041\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{transport_8h_a5c35d07cac23ff9a1504e92b585ebd6e}{update\_transport\_phase}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self,\ \textcolor{keywordtype}{double}\ global\_beats);}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{transport_8h_a7ca7680e3143681678d0213c33ff636c}{update\_position\_from\_atom}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self,\ \textcolor{keyword}{const}\ LV2\_Atom\_Object*\ obj);}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ TRANSPORT\_H}}
+
+\end{DoxyCode}

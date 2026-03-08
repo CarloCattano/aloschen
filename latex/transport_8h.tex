@@ -1,0 +1,417 @@
+\doxysection{source/\+transport.h File Reference}
+\hypertarget{transport_8h}{}\label{transport_8h}\index{source/transport.h@{source/transport.h}}
+
+
+Declarations for transport-\/derived timing helpers.  
+
+
+{\ttfamily \+\#include "{}alo\+\_\+engine.\+h"{}}\newline
+Include dependency graph for transport.\+h:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+bool \doxymbox{\hyperlink{transport_8h_a9885e723f03133341beb2504be1a0691}{compute\+\_\+transport\+\_\+phase\+\_\+index}} (const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self, double global\+\_\+beats, uint32\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+phase\+\_\+samples)
+\begin{DoxyCompactList}\small\item\em Compute the current phase index (in samples) for the looper based on the host\textquotesingle{}s absolute beat position. \end{DoxyCompactList}\item 
+uint32\+\_\+t \doxymbox{\hyperlink{transport_8h_a5d13f2b4e3bc3210a95ee7f5a208fdfa}{compute\+\_\+loop\+\_\+beats}} (const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self)
+\begin{DoxyCompactList}\small\item\em Total number of beats in the current loop (bars \texorpdfstring{$\ast$}{*} beats-\/per-\/bar). \end{DoxyCompactList}\item 
+double \doxymbox{\hyperlink{transport_8h_aff1c7ee08c60427659d265b18bad89bd}{compute\+\_\+next\+\_\+cycle\+\_\+start\+\_\+beats}} (const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self, double global\+\_\+beats0)
+\begin{DoxyCompactList}\small\item\em Given a global beat position, return the beat at the start of the next Bars-\/length cycle. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{transport_8h_a544acf177d6f99ba77c2b86f799d776f}{clear\+\_\+inflight\+\_\+actions\+\_\+and\+\_\+sync\+\_\+controls}} (\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self)
+\item 
+void \doxymbox{\hyperlink{transport_8h_afa9abe2644bfdc52939e623114bf5a55}{request\+\_\+ui\+\_\+cycle\+\_\+resync}} (\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self)
+\begin{DoxyCompactList}\small\item\em Notify engine that UI cycle should resynchronize on next update. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{transport_8h_a5c35d07cac23ff9a1504e92b585ebd6e}{update\+\_\+transport\+\_\+phase}} (\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self, double global\+\_\+beats)
+\item 
+void \doxymbox{\hyperlink{transport_8h_a7ca7680e3143681678d0213c33ff636c}{update\+\_\+position\+\_\+from\+\_\+atom}} (\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self, const LV2\+\_\+\+Atom\+\_\+\+Object \texorpdfstring{$\ast$}{*}obj)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Declarations for transport-\/derived timing helpers. 
+
+
+
+\label{doc-func-members}
+\Hypertarget{transport_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{transport_8h_a544acf177d6f99ba77c2b86f799d776f}\index{transport.h@{transport.h}!clear\_inflight\_actions\_and\_sync\_controls@{clear\_inflight\_actions\_and\_sync\_controls}}
+\index{clear\_inflight\_actions\_and\_sync\_controls@{clear\_inflight\_actions\_and\_sync\_controls}!transport.h@{transport.h}}
+\doxysubsubsection{\texorpdfstring{clear\_inflight\_actions\_and\_sync\_controls()}{clear\_inflight\_actions\_and\_sync\_controls()}}
+{\footnotesize\ttfamily \label{transport_8h_a544acf177d6f99ba77c2b86f799d776f} 
+void clear\+\_\+inflight\+\_\+actions\+\_\+and\+\_\+sync\+\_\+controls (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{}\end{DoxyParamCaption})}
+
+Utility functions implemented in \doxylink{transport_8c}{transport.\+c}. 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00033\ \{}
+\DoxyCodeLine{00034\ \ \ \textcolor{keywordflow}{if}\ (!self)\ \{}
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00036\ \ \ \}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \ \ \textcolor{comment}{/*\ Reset\ pending\ actions.\ */}}
+\DoxyCodeLine{00039\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ t\ =\ 0;\ t\ <\ \doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}};\ ++t)\ \{}
+\DoxyCodeLine{00040\ \ \ \ \ \doxymbox{\hyperlink{alo__util_8c_a02c5ec1bc4dfbd5b6f6e3be0aeb8c0c8}{clear\_track\_state}}(self,\ t);}
+\DoxyCodeLine{00041\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a77383e367bf3b1b89f96104c1ff89135}{pending\_undo}}[t]\ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00042\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a51f6b4c50b783ff2a4352be6376ef256}{pending\_clear\_all}}[t]\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{comment}{/*\ Prime\ edge\ detectors\ to\ ignore\ held\ buttons.\ */}}
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ loop\_btn\ \ \ \ \ \ \ \ \ \ \ =\ \doxymbox{\hyperlink{alo__util_8h_a0109c99214fe26d11bc4e076d3cf43b8}{alo\_port\_pressed}}(self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a2b757f0bf85ac834659ced75dde71b95}{loop\_btn}}[t]);}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ undo\_btn\ \ \ \ \ \ \ \ \ \ \ =\ \doxymbox{\hyperlink{alo__util_8h_a0109c99214fe26d11bc4e076d3cf43b8}{alo\_port\_pressed}}(self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a991fce49eb4afda7bf2766dbbb6fa2c2}{undo\_btn}}[t]);}
+\DoxyCodeLine{00047\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a5eda2e06d30526b810dac6b64da1a12d}{last\_loop\_input}}[t]\ \ \ \ \ \ =\ loop\_btn;}
+\DoxyCodeLine{00048\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a8ca2fe4623795d18ea51af7de2796375}{last\_undo\_input}}[t]\ \ \ \ \ \ =\ undo\_btn;}
+\DoxyCodeLine{00049\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a77d8f8594fce0ea998e648460118a414}{loop\_btn\_high\_frames}}[t]\ =\ loop\_btn\ ?\ 1u\ :\ 0u;}
+\DoxyCodeLine{00050\ \ \ \}}
+\DoxyCodeLine{00051\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h_a544acf177d6f99ba77c2b86f799d776f_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h_a544acf177d6f99ba77c2b86f799d776f_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{transport_8h_a5d13f2b4e3bc3210a95ee7f5a208fdfa}\index{transport.h@{transport.h}!compute\_loop\_beats@{compute\_loop\_beats}}
+\index{compute\_loop\_beats@{compute\_loop\_beats}!transport.h@{transport.h}}
+\doxysubsubsection{\texorpdfstring{compute\_loop\_beats()}{compute\_loop\_beats()}}
+{\footnotesize\ttfamily \label{transport_8h_a5d13f2b4e3bc3210a95ee7f5a208fdfa} 
+uint32\+\_\+t compute\+\_\+loop\+\_\+beats (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{}\end{DoxyParamCaption})}
+
+
+
+Total number of beats in the current loop (bars \texorpdfstring{$\ast$}{*} beats-\/per-\/bar). 
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00044\ \{}
+\DoxyCodeLine{00045\ \ \ \textcolor{keywordflow}{if}\ (!self)\ \{}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keywordflow}{return}\ \doxymbox{\hyperlink{alo__engine_8h_a49d82f0074355ec53a1a14d02eb5366d}{DEFAULT\_BEATS\_PER\_BAR}}\ *\ \doxymbox{\hyperlink{alo__engine_8h_a63501bf61db59ce85d14e72b206c1771}{DEFAULT\_NUM\_BARS}};}
+\DoxyCodeLine{00047\ \ \ \}}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \ \ \textcolor{keyword}{const}\ uint32\_t\ bpb\_ok\ \ =\ \doxymbox{\hyperlink{alo__util_8h_ad8b98483fb288b101d5f876d865f8734}{alo\_get\_bpb\_i}}(self);}
+\DoxyCodeLine{00050\ \ \ \textcolor{keyword}{const}\ uint32\_t\ bars\_i\ \ =\ \doxymbox{\hyperlink{alo__util_8c_a492a5688d6c4e2337d1b5663f7b3dc7a}{alo\_get\_bars\_i}}(self);}
+\DoxyCodeLine{00051\ \ \ \textcolor{keyword}{const}\ uint32\_t\ bars\_ok\ =\ bars\_i\ ?\ bars\_i\ :\ \doxymbox{\hyperlink{alo__engine_8h_a63501bf61db59ce85d14e72b206c1771}{DEFAULT\_NUM\_BARS}};}
+\DoxyCodeLine{00052\ \ \ \textcolor{keywordflow}{return}\ bpb\_ok\ *\ bars\_ok;}
+\DoxyCodeLine{00053\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=320pt]{transport_8h_a5d13f2b4e3bc3210a95ee7f5a208fdfa_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h_a5d13f2b4e3bc3210a95ee7f5a208fdfa_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{transport_8h_aff1c7ee08c60427659d265b18bad89bd}\index{transport.h@{transport.h}!compute\_next\_cycle\_start\_beats@{compute\_next\_cycle\_start\_beats}}
+\index{compute\_next\_cycle\_start\_beats@{compute\_next\_cycle\_start\_beats}!transport.h@{transport.h}}
+\doxysubsubsection{\texorpdfstring{compute\_next\_cycle\_start\_beats()}{compute\_next\_cycle\_start\_beats()}}
+{\footnotesize\ttfamily \label{transport_8h_aff1c7ee08c60427659d265b18bad89bd} 
+double compute\+\_\+next\+\_\+cycle\+\_\+start\+\_\+beats (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{, }\item[{double}]{global\+\_\+beats0}{}\end{DoxyParamCaption})}
+
+
+
+Given a global beat position, return the beat at the start of the next Bars-\/length cycle. 
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00057\ \{}
+\DoxyCodeLine{00058\ \ \ \textcolor{keywordflow}{if}\ (!self)\ \{}
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keywordflow}{return}\ global\_beats0;}
+\DoxyCodeLine{00060\ \ \ \}}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ bpb\ =\ (self-\/>\doxymbox{\hyperlink{structAlo_af50f56d63ced84a5a92d080683a6a790}{bpb}}\ >\ 1e-\/6f)\ ?\ (\textcolor{keywordtype}{double})self-\/>\doxymbox{\hyperlink{structAlo_af50f56d63ced84a5a92d080683a6a790}{bpb}}\ :\ (double)\doxymbox{\hyperlink{alo__engine_8h_a49d82f0074355ec53a1a14d02eb5366d}{DEFAULT\_BEATS\_PER\_BAR}};}
+\DoxyCodeLine{00063\ \ \ \textcolor{keywordflow}{if}\ (!(bpb\ >\ 0.0))\ \{}
+\DoxyCodeLine{00064\ \ \ \ \ \textcolor{keywordflow}{return}\ global\_beats0;}
+\DoxyCodeLine{00065\ \ \ \}}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \ \ \textcolor{keyword}{const}\ uint32\_t\ bars\_i\ \ \ \ \ \ \ \ \ \ =\ \doxymbox{\hyperlink{alo__util_8c_a492a5688d6c4e2337d1b5663f7b3dc7a}{alo\_get\_bars\_i}}(self);}
+\DoxyCodeLine{00068\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ \ \ cycle\_len\_beats\ =\ (double)(bars\_i\ ?\ bars\_i\ :\ 1u)\ *\ bpb;}
+\DoxyCodeLine{00069\ \ \ \textcolor{keywordflow}{if}\ (!(cycle\_len\_beats\ >\ 0.0))\ \{}
+\DoxyCodeLine{00070\ \ \ \ \ \textcolor{keywordflow}{return}\ global\_beats0;}
+\DoxyCodeLine{00071\ \ \ \}}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{/*\ Phase\ within\ the\ Bars-\/length\ cycle:\ [0,\ cycle\_len\_beats).\ */}}
+\DoxyCodeLine{00074\ \ \ \textcolor{keywordtype}{double}\ phase\ =\ fmod(global\_beats0,\ cycle\_len\_beats);}
+\DoxyCodeLine{00075\ \ \ \textcolor{keywordflow}{if}\ (phase\ <\ 0.0)\ \{}
+\DoxyCodeLine{00076\ \ \ \ \ phase\ +=\ cycle\_len\_beats;}
+\DoxyCodeLine{00077\ \ \ \}}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \ \ \textcolor{comment}{/*\ If\ we're\ effectively\ on\ the\ boundary,\ start\ now\ (avoid\ drifting\ a\ cycle).\ */}}
+\DoxyCodeLine{00080\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ kCycleEpsBeats\ =\ 1e-\/3;\ \textcolor{comment}{/*\ \string~0.5ms\ at\ 120\ BPM\ */}}
+\DoxyCodeLine{00081\ \ \ \textcolor{keywordflow}{if}\ (phase\ <=\ kCycleEpsBeats\ ||\ (cycle\_len\_beats\ -\/\ phase)\ <=\ kCycleEpsBeats)\ \{}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keywordflow}{return}\ global\_beats0;}
+\DoxyCodeLine{00083\ \ \ \}}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \ \ \textcolor{comment}{/*\ Next\ cycle\ start.\ */}}
+\DoxyCodeLine{00086\ \ \ \textcolor{keywordflow}{return}\ global\_beats0\ +\ (cycle\_len\_beats\ -\/\ phase);}
+\DoxyCodeLine{00087\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=319pt]{transport_8h_aff1c7ee08c60427659d265b18bad89bd_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h_aff1c7ee08c60427659d265b18bad89bd_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{transport_8h_a9885e723f03133341beb2504be1a0691}\index{transport.h@{transport.h}!compute\_transport\_phase\_index@{compute\_transport\_phase\_index}}
+\index{compute\_transport\_phase\_index@{compute\_transport\_phase\_index}!transport.h@{transport.h}}
+\doxysubsubsection{\texorpdfstring{compute\_transport\_phase\_index()}{compute\_transport\_phase\_index()}}
+{\footnotesize\ttfamily \label{transport_8h_a9885e723f03133341beb2504be1a0691} 
+bool compute\+\_\+transport\+\_\+phase\+\_\+index (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{, }\item[{double}]{global\+\_\+beats}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+phase\+\_\+samples}{}\end{DoxyParamCaption})}
+
+
+
+Compute the current phase index (in samples) for the looper based on the host\textquotesingle{}s absolute beat position. 
+
+The result is quantized to \+[0, loop\+\_\+samples). Returns true if a valid phase could be computed. 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00015\ \{}
+\DoxyCodeLine{00016\ \ \ \textcolor{keywordflow}{if}\ (!self\ ||\ !out\_phase\_samples)}
+\DoxyCodeLine{00017\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \ \ \textcolor{keyword}{const}\ uint32\_t\ loop\_beats\ \ \ =\ self-\/>\doxymbox{\hyperlink{structAlo_a0be5d351a5b44d8b268dd3c83829a7db}{loop\_beats}};}
+\DoxyCodeLine{00020\ \ \ \textcolor{keyword}{const}\ uint32\_t\ loop\_samples\ =\ self-\/>\doxymbox{\hyperlink{structAlo_a11ae2c9abcf459661cb1b5aa2bd36541}{loop\_samples}};}
+\DoxyCodeLine{00021\ \ \ \textcolor{keywordflow}{if}\ (!(loop\_beats\ >\ 0u\ \&\&\ loop\_samples\ >\ 0u))}
+\DoxyCodeLine{00022\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ origin\ \ \ \ \ \ =\ self-\/>\doxymbox{\hyperlink{structAlo_aeaae34963c1a4f9dc959a2bc569e521c}{have\_loop\_origin}}\ ?\ self-\/>\doxymbox{\hyperlink{structAlo_a4629131192a0b858f2caaea3f2d3ccce}{loop\_origin\_beats}}\ :\ 0.0;}
+\DoxyCodeLine{00025\ \ \ \textcolor{keywordtype}{double}\ \ \ \ \ \ \ phase\_beats\ =\ fmod(global\_beats\ -\/\ origin,\ (\textcolor{keywordtype}{double})loop\_beats);}
+\DoxyCodeLine{00026\ \ \ \textcolor{keywordflow}{if}\ (phase\_beats\ <\ 0.0)}
+\DoxyCodeLine{00027\ \ \ \ \ phase\_beats\ +=\ (double)loop\_beats;}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \ \ \textcolor{keywordtype}{double}\ phase\_samples\_d\ =\ phase\_beats\ *\ (double)loop\_samples\ /\ (\textcolor{keywordtype}{double})loop\_beats;}
+\DoxyCodeLine{00030\ \ \ \textcolor{keywordflow}{if}\ (phase\_samples\_d\ <\ 0.0)}
+\DoxyCodeLine{00031\ \ \ \ \ phase\_samples\_d\ =\ 0.0;}
+\DoxyCodeLine{00032\ \ \ uint32\_t\ phase\_samples\ =\ (uint32\_t)floor(phase\_samples\_d);}
+\DoxyCodeLine{00033\ \ \ \textcolor{keywordflow}{if}\ (phase\_samples\ >=\ loop\_samples)}
+\DoxyCodeLine{00034\ \ \ \ \ phase\_samples\ =\ loop\_samples\ -\/\ 1;}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \ \ *out\_phase\_samples\ =\ phase\_samples;}
+\DoxyCodeLine{00037\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00038\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h_a9885e723f03133341beb2504be1a0691_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{transport_8h_afa9abe2644bfdc52939e623114bf5a55}\index{transport.h@{transport.h}!request\_ui\_cycle\_resync@{request\_ui\_cycle\_resync}}
+\index{request\_ui\_cycle\_resync@{request\_ui\_cycle\_resync}!transport.h@{transport.h}}
+\doxysubsubsection{\texorpdfstring{request\_ui\_cycle\_resync()}{request\_ui\_cycle\_resync()}}
+{\footnotesize\ttfamily \label{transport_8h_afa9abe2644bfdc52939e623114bf5a55} 
+void request\+\_\+ui\+\_\+cycle\+\_\+resync (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{}\end{DoxyParamCaption})}
+
+
+
+Notify engine that UI cycle should resynchronize on next update. 
+
+Also used by button logic so declaration lives here for convenience.
+
+
+\begin{DoxyParams}{Parameters}
+{\em self} & Engine instance (may be NULL). \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00055\ \{}
+\DoxyCodeLine{00056\ \ \ \textcolor{keywordflow}{if}\ (!self)\ \{}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00058\ \ \ \}}
+\DoxyCodeLine{00059\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_abfa407043113140e66ef7e78d98ba249}{click\_bar\_in\_cycle}}\ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00060\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a99571addcfd83befa07fc2f0297acd79}{ui\_cycle\_resync\_pending}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00061\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_acd1f9067067f62fe5e41bd9cf8df6ec7}{ui\_have\_cycle\_origin}}\ \ \ \ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00062\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a6b0a28ebd2c19cf82e927ad0ce8b57e5}{ui\_have\_prev\_bar\_beat}}\ \ \ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00063\ \ \ \textcolor{comment}{/*\ Force\ UI\ step-\/0\ refresh.\ */}}
+\DoxyCodeLine{00064\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a39e0dcc009eb3dcadab130abfe1894f8}{ui\_last\_bar\_step}}\ =\ -\/2;}
+\DoxyCodeLine{00065\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h_afa9abe2644bfdc52939e623114bf5a55_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{transport_8h_a7ca7680e3143681678d0213c33ff636c}\index{transport.h@{transport.h}!update\_position\_from\_atom@{update\_position\_from\_atom}}
+\index{update\_position\_from\_atom@{update\_position\_from\_atom}!transport.h@{transport.h}}
+\doxysubsubsection{\texorpdfstring{update\_position\_from\_atom()}{update\_position\_from\_atom()}}
+{\footnotesize\ttfamily \label{transport_8h_a7ca7680e3143681678d0213c33ff636c} 
+void update\+\_\+position\+\_\+from\+\_\+atom (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{, }\item[{const LV2\+\_\+\+Atom\+\_\+\+Object \texorpdfstring{$\ast$}{*}}]{obj}{}\end{DoxyParamCaption})}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00159\ \{}
+\DoxyCodeLine{00160\ \ \ \textcolor{keywordflow}{if}\ (!self\ ||\ !obj)}
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00163\ \ \ \textcolor{comment}{/*\ Mark\ that\ we\ saw\ transport\ info\ this\ cycle\ (used\ for\ stop\ detection).\ */}}
+\DoxyCodeLine{00164\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a032aad64226406f06720d401a2801423}{transport\_updated\_this\_cycle}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \ \ \doxymbox{\hyperlink{structAloURIs}{AloURIs}}*\ \textcolor{keyword}{const}\ uris\ =\ \&self-\/>\doxymbox{\hyperlink{structAlo_ab8a0958a50f48e58fa6e60588d71efa6}{uris}};}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \ \ LV2\_Atom\ *abs\_beat\ =\ NULL,\ *beat\ =\ NULL,\ *bar\ =\ NULL;}
+\DoxyCodeLine{00169\ \ \ LV2\_Atom\ *bpm\ =\ NULL,\ *bpb\ =\ NULL,\ *speed\ =\ NULL;}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \ \ lv2\_atom\_object\_get(obj,\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a0ce439ac97fdcd81f4c79fe1e6cac7ac}{time\_beat}},\ \&abs\_beat,\ uris-\/>\doxymbox{\hyperlink{structAloURIs_aa46353c263f73a7aef3091a17ce32f43}{time\_barBeat}},\ \&beat,}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a00594d8e1faab224d255d80d63702a00}{time\_beatsPerMinute}},\ \&bpm,\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a95c362660f346aa085c46a7a3a5c2b1f}{time\_speed}},\ \&speed,}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_ae8f5dd232c8565d75351981e32b2bd5a}{time\_beatsPerBar}},\ \&bpb,\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a604b6c4d03b6679ab55d51a16b66de13}{time\_bar}},\ \&bar,\ NULL);}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00175\ \ \ \textcolor{keywordflow}{if}\ (bpb\ \&\&\ bpb-\/>type\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a6cdc84ef9f659eb17193085ef96e7c52}{atom\_Float}})\ \{}
+\DoxyCodeLine{00176\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ new\_bpb\ =\ ((LV2\_Atom\_Float*)bpb)-\/>body;}
+\DoxyCodeLine{00177\ \ \ \ \ \textcolor{keywordflow}{if}\ (fabsf(self-\/>\doxymbox{\hyperlink{structAlo_af50f56d63ced84a5a92d080683a6a790}{bpb}}\ -\/\ new\_bpb)\ >\ 0.01f)\ \{}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_af50f56d63ced84a5a92d080683a6a790}{bpb}}\ =\ new\_bpb;}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \doxymbox{\hyperlink{alo__engine_8h_afcf2eb3343f7db1ce3f379ccc5b2a15b}{reset\_timing}}(self);}
+\DoxyCodeLine{00180\ \ \ \ \ \}}
+\DoxyCodeLine{00181\ \ \ \}}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \ \ \textcolor{keywordflow}{if}\ (\doxymbox{\hyperlink{transport_8c_a5d13f2b4e3bc3210a95ee7f5a208fdfa}{compute\_loop\_beats}}(self)\ !=\ self-\/>\doxymbox{\hyperlink{structAlo_a0be5d351a5b44d8b268dd3c83829a7db}{loop\_beats}})\ \{}
+\DoxyCodeLine{00184\ \ \ \ \ \doxymbox{\hyperlink{alo__engine_8h_afcf2eb3343f7db1ce3f379ccc5b2a15b}{reset\_timing}}(self);}
+\DoxyCodeLine{00185\ \ \ \}}
+\DoxyCodeLine{00186\ }
+\DoxyCodeLine{00187\ \ \ \textcolor{keywordflow}{if}\ (bpm\ \&\&\ bpm-\/>type\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a6cdc84ef9f659eb17193085ef96e7c52}{atom\_Float}})\ \{}
+\DoxyCodeLine{00188\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ new\_bpm\ =\ ((LV2\_Atom\_Float*)bpm)-\/>body;}
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{keywordflow}{if}\ (fabsf(self-\/>\doxymbox{\hyperlink{structAlo_afa02d54c301de80eecdd75c54405a267}{bpm}}\ -\/\ new\_bpm)\ >\ 0.01f)\ \{}
+\DoxyCodeLine{00190\ \ \ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_afa02d54c301de80eecdd75c54405a267}{bpm}}\ =\ new\_bpm;}
+\DoxyCodeLine{00191\ \ \ \ \ \ \ \doxymbox{\hyperlink{alo__engine_8h_afcf2eb3343f7db1ce3f379ccc5b2a15b}{reset\_timing}}(self);}
+\DoxyCodeLine{00192\ \ \ \ \ \}}
+\DoxyCodeLine{00193\ \ \ \}}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00195\ \ \ \textcolor{keywordflow}{if}\ (speed\ \&\&\ speed-\/>type\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a6cdc84ef9f659eb17193085ef96e7c52}{atom\_Float}})\ \{}
+\DoxyCodeLine{00196\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_ab22773f4d8644bd7aa0377f2768c62d9}{have\_speed}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00197\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a777b0cf8547e4e0d6ea0dae1f454ada2}{speed}}\ \ \ \ \ \ =\ ((LV2\_Atom\_Float*)speed)-\/>body;}
+\DoxyCodeLine{00198\ \ \ \}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \ \ \textcolor{keywordflow}{if}\ (abs\_beat\ \&\&\ abs\_beat-\/>type\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a6cdc84ef9f659eb17193085ef96e7c52}{atom\_Float}})\ \{}
+\DoxyCodeLine{00201\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ global\_beats\ =\ (double)((LV2\_Atom\_Float*)abs\_beat)-\/>body;}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \ \ \ \ \doxymbox{\hyperlink{transport_8c_ae6e54a71e36ff6b8b5cef0fb984c416a}{update\_transport\_beats}}(self,\ global\_beats);}
+\DoxyCodeLine{00204\ }
+\DoxyCodeLine{00205\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ bar\_beat\ \ \ =\ (self-\/>\doxymbox{\hyperlink{structAlo_af50f56d63ced84a5a92d080683a6a790}{bpb}}\ >\ 0.0f)\ ?\ fmodf((\textcolor{keywordtype}{float})global\_beats,\ self-\/>\doxymbox{\hyperlink{structAlo_af50f56d63ced84a5a92d080683a6a790}{bpb}})\ :\ 0.0f;}
+\DoxyCodeLine{00206\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a351793ca5791bf0f429fe2c9e272103f}{current\_position}}\ =\ bar\_beat;}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \ \ \ \ \doxymbox{\hyperlink{transport_8c_a5c35d07cac23ff9a1504e92b585ebd6e}{update\_transport\_phase}}(self,\ global\_beats);}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00211\ \ \ \}}
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00213\ \ \ \textcolor{comment}{/*\ Fallback:\ attempt\ to\ derive\ a\ global\ beat\ value\ from\ bar+beat\ info.\ */}}
+\DoxyCodeLine{00214\ \ \ \textcolor{keywordflow}{if}\ (beat\ \&\&\ beat-\/>type\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a6cdc84ef9f659eb17193085ef96e7c52}{atom\_Float}})\ \{}
+\DoxyCodeLine{00215\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ beat\_val\ \ \ =\ ((LV2\_Atom\_Float*)beat)-\/>body;}
+\DoxyCodeLine{00216\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a351793ca5791bf0f429fe2c9e272103f}{current\_position}}\ =\ beat\_val;}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \ \ \ \ \textcolor{comment}{/*\ Compute\ rough\ absolute\ position\ if\ we\ know\ the\ bar\ index\ and\ beats\ per\ bar.\ */}}
+\DoxyCodeLine{00219\ \ \ \ \ \textcolor{keywordtype}{double}\ global\_beats\ =\ (double)beat\_val;}
+\DoxyCodeLine{00220\ \ \ \ \ \textcolor{keywordflow}{if}\ (bar\ \&\&\ bar-\/>type\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a4c7305a0a18238113240fedff324361f}{atom\_Long}}\ \&\&\ bpb\ \&\&\ bpb-\/>type\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a6cdc84ef9f659eb17193085ef96e7c52}{atom\_Float}})\ \{}
+\DoxyCodeLine{00221\ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ bar\_val\ =\ (double)((LV2\_Atom\_Long*)bar)-\/>body;}
+\DoxyCodeLine{00222\ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ bpb\_val\ =\ (double)((LV2\_Atom\_Float*)bpb)-\/>body;}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ global\_beats\ \ \ =\ bar\_val\ *\ bpb\_val\ +\ (double)beat\_val;}
+\DoxyCodeLine{00224\ \ \ \ \ \}}
+\DoxyCodeLine{00225\ \ \ \ \ \textcolor{comment}{/*\ Update\ transport\ state\ even\ when\ we\ don't\ have\ an\ absolute\ beat\ atom.\ */}}
+\DoxyCodeLine{00226\ \ \ \ \ \doxymbox{\hyperlink{transport_8c_ae6e54a71e36ff6b8b5cef0fb984c416a}{update\_transport\_beats}}(self,\ global\_beats);}
+\DoxyCodeLine{00227\ \ \ \ \ \doxymbox{\hyperlink{transport_8c_a5c35d07cac23ff9a1504e92b585ebd6e}{update\_transport\_phase}}(self,\ global\_beats);}
+\DoxyCodeLine{00228\ \ \ \}}
+\DoxyCodeLine{00229\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h_a7ca7680e3143681678d0213c33ff636c_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h_a7ca7680e3143681678d0213c33ff636c_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{transport_8h_a5c35d07cac23ff9a1504e92b585ebd6e}\index{transport.h@{transport.h}!update\_transport\_phase@{update\_transport\_phase}}
+\index{update\_transport\_phase@{update\_transport\_phase}!transport.h@{transport.h}}
+\doxysubsubsection{\texorpdfstring{update\_transport\_phase()}{update\_transport\_phase()}}
+{\footnotesize\ttfamily \label{transport_8h_a5c35d07cac23ff9a1504e92b585ebd6e} 
+void update\+\_\+transport\+\_\+phase (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{, }\item[{double}]{global\+\_\+beats}{}\end{DoxyParamCaption})}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00091\ \{}
+\DoxyCodeLine{00092\ \ \ \textcolor{keywordflow}{if}\ (!self)}
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00094\ \ \ uint32\_t\ phase\_samples\ =\ 0;}
+\DoxyCodeLine{00095\ \ \ \textcolor{keywordflow}{if}\ (!\doxymbox{\hyperlink{transport_8c_a9885e723f03133341beb2504be1a0691}{compute\_transport\_phase\_index}}(self,\ global\_beats,\ \&phase\_samples))}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00097\ \ \ \textcolor{keywordflow}{while}\ (phase\_samples\ >=\ self-\/>\doxymbox{\hyperlink{structAlo_a11ae2c9abcf459661cb1b5aa2bd36541}{loop\_samples}})}
+\DoxyCodeLine{00098\ \ \ \ \ phase\_samples\ -\/=\ self-\/>\doxymbox{\hyperlink{structAlo_a11ae2c9abcf459661cb1b5aa2bd36541}{loop\_samples}};}
+\DoxyCodeLine{00099\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a8eedc398fe1dbe7baf44688e15f094fb}{transport\_loop\_index}}\ \ \ \ \ \ \ \ \ =\ phase\_samples;}
+\DoxyCodeLine{00100\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a8c1d2fdaaaab740f849a1746c9a779d8}{transport\_loop\_index\_pending}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00101\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h_a5c35d07cac23ff9a1504e92b585ebd6e_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{transport_8h_a5c35d07cac23ff9a1504e92b585ebd6e_icgraph}
+\end{center}
+\end{figure}

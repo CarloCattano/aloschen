@@ -18,6 +18,8 @@
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+/* Main LV2 plugin implementation and audio callback glue. */
+
 /* cppcheck-suppress missingIncludeSystem */
 #include <math.h>
 /* cppcheck-suppress missingIncludeSystem */
@@ -35,16 +37,16 @@
 #include "lv2/time/time.h"
 #include "lv2/urid/urid.h"
 
-/* ------------------------------------------------------------------------
- * Logging
- * ------------------------------------------------------------------------ */
+/* Logging */
 
+/* check environment variable to see if logging is enabled */
 static bool log_enabled(void)
 {
   const char* v = getenv("ALO_LOG");
   return v && (v[0] == '1' || v[0] == 'y' || v[0] == 'Y' || v[0] == 't' || v[0] == 'T');
 }
 
+/* append formatted message to log file if enabled */
 void alo_log(const char* message, ...)
 {
   if (!log_enabled()) {
@@ -67,14 +69,13 @@ void alo_log(const char* message, ...)
   fclose(f);
 }
 
-/* ------------------------------------------------------------------------
- * Click waveform generation
- * ------------------------------------------------------------------------ */
+/* Click waveform generation */
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
+/* generate sine-based click pulse into target */
 static void sine_pulse(float* target, double frequency, double sample_rate, uint32_t num_samples)
 {
   const uint32_t half_length     = (uint32_t)(num_samples * 0.5f);
@@ -93,6 +94,7 @@ static void sine_pulse(float* target, double frequency, double sample_rate, uint
   }
 }
 
+/* free all resources associated with an Alo instance */
 static void free_instance(Alo* self)
 {
   if (!self) {
@@ -120,6 +122,7 @@ static void free_instance(Alo* self)
   free(self);
 }
 
+/* allocate loop/overdub and scratch buffers for a new instance */
 static bool alloc_track_buffers(Alo* self)
 {
   if (!self) {
@@ -168,10 +171,9 @@ static bool alloc_track_buffers(Alo* self)
   return true;
 }
 
-/* ------------------------------------------------------------------------
- * LV2 instantiate
- * ------------------------------------------------------------------------ */
+/* LV2 instantiate */
 
+/* LV2 instantiate callback; allocate and initialize engine state */
 static LV2_Handle instantiate(const LV2_Descriptor* descriptor, double rate,
                               const char* bundle_path, const LV2_Feature* const* features)
 {

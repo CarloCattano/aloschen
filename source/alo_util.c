@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 
+/* convert Bars control value to integer within [1..16] */
 uint32_t alo_get_bars_i(const Alo* self)
 {
   if (!self || !self->ports.bars) {
@@ -21,6 +22,7 @@ uint32_t alo_get_bars_i(const Alo* self)
   return bars_i;
 }
 
+/* read slices-per-bar control and clamp to [2..8] */
 uint32_t alo_get_slices_per_bar_u(const Alo* self)
 {
   if (!self || !self->ports.slices_per_bar) {
@@ -35,17 +37,20 @@ uint32_t alo_get_slices_per_bar_u(const Alo* self)
   return (uint32_t)v;
 }
 
+/* check whether track index is in valid range */
 bool track_is_active(const Alo* self, int t)
 {
   (void)self;
   return t >= 0 && t < NUM_TRACKS;
 }
 
+/* return true if track is busy (recording/armed) */
 bool track_is_busy(const Alo* self, int t)
 {
   return track_is_active(self, t) && self->track_state[t] != TRACK_IDLE;
 }
 
+/* reset state of a given track to idle */
 void clear_track_state(Alo* self, int t)
 {
   if (!self || !track_is_active(self, t)) {
@@ -55,6 +60,7 @@ void clear_track_state(Alo* self, int t)
   self->rec_remaining_samples[t] = 0;
 }
 
+/* determine fade length (in samples) for loop edges (~1ms) */
 uint32_t alo_edge_fade_samples_u32(const Alo* self)
 {
   if (!self || !(self->rate > 1e-6)) {
@@ -69,18 +75,14 @@ uint32_t alo_edge_fade_samples_u32(const Alo* self)
   return (uint32_t)fs;
 }
 
+/* apply linear cross-fade to edges of a stereo loop buffer */
 void alo_apply_edge_fade_stereo(float* buf, uint32_t loop_start, uint32_t loop_samples,
                                 uint32_t fade_samples)
 {
-  if (!buf || loop_samples == 0u) {
+  if (!buf || loop_samples == 0u || fade_samples == 0u) {
     return;
   }
 
-  if (fade_samples == 0u) {
-    return;
-  }
-
-  /* Avoid overlap on very short loops. */
   const uint32_t half = loop_samples / 2u;
   if (fade_samples > half) {
     fade_samples = half;
@@ -93,7 +95,6 @@ void alo_apply_edge_fade_stereo(float* buf, uint32_t loop_start, uint32_t loop_s
   const uint32_t s1 = loop_start + loop_samples;
 
   if (fade_samples == 1u) {
-    /* Degenerate: force the first/last sample to 0. */
     buf[s0]             = 0.0f;
     buf[s0 + LOOP_SIZE] = 0.0f;
     if (loop_samples >= 2u) {
@@ -105,7 +106,7 @@ void alo_apply_edge_fade_stereo(float* buf, uint32_t loop_start, uint32_t loop_s
 
   const float inv = 1.0f / (float)(fade_samples - 1u);
 
-  /* Fade-in at start: 0 -> 1 */
+  /* Start fade-in */
   for (uint32_t i = 0; i < fade_samples; ++i) {
     const float    g   = (float)i * inv;
     const uint32_t idx = s0 + i;
@@ -113,7 +114,7 @@ void alo_apply_edge_fade_stereo(float* buf, uint32_t loop_start, uint32_t loop_s
     buf[idx + LOOP_SIZE] *= g;
   }
 
-  /* Fade-out at end: 1 -> 0 */
+  /* End fade-out */
   for (uint32_t i = 0; i < fade_samples; ++i) {
     const float    g   = (float)(fade_samples - 1u - i) * inv;
     const uint32_t idx = s1 - fade_samples + i;

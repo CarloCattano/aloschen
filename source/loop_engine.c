@@ -8,23 +8,9 @@
 
 #include <math.h>
 #include <string.h>
+/* Core looper DSP/engine implementation */
 
-/*
- * loop_engine.c — core looper DSP/engine (simplified)
- *
- * Behavior (per track, 3 tracks total):
- * - First ever record (any track): arms on press, starts on next bar downbeat,
- *   records exactly one loop length, auto-stops, button auto-off.
- * - Subsequent presses on an empty track: arms base, starts on next loop boundary
- *   (phase-aligned to the first loop), records one loop, auto-stops.
- * - Press on a track that already has audio: arms overdub, starts on next loop
- *   boundary, overdubs for one loop, auto-stops.
- * - Undo: if an overdub happened, toggles between current and previous buffer
- *   (one-level undo/redo). If only a base exists, clears the track.
- *
- * Real-time: no malloc/free in run_events/run_loops/run_clicks.
- */
-
+/* clear all audio state for a track */
 static void clear_track_audio(Alo* self, int t)
 {
   if (!self || !track_is_active(self, t)) {
@@ -42,22 +28,20 @@ static void clear_track_audio(Alo* self, int t)
   self->sampler_src_shadow_valid = false;
 }
 
+/* cancel inflight track actions and prime UI controls */
 void clear_inflight_actions_and_sync_controls(Alo* self)
 {
   if (!self) {
     return;
   }
 
-  /* Cancel anything that could fire on the next downbeat/boundary. */
+  /* Reset pending actions. */
   for (int t = 0; t < NUM_TRACKS; ++t) {
     clear_track_state(self, t);
     self->pending_undo[t]      = 0;
     self->pending_clear_all[t] = false;
 
-    /* Prime edge detectors from current port values, so we don't treat a
-     * latched/toggled "1" (or host glitches) as a new press after transport
-     * stop/start.
-     */
+    /* Prime edge detectors to ignore held buttons. */
     const bool loop_btn           = alo_port_pressed(self->ports.loop_btn[t]);
     const bool undo_btn           = alo_port_pressed(self->ports.undo_btn[t]);
     self->last_loop_input[t]      = loop_btn;
@@ -66,6 +50,7 @@ void clear_inflight_actions_and_sync_controls(Alo* self)
   }
 }
 
+/* force UI cycle phase resync */
 void request_ui_cycle_resync(Alo* self)
 {
   if (!self) {
@@ -75,7 +60,7 @@ void request_ui_cycle_resync(Alo* self)
   self->ui_cycle_resync_pending = true;
   self->ui_have_cycle_origin    = false;
   self->ui_have_prev_bar_beat   = false;
-  /* Force a step-0 update to UIs on the next call. */
+  /* Force UI step-0 refresh. */
   self->ui_last_bar_step = -2;
 }
 
@@ -85,13 +70,8 @@ static inline float loop_state_value(const Alo* self, const int t, const bool tr
     return 0.0f;
   }
 
-  /* Encoded states (used by native + MOD UIs):
-   * 0.0  = off/empty
-   * 0.25 = armed (blink) or queued-to-record
-   * 0.5  = playing (solid)
-   * 1.0  = recording (solid)
-   */
-  /* queued arm takes precedence so the UI will show orange even if idle */
+  /* Loop state encoding for UIs. */
+  /* queued arm overrides idle state. */
   if (self->pending_arm_track == t) {
     return 0.25f;
   }
@@ -111,7 +91,7 @@ static inline float loop_state_value(const Alo* self, const int t, const bool tr
 
 static inline float undo_state_value(const Alo* self, const int t)
 {
-  /* 0=off, 0.25=queued (blink in UI) */
+  /* Undo output values. */
   const bool queued = (self->pending_clear_all[t] || self->pending_undo[t] > 0);
   return queued ? 0.25f : 0.0f;
 }
@@ -121,6 +101,7 @@ static inline float has_audio_value(const Alo* self, const int t)
   return self->have_loop[t] ? 1.0f : 0.0f;
 }
 
+/* update LV2 output ports for loop/undo/audio states */
 void update_loop_state_ports(Alo* self)
 {
   if (!self) {
@@ -142,10 +123,11 @@ void update_loop_state_ports(Alo* self)
   }
 }
 
-/* -------------------------------------------------------------------------
- * Timing helpers
- * ------------------------------------------------------------------------- */
+/** @name Timing helpers
+ * @{ */
 
+
+/* compute number of samples in a loop given beat length */
 static uint32_t compute_loop_samples(const Alo* self, uint32_t loop_beats)
 {
   if (!self) {
@@ -166,6 +148,7 @@ static uint32_t compute_loop_samples(const Alo* self, uint32_t loop_beats)
   return (uint32_t)s;
 }
 
+/* recompute loop timing parameters after change */
 void reset_timing(Alo* self)
 {
   if (!self) {
@@ -182,27 +165,17 @@ void reset_timing(Alo* self)
     self->loop_samples = LOOP_SIZE;
   }
 
-  /* Ensure playhead / phase stay within the new loop length after a
-   * timing change.  We prefer simple conditional logic rather than modulo
-   * in the hot path; loop_phase is updated by run_loops each sample so it
-   * should never drift outside [0, loop_samples).  This check is only
-   * needed for configuration changes.
-   */
+  /* Clamp playhead/phase within new loop length. */
   if (self->loop_phase >= self->loop_samples) {
     self->loop_phase    = 0;
     self->loop_playhead = (double)self->loop_start;
   }
-  /* transport_loop_index is infrequently written; normalize with subtraction
-   * loops instead of `%` to avoid division instructions.
-   */
+  /* Normalize transport_loop_index without modulo. */
   while (self->transport_loop_index >= self->loop_samples) {
     self->transport_loop_index -= self->loop_samples;
   }
 
-  /*
-   * Bars/tempo changes must keep playback phase aligned to host transport.
-   * Recompute the transport phase immediately from the most recent position.
-   */
+  /* Keep phase aligned after tempo change. Recompute transport phase. */
   if (self->have_last_transport_beats) {
     uint32_t phase_samples = 0;
     if (compute_transport_phase_index(self, self->last_transport_beats, &phase_samples)) {
@@ -212,9 +185,9 @@ void reset_timing(Alo* self)
     }
   }
 
-  /* Timing changes can shift downbeat/phase; force UI + cycle resync. */
+  /* Flag UI cycle resync after timing change. */
   request_ui_cycle_resync(self);
-  /* Drop any in-flight click envelope so we don't smear across tempo changes. */
+  /* Reset click envelope. */
   self->high_beat_offset  = self->beat_len;
   self->low_beat_offset   = self->beat_len;
   self->start_beat_offset = self->beat_len;
@@ -222,6 +195,12 @@ void reset_timing(Alo* self)
   update_loop_state_ports(self);
 }
 
+/* reinitialize engine state to defaults */
+ * flags.  Intended to be called when the plugin is instantiated or when the
+ * host sends a full reset.
+ *
+ * @param self Engine instance (may be NULL).
+ */
 void reset(Alo* self)
 {
   if (!self) {
@@ -231,7 +210,7 @@ void reset(Alo* self)
   self->pending_arm_type  = TRACK_IDLE;
 
   alo_slice_sampler_reset(&self->slice_sampler);
-  /* make sure any preallocated buffers are invalidated too */
+  /* Invalidate preallocated slice buffers. */
   alo_slice_sampler_clear_buffers(&self->slice_sampler);
   self->slice_sampler.rate = (float)self->rate;
 
@@ -286,7 +265,7 @@ void reset(Alo* self)
   self->loop_origin_beats = 0.0;
   self->have_loop_origin  = false;
 
-  /* Reset click envelopes. */
+  /* Reset click. */
   self->high_beat_offset   = self->beat_len;
   self->low_beat_offset    = self->beat_len;
   self->start_beat_offset  = self->beat_len;
@@ -301,9 +280,7 @@ void reset(Alo* self)
   self->ui_prev_bar_beat         = 0.0f;
   self->ui_have_prev_bar_beat    = false;
 
-  /* Reset UI phase outputs immediately (they otherwise only update when
-   * update_bar_step_out() runs).
-   */
+  /* Immediately clear UI phase outputs. */
   if (self->ports.bar_step_out) {
     *(self->ports.bar_step_out) = 0.0f;
   }
@@ -317,6 +294,7 @@ void reset(Alo* self)
   update_loop_state_ports(self);
 }
 
+/* return current slice root MIDI note (0..127) */
 static inline int get_slice_root_note(const Alo* self)
 {
   if (!self) {
@@ -335,6 +313,7 @@ static inline int get_slice_root_note(const Alo* self)
   return v;
 }
 
+/* compute and emit current bar-step/cycle-phase for UI outputs */
 static void update_bar_step_out(Alo* self)
 {
   if (!self) {
@@ -343,18 +322,18 @@ static void update_bar_step_out(Alo* self)
 
   const bool transport_stopped = (self->have_speed && self->speed == 0.0f);
 
-  /* If Bars changed, restart the cycle on the next downbeat. */
+  /* Bars change -> resync cycle. */
   const uint32_t bars_i = alo_get_bars_i(self);
   if (bars_i != self->ui_last_bars_i) {
     self->ui_last_bars_i = bars_i;
     request_ui_cycle_resync(self);
   }
 
-  /* Default to showing the first position when stopped / not yet synced. */
+  /* Default step when stopped/unsynced. */
   int step = 0;
 
   if (transport_stopped || !self->have_transport || !self->have_last_transport_beats) {
-    /* Stopped/unknown: show step 0 and force next start to resync. */
+    /* Stopped/unknown: force resync. */
     request_ui_cycle_resync(self);
     step = 0;
   } else {
@@ -365,7 +344,7 @@ static void update_bar_step_out(Alo* self)
 
     bool downbeat_edge = false;
     if (self->ui_have_prev_bar_beat) {
-      /* Detect wrap (e.g. 3.9 -> 0.1) at bar boundary. */
+      /* Detect bar wrap. */
       if (bar_beat + 0.25f < self->ui_prev_bar_beat) {
         downbeat_edge = true;
       }
@@ -374,7 +353,7 @@ static void update_bar_step_out(Alo* self)
     self->ui_have_prev_bar_beat = true;
 
     if (self->ui_cycle_resync_pending && !self->ui_have_cycle_origin) {
-      /* Set cycle origin on the first downbeat after (re)sync. */
+      /* Set cycle origin on first downbeat. */
       const float kDownbeatGraceBeats = 0.25f;
       if (downbeat_edge || bar_beat <= kDownbeatGraceBeats) {
         self->ui_cycle_origin_beats   = self->last_transport_beats - (double)bar_beat;

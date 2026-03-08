@@ -1,0 +1,288 @@
+\doxysection{source/\+alo\+\_\+util.c File Reference}
+\hypertarget{alo__util_8c}{}\label{alo__util_8c}\index{source/alo\_util.c@{source/alo\_util.c}}
+{\ttfamily \+\#include "{}alo\+\_\+util.\+h"{}}\newline
+{\ttfamily \+\#include $<$math.\+h$>$}\newline
+{\ttfamily \+\#include $<$stdlib.\+h$>$}\newline
+Include dependency graph for alo\+\_\+util.\+c:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{alo__util_8c__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{alo__util_8c_a492a5688d6c4e2337d1b5663f7b3dc7a}{alo\+\_\+get\+\_\+bars\+\_\+i}} (const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self)
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{alo__util_8c_a6c15c94e8f637b73187648dca65946c3}{alo\+\_\+get\+\_\+slices\+\_\+per\+\_\+bar\+\_\+u}} (const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self)
+\item 
+bool \doxymbox{\hyperlink{alo__util_8c_a6b55f8a7396a29164300ea5a0c39447d}{track\+\_\+is\+\_\+active}} (const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self, int t)
+\begin{DoxyCompactList}\small\item\em Return true if track index is valid. \end{DoxyCompactList}\item 
+bool \doxymbox{\hyperlink{alo__util_8c_ab7ed16985f4abe9ddbaadc68e09ad9ba}{track\+\_\+is\+\_\+busy}} (const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self, int t)
+\begin{DoxyCompactList}\small\item\em Return true if a track is busy recording or armed. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{alo__util_8c_a02c5ec1bc4dfbd5b6f6e3be0aeb8c0c8}{clear\+\_\+track\+\_\+state}} (\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self, int t)
+\begin{DoxyCompactList}\small\item\em Reset state for a given track to idle. \end{DoxyCompactList}\item 
+uint32\+\_\+t \doxymbox{\hyperlink{alo__util_8c_a9d65b29829a7439d0d5c309cb0f260fa}{alo\+\_\+edge\+\_\+fade\+\_\+samples\+\_\+u32}} (const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self)
+\item 
+void \doxymbox{\hyperlink{alo__util_8c_aadd8dae3d6a67716a7949bc9da0de59d}{alo\+\_\+apply\+\_\+edge\+\_\+fade\+\_\+stereo}} (float \texorpdfstring{$\ast$}{*}buf, uint32\+\_\+t loop\+\_\+start, uint32\+\_\+t loop\+\_\+samples, uint32\+\_\+t fade\+\_\+samples)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{alo__util_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{alo__util_8c_aadd8dae3d6a67716a7949bc9da0de59d}\index{alo\_util.c@{alo\_util.c}!alo\_apply\_edge\_fade\_stereo@{alo\_apply\_edge\_fade\_stereo}}
+\index{alo\_apply\_edge\_fade\_stereo@{alo\_apply\_edge\_fade\_stereo}!alo\_util.c@{alo\_util.c}}
+\doxysubsubsection{\texorpdfstring{alo\_apply\_edge\_fade\_stereo()}{alo\_apply\_edge\_fade\_stereo()}}
+{\footnotesize\ttfamily \label{alo__util_8c_aadd8dae3d6a67716a7949bc9da0de59d} 
+void alo\+\_\+apply\+\_\+edge\+\_\+fade\+\_\+stereo (\begin{DoxyParamCaption}\item[{float \texorpdfstring{$\ast$}{*}}]{buf}{, }\item[{uint32\+\_\+t}]{loop\+\_\+start}{, }\item[{uint32\+\_\+t}]{loop\+\_\+samples}{, }\item[{uint32\+\_\+t}]{fade\+\_\+samples}{}\end{DoxyParamCaption})}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00081\ \{}
+\DoxyCodeLine{00082\ \ \ \textcolor{keywordflow}{if}\ (!buf\ ||\ loop\_samples\ ==\ 0u\ ||\ fade\_samples\ ==\ 0u)\ \{}
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00084\ \ \ \}}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \textcolor{keyword}{const}\ uint32\_t\ half\ =\ loop\_samples\ /\ 2u;}
+\DoxyCodeLine{00087\ \ \ \textcolor{keywordflow}{if}\ (fade\_samples\ >\ half)\ \{}
+\DoxyCodeLine{00088\ \ \ \ \ fade\_samples\ =\ half;}
+\DoxyCodeLine{00089\ \ \ \}}
+\DoxyCodeLine{00090\ \ \ \textcolor{keywordflow}{if}\ (fade\_samples\ ==\ 0u)\ \{}
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00092\ \ \ \}}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{const}\ uint32\_t\ s0\ =\ loop\_start;}
+\DoxyCodeLine{00095\ \ \ \textcolor{keyword}{const}\ uint32\_t\ s1\ =\ loop\_start\ +\ loop\_samples;}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \ \ \textcolor{keywordflow}{if}\ (fade\_samples\ ==\ 1u)\ \{}
+\DoxyCodeLine{00098\ \ \ \ \ buf[s0]\ \ \ \ \ \ \ \ \ \ \ \ \ =\ 0.0f;}
+\DoxyCodeLine{00099\ \ \ \ \ buf[s0\ +\ \doxymbox{\hyperlink{alo__engine_8h_a1a60ab095699795391e49b3f9897b574}{LOOP\_SIZE}}]\ =\ 0.0f;}
+\DoxyCodeLine{00100\ \ \ \ \ \textcolor{keywordflow}{if}\ (loop\_samples\ >=\ 2u)\ \{}
+\DoxyCodeLine{00101\ \ \ \ \ \ \ buf[s1\ -\/\ 1u]\ \ \ \ \ \ \ \ \ \ \ \ \ =\ 0.0f;}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ buf[s1\ -\/\ 1u\ +\ \doxymbox{\hyperlink{alo__engine_8h_a1a60ab095699795391e49b3f9897b574}{LOOP\_SIZE}}]\ =\ 0.0f;}
+\DoxyCodeLine{00103\ \ \ \ \ \}}
+\DoxyCodeLine{00104\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00105\ \ \ \}}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ inv\ =\ 1.0f\ /\ (float)(fade\_samples\ -\/\ 1u);}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{/*\ Start\ fade-\/in\ */}}
+\DoxyCodeLine{00110\ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ i\ =\ 0;\ i\ <\ fade\_samples;\ ++i)\ \{}
+\DoxyCodeLine{00111\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ \ \ \ g\ \ \ =\ (float)i\ *\ inv;}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{keyword}{const}\ uint32\_t\ idx\ =\ s0\ +\ i;}
+\DoxyCodeLine{00113\ \ \ \ \ buf[idx]\ *=\ g;}
+\DoxyCodeLine{00114\ \ \ \ \ buf[idx\ +\ \doxymbox{\hyperlink{alo__engine_8h_a1a60ab095699795391e49b3f9897b574}{LOOP\_SIZE}}]\ *=\ g;}
+\DoxyCodeLine{00115\ \ \ \}}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{/*\ End\ fade-\/out\ */}}
+\DoxyCodeLine{00118\ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ i\ =\ 0;\ i\ <\ fade\_samples;\ ++i)\ \{}
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ \ \ \ g\ \ \ =\ (float)(fade\_samples\ -\/\ 1u\ -\/\ i)\ *\ inv;}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keyword}{const}\ uint32\_t\ idx\ =\ s1\ -\/\ fade\_samples\ +\ i;}
+\DoxyCodeLine{00121\ \ \ \ \ buf[idx]\ *=\ g;}
+\DoxyCodeLine{00122\ \ \ \ \ buf[idx\ +\ \doxymbox{\hyperlink{alo__engine_8h_a1a60ab095699795391e49b3f9897b574}{LOOP\_SIZE}}]\ *=\ g;}
+\DoxyCodeLine{00123\ \ \ \}}
+\DoxyCodeLine{00124\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{alo__util_8c_aadd8dae3d6a67716a7949bc9da0de59d_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{alo__util_8c_a9d65b29829a7439d0d5c309cb0f260fa}\index{alo\_util.c@{alo\_util.c}!alo\_edge\_fade\_samples\_u32@{alo\_edge\_fade\_samples\_u32}}
+\index{alo\_edge\_fade\_samples\_u32@{alo\_edge\_fade\_samples\_u32}!alo\_util.c@{alo\_util.c}}
+\doxysubsubsection{\texorpdfstring{alo\_edge\_fade\_samples\_u32()}{alo\_edge\_fade\_samples\_u32()}}
+{\footnotesize\ttfamily \label{alo__util_8c_a9d65b29829a7439d0d5c309cb0f260fa} 
+uint32\+\_\+t alo\+\_\+edge\+\_\+fade\+\_\+samples\+\_\+u32 (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{}\end{DoxyParamCaption})}
+
+Determine how many samples should be used to fade loop boundaries to zero. This is roughly 1ms at the current sample rate, clamped to \+[16..512]\+. 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00065\ \{}
+\DoxyCodeLine{00066\ \ \ \textcolor{keywordflow}{if}\ (!self\ ||\ !(self-\/>\doxymbox{\hyperlink{structAlo_aad4a12f62c42152252e206c74f460efe}{rate}}\ >\ 1e-\/6))\ \{}
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keywordflow}{return}\ 64u;}
+\DoxyCodeLine{00068\ \ \ \}}
+\DoxyCodeLine{00069\ \ \ uint64\_t\ fs\ =\ (uint64\_t)llround((\textcolor{keywordtype}{double})self-\/>\doxymbox{\hyperlink{structAlo_aad4a12f62c42152252e206c74f460efe}{rate}}\ *\ 0.001);\ \textcolor{comment}{/*\ 1ms\ */}}
+\DoxyCodeLine{00070\ \ \ \textcolor{keywordflow}{if}\ (fs\ <\ 16u)\ \{}
+\DoxyCodeLine{00071\ \ \ \ \ fs\ =\ 16u;}
+\DoxyCodeLine{00072\ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (fs\ >\ 512u)\ \{}
+\DoxyCodeLine{00073\ \ \ \ \ fs\ =\ 512u;}
+\DoxyCodeLine{00074\ \ \ \}}
+\DoxyCodeLine{00075\ \ \ \textcolor{keywordflow}{return}\ (uint32\_t)fs;}
+\DoxyCodeLine{00076\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{alo__util_8c_a9d65b29829a7439d0d5c309cb0f260fa_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{alo__util_8c_a492a5688d6c4e2337d1b5663f7b3dc7a}\index{alo\_util.c@{alo\_util.c}!alo\_get\_bars\_i@{alo\_get\_bars\_i}}
+\index{alo\_get\_bars\_i@{alo\_get\_bars\_i}!alo\_util.c@{alo\_util.c}}
+\doxysubsubsection{\texorpdfstring{alo\_get\_bars\_i()}{alo\_get\_bars\_i()}}
+{\footnotesize\ttfamily \label{alo__util_8c_a492a5688d6c4e2337d1b5663f7b3dc7a} 
+uint32\+\_\+t alo\+\_\+get\+\_\+bars\+\_\+i (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{}\end{DoxyParamCaption})}
+
+Read the current Bars value from the engine, clamped to \+[1..16]\+ and converted to an integer. Returns at least 1. 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00007\ \{}
+\DoxyCodeLine{00008\ \ \ \textcolor{keywordflow}{if}\ (!self\ ||\ !self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_ac728727c22b2381295781152764c0234}{bars}})\ \{}
+\DoxyCodeLine{00009\ \ \ \ \ \textcolor{keywordflow}{return}\ \doxymbox{\hyperlink{alo__engine_8h_a63501bf61db59ce85d14e72b206c1771}{DEFAULT\_NUM\_BARS}};}
+\DoxyCodeLine{00010\ \ \ \}}
+\DoxyCodeLine{00011\ \ \ \textcolor{keywordtype}{float}\ bars\_f\ =\ *(self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_ac728727c22b2381295781152764c0234}{bars}});}
+\DoxyCodeLine{00012\ \ \ \textcolor{keywordflow}{if}\ (bars\_f\ <\ 1.0f)\ \{}
+\DoxyCodeLine{00013\ \ \ \ \ bars\_f\ =\ 1.0f;}
+\DoxyCodeLine{00014\ \ \ \}}
+\DoxyCodeLine{00015\ \ \ \textcolor{keywordflow}{if}\ (bars\_f\ >\ 16.0f)\ \{}
+\DoxyCodeLine{00016\ \ \ \ \ bars\_f\ =\ 16.0f;}
+\DoxyCodeLine{00017\ \ \ \}}
+\DoxyCodeLine{00018\ \ \ uint32\_t\ bars\_i\ =\ (uint32\_t)lrintf(bars\_f);}
+\DoxyCodeLine{00019\ \ \ \textcolor{keywordflow}{if}\ (!bars\_i)\ \{}
+\DoxyCodeLine{00020\ \ \ \ \ bars\_i\ =\ 1u;}
+\DoxyCodeLine{00021\ \ \ \}}
+\DoxyCodeLine{00022\ \ \ \textcolor{keywordflow}{return}\ bars\_i;}
+\DoxyCodeLine{00023\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{alo__util_8c_a492a5688d6c4e2337d1b5663f7b3dc7a_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{alo__util_8c_a6c15c94e8f637b73187648dca65946c3}\index{alo\_util.c@{alo\_util.c}!alo\_get\_slices\_per\_bar\_u@{alo\_get\_slices\_per\_bar\_u}}
+\index{alo\_get\_slices\_per\_bar\_u@{alo\_get\_slices\_per\_bar\_u}!alo\_util.c@{alo\_util.c}}
+\doxysubsubsection{\texorpdfstring{alo\_get\_slices\_per\_bar\_u()}{alo\_get\_slices\_per\_bar\_u()}}
+{\footnotesize\ttfamily \label{alo__util_8c_a6c15c94e8f637b73187648dca65946c3} 
+uint32\+\_\+t alo\+\_\+get\+\_\+slices\+\_\+per\+\_\+bar\+\_\+u (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{}\end{DoxyParamCaption})}
+
+Return the current slices-\/per-\/bar value clamped to \+[2..8]\+. 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00027\ \{}
+\DoxyCodeLine{00028\ \ \ \textcolor{keywordflow}{if}\ (!self\ ||\ !self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a751e23f91611a31e01db67d76a9684e4}{slices\_per\_bar}})\ \{}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keywordflow}{return}\ 4u;}
+\DoxyCodeLine{00030\ \ \ \}}
+\DoxyCodeLine{00031\ \ \ \textcolor{keywordtype}{int}\ v\ =\ (int)floorf(*(self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a751e23f91611a31e01db67d76a9684e4}{slices\_per\_bar}}));}
+\DoxyCodeLine{00032\ \ \ \textcolor{keywordflow}{if}\ (v\ <\ 2)\ \{}
+\DoxyCodeLine{00033\ \ \ \ \ v\ =\ 2;}
+\DoxyCodeLine{00034\ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (v\ >\ 8)\ \{}
+\DoxyCodeLine{00035\ \ \ \ \ v\ =\ 8;}
+\DoxyCodeLine{00036\ \ \ \}}
+\DoxyCodeLine{00037\ \ \ \textcolor{keywordflow}{return}\ (uint32\_t)v;}
+\DoxyCodeLine{00038\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{alo__util_8c_a6c15c94e8f637b73187648dca65946c3_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{alo__util_8c_a02c5ec1bc4dfbd5b6f6e3be0aeb8c0c8}\index{alo\_util.c@{alo\_util.c}!clear\_track\_state@{clear\_track\_state}}
+\index{clear\_track\_state@{clear\_track\_state}!alo\_util.c@{alo\_util.c}}
+\doxysubsubsection{\texorpdfstring{clear\_track\_state()}{clear\_track\_state()}}
+{\footnotesize\ttfamily \label{alo__util_8c_a02c5ec1bc4dfbd5b6f6e3be0aeb8c0c8} 
+void clear\+\_\+track\+\_\+state (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{, }\item[{int}]{t}{}\end{DoxyParamCaption})}
+
+
+
+Reset state for a given track to idle. 
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00055\ \{}
+\DoxyCodeLine{00056\ \ \ \textcolor{keywordflow}{if}\ (!self\ ||\ !\doxymbox{\hyperlink{alo__util_8c_a6b55f8a7396a29164300ea5a0c39447d}{track\_is\_active}}(self,\ t))\ \{}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00058\ \ \ \}}
+\DoxyCodeLine{00059\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_ab8e8b4845135c20d24ef01b214c0ee1f}{track\_state}}[t]\ \ \ \ \ \ \ \ \ \ \ =\ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96fa8cbff7d547a478ccbe77cea44f9b9c86}{TRACK\_IDLE}};}
+\DoxyCodeLine{00060\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a0a15594461a1c1b7ddb658d69e53aba9}{rec\_remaining\_samples}}[t]\ =\ 0;}
+\DoxyCodeLine{00061\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=306pt]{alo__util_8c_a02c5ec1bc4dfbd5b6f6e3be0aeb8c0c8_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{alo__util_8c_a02c5ec1bc4dfbd5b6f6e3be0aeb8c0c8_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{alo__util_8c_a6b55f8a7396a29164300ea5a0c39447d}\index{alo\_util.c@{alo\_util.c}!track\_is\_active@{track\_is\_active}}
+\index{track\_is\_active@{track\_is\_active}!alo\_util.c@{alo\_util.c}}
+\doxysubsubsection{\texorpdfstring{track\_is\_active()}{track\_is\_active()}}
+{\footnotesize\ttfamily \label{alo__util_8c_a6b55f8a7396a29164300ea5a0c39447d} 
+bool track\+\_\+is\+\_\+active (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{, }\item[{int}]{t}{}\end{DoxyParamCaption})}
+
+
+
+Return true if track index is valid. 
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00042\ \{}
+\DoxyCodeLine{00043\ \ \ (void)self;}
+\DoxyCodeLine{00044\ \ \ \textcolor{keywordflow}{return}\ t\ >=\ 0\ \&\&\ t\ <\ \doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}};}
+\DoxyCodeLine{00045\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{alo__util_8c_a6b55f8a7396a29164300ea5a0c39447d_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{alo__util_8c_ab7ed16985f4abe9ddbaadc68e09ad9ba}\index{alo\_util.c@{alo\_util.c}!track\_is\_busy@{track\_is\_busy}}
+\index{track\_is\_busy@{track\_is\_busy}!alo\_util.c@{alo\_util.c}}
+\doxysubsubsection{\texorpdfstring{track\_is\_busy()}{track\_is\_busy()}}
+{\footnotesize\ttfamily \label{alo__util_8c_ab7ed16985f4abe9ddbaadc68e09ad9ba} 
+bool track\+\_\+is\+\_\+busy (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{, }\item[{int}]{t}{}\end{DoxyParamCaption})}
+
+
+
+Return true if a track is busy recording or armed. 
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00049\ \{}
+\DoxyCodeLine{00050\ \ \ \textcolor{keywordflow}{return}\ \doxymbox{\hyperlink{alo__util_8c_a6b55f8a7396a29164300ea5a0c39447d}{track\_is\_active}}(self,\ t)\ \&\&\ self-\/>\doxymbox{\hyperlink{structAlo_ab8e8b4845135c20d24ef01b214c0ee1f}{track\_state}}[t]\ !=\ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96fa8cbff7d547a478ccbe77cea44f9b9c86}{TRACK\_IDLE}};}
+\DoxyCodeLine{00051\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=288pt]{alo__util_8c_ab7ed16985f4abe9ddbaadc68e09ad9ba_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{alo__util_8c_ab7ed16985f4abe9ddbaadc68e09ad9ba_icgraph}
+\end{center}
+\end{figure}

@@ -1,0 +1,25 @@
+var structAloPorts =
+[
+    [ "bar_step_out", "structAloPorts.html#a1d4f41679c7e08cf6211fa19931a7f72", null ],
+    [ "bars", "structAloPorts.html#ac728727c22b2381295781152764c0234", null ],
+    [ "click", "structAloPorts.html#a52f633fac33fd033cea590dc47588d0d", null ],
+    [ "control", "structAloPorts.html#a4d59a2d1048f3f9122498a85698f57c6", null ],
+    [ "cycle_phase_out", "structAloPorts.html#aa84991f0c9a9dc801aa24e4b3095ce3b", null ],
+    [ "enabled", "structAloPorts.html#ab10b26cdeeb4de03d1555cf2d96b9657", null ],
+    [ "has_audio_out", "structAloPorts.html#aced8b1a256795b956077bfeadf256560", null ],
+    [ "host_bar_phase_out", "structAloPorts.html#aaa2b6d831ec4354171a4c5474db982e7", null ],
+    [ "input_l", "structAloPorts.html#a9664740ac9df8fc2f9e8f378cd36f48d", null ],
+    [ "input_r", "structAloPorts.html#ae46fd2aeb032f12d4888be19c1ea5ba9", null ],
+    [ "loop_btn", "structAloPorts.html#a2b757f0bf85ac834659ced75dde71b95", null ],
+    [ "loop_state_out", "structAloPorts.html#a13d2ebad953ff08e4e6401528d04863b", null ],
+    [ "loop_vol", "structAloPorts.html#a4fbd1d138340aa69e695652da71b5238", null ],
+    [ "midiin", "structAloPorts.html#a549f3a873fdc4d5291b2845454a01f22", null ],
+    [ "mix", "structAloPorts.html#a40f48607847e08cdadaa8344072e908f", null ],
+    [ "output_l", "structAloPorts.html#acefe7ad7d1e7c45025f737fb9af45eab", null ],
+    [ "output_r", "structAloPorts.html#a8960399010078b141900593132350d8d", null ],
+    [ "sampler_vol", "structAloPorts.html#ae4e2451041bc51eb2944c0ce8e83270a", null ],
+    [ "slice_root", "structAloPorts.html#a5d5269f301c6823c3d29509f56d3b03c", null ],
+    [ "slices_per_bar", "structAloPorts.html#a751e23f91611a31e01db67d76a9684e4", null ],
+    [ "undo_btn", "structAloPorts.html#a991fce49eb4afda7bf2766dbbb6fa2c2", null ],
+    [ "undo_state_out", "structAloPorts.html#af9a5286aaa79843a99ab64aa920f7f11", null ]
+];

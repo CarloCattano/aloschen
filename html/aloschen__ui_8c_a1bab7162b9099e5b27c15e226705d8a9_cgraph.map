@@ -1,0 +1,23 @@
+<map id="ui_draw_transport_rings" name="ui_draw_transport_rings">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,161,183,189"/>
+<area shape="rect" id="Node000002" href="$aloschen__ui_8c.html#ac948bda0de69192a24911707394f7fcc" title=" " alt="" coords="261,5,343,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="105,159,155,104,191,72,229,44,248,36,244,39,232,48,194,76,159,108,109,162"/>
+<area shape="rect" id="Node000003" href="$aloschen__ui_8c.html#a57021e08ddad27724d61b6367523a53f" title=" " alt="" coords="254,57,350,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="116,159,167,128,230,95,247,90,243,93,232,100,170,133,119,163"/>
+<area shape="rect" id="Node000005" href="$aloschen__ui_8c.html#adc550add174d60aa6556616614c12d1d" title=" " alt="" coords="237,109,367,137"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="151,158,231,140,227,143,154,163"/>
+<area shape="rect" id="Node000006" href="$aloschen__ui_8c.html#a4a736f026d18fc0abbfcffba88f17237" title=" " alt="" coords="245,161,359,189"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="182,173,231,174,227,176,184,178"/>
+<area shape="rect" id="Node000007" href="$aloschen__ui_8c.html#af44f891b149b65b3ab9beddb743d0449" title=" " alt="" coords="248,213,356,241"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="152,187,235,209,230,211,153,192"/>
+<area shape="rect" id="Node000009" href="$aloschen__ui_8c.html#a7886b285dd5166d405dc440d0e40fe13" title=" " alt="" coords="262,265,342,293"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="118,187,170,217,232,250,250,260,245,260,230,255,167,222,118,192"/>
+<area shape="rect" id="Node000011" href="$aloschen__ui_8c.html#aafec46a2f45066b3dee5aacf914757be" title=" " alt="" coords="231,317,373,345"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="108,187,159,242,194,274,232,302,244,311,239,310,229,307,191,278,155,246,106,192"/>
+<area shape="rect" id="Node000004" href="$aloschen__ui_8c.html#a9cd152f10e344623f059b1268ac3245e" title=" " alt="" coords="430,57,547,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="349,69,416,70,411,72,351,74"/>
+<area shape="rect" id="Node000008" href="$alo__ui__util_8h.html#ac15938c3ea96f1bb1fadc05fd97ac8a1" title=" " alt="" coords="421,213,555,241"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="355,225,408,227,403,228,356,230"/>
+<area shape="rect" id="Node000010" href="$aloschen__ui_8c.html#ac302c6706a924e504e2c43a7e1f5f084" title=" " alt="" coords="423,265,553,293"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="342,277,410,279,405,279,343,282"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="free_instance" name="free_instance">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,14,115,42"/>
+<area shape="rect" id="Node000002" href="$slice__sampler_8c.html#acadf02477e536f0f50236de259ba4656" title="Free previously allocated slice buffers (outside realtime)." alt="" coords="163,5,334,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="115,25,150,27,145,28,115,30"/>
+</map>

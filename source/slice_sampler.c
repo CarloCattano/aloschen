@@ -1,3 +1,5 @@
+/* slice-based sampler implementation for the looper engine */
+
 #include "slice_sampler.h"
 #include "alo_engine.h"
 #include "alo_util.h"
@@ -5,9 +7,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-/* ------------------------------------------------------------------------
- * Internal Helpers (Optimized for RT)
- * ------------------------------------------------------------------------ */
+/* Internal helpers (optimized for realtime) */
 
 static inline bool alo_voice_is_active(const AloSliceVoice* v)
 {
@@ -25,6 +25,7 @@ static void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* 
                                          uint32_t fade_samples, float gain);
 static float alo_env_tick(AloEnvState* e);
 
+/* reset sampler state and deactivate voices/pending triggers */
 void alo_slice_sampler_reset(AloSliceSampler* s)
 {
   if (!s)
@@ -38,6 +39,7 @@ void alo_slice_sampler_reset(AloSliceSampler* s)
   }
 }
 
+/* mark all slice buffers invalid and begin incremental clearing */
 void alo_slice_sampler_clear_buffers(AloSliceSampler* s)
 {
   if (!s)
@@ -57,6 +59,7 @@ void alo_slice_sampler_clear_buffers(AloSliceSampler* s)
   s->clear_offset      = 0;
 }
 
+/* advance in-flight buffer clear job by up to max_samples zeros */
 void alo_slice_sampler_step_clear(AloSliceSampler* s, uint32_t max_samples)
 {
   if (!s || !s->clear_in_progress || max_samples == 0)
@@ -137,9 +140,7 @@ void alo_slice_sampler_schedule(AloSliceSampler* s, const struct Alo* alo,
   }
 }
 
-/* ------------------------------------------------------------------------
- * DSP Logic
- * ------------------------------------------------------------------------ */
+/* DSP logic */
 
 void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
                                      const uint32_t block_offset_samples, const uint32_t n_samples,

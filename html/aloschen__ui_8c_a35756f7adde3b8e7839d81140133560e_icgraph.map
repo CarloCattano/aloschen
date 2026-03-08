@@ -1,0 +1,19 @@
+<map id="ui_is_undo_port" name="ui_is_undo_port">
+<area shape="rect" id="Node000001" title=" " alt="" coords="685,32,808,60"/>
+<area shape="rect" id="Node000002" href="$aloschen__ui_8c.html#a6619839ba117c96493e562a922f5bd30" title=" " alt="" coords="502,5,626,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="667,35,626,31,626,26,672,35"/>
+<area shape="rect" id="Node000006" href="$aloschen__ui_8c.html#ae1642e5c835d4ebebbe7130c13c1eea4" title=" " alt="" coords="491,57,637,85"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="672,56,638,64,637,58,666,57"/>
+<area shape="rect" id="Node000003" href="$aloschen__ui_8c.html#a0d0f22ee3ab85df2976ec38825f135f4" title=" " alt="" coords="322,5,443,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="484,20,444,22,443,17,489,19"/>
+<area shape="rect" id="Node000004" href="$aloschen__ui_8c.html#a2f90ea44b41c377ba4a2e0a8b4098e4f" title=" " alt="" coords="153,55,238,82"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="310,38,240,60,238,55,315,37"/>
+<area shape="rect" id="Node000005" href="$aloschen__ui_8c.html#aa67119096fdd80174b8718c80b6be92e" title=" " alt="" coords="5,81,70,109"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="137,80,71,92,70,87,140,76"/>
+<area shape="poly" id="edge9_Node000006_Node000004" title=" " alt="" coords="474,72,239,71,239,66,478,69"/>
+<area shape="rect" id="Node000007" href="$aloschen__ui_8c.html#afa38eb742b8c844dd4ddc88af34edf8b" title=" " alt="" coords="348,107,418,134"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="498,89,419,114,418,108,493,90"/>
+<area shape="rect" id="Node000008" href="$aloschen__ui_8c.html#ae17dd525146669d39cb5130f6dabcc99" title=" " alt="" coords="118,107,274,134"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="330,121,274,123,274,118,335,120"/>
+<area shape="poly" id="edge8_Node000008_Node000005" title=" " alt="" coords="99,106,70,103,70,98,104,105"/>
+</map>

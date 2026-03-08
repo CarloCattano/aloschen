@@ -1,0 +1,813 @@
+\doxysection{source/\+aloschen.c File Reference}
+\hypertarget{aloschen_8c}{}\label{aloschen_8c}\index{source/aloschen.c@{source/aloschen.c}}
+{\ttfamily \+\#include $<$math.\+h$>$}\newline
+{\ttfamily \+\#include $<$stdarg.\+h$>$}\newline
+{\ttfamily \+\#include $<$stdio.\+h$>$}\newline
+{\ttfamily \+\#include $<$stdlib.\+h$>$}\newline
+{\ttfamily \+\#include $<$string.\+h$>$}\newline
+{\ttfamily \+\#include "{}alo\+\_\+engine.\+h"{}}\newline
+{\ttfamily \+\#include "{}lv2/\+buf-\/size/\+buf-\/size.\+h"{}}\newline
+{\ttfamily \+\#include "{}lv2/\+options/\+options.\+h"{}}\newline
+{\ttfamily \+\#include "{}lv2/\+time/\+time.\+h"{}}\newline
+{\ttfamily \+\#include "{}lv2/\+urid/\+urid.\+h"{}}\newline
+Include dependency graph for aloschen.\+c:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{aloschen_8c__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\+\#define \doxymbox{\hyperlink{aloschen_8c_ae71449b1cc6e6250b91f539153a7a0d3}{M\+\_\+\+PI}}~3.\+14159265358979323846
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+static bool \doxymbox{\hyperlink{aloschen_8c_a1534ac11415e3c1939bd0c1c7a1f4bb0}{log\+\_\+enabled}} (void)
+\item 
+void \doxymbox{\hyperlink{aloschen_8c_a9b35ef520341e7725d0e88b26f013f0d}{alo\+\_\+log}} (const char \texorpdfstring{$\ast$}{*}message,...)
+\item 
+static void \doxymbox{\hyperlink{aloschen_8c_ad02f1b859fea9fa6ff832ac4241f9d63}{sine\+\_\+pulse}} (float \texorpdfstring{$\ast$}{*}target, double frequency, double sample\+\_\+rate, uint32\+\_\+t num\+\_\+samples)
+\item 
+static void \doxymbox{\hyperlink{aloschen_8c_ae88b19c5ebee030b1261eef2f3830bf5}{free\+\_\+instance}} (\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self)
+\item 
+static bool \doxymbox{\hyperlink{aloschen_8c_a35ffffc81b0f616afcf043b871f39a44}{alloc\+\_\+track\+\_\+buffers}} (\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self)
+\item 
+static LV2\+\_\+\+Handle \doxymbox{\hyperlink{aloschen_8c_a7d931ab1bcc93b9e76c5b871259c986b}{instantiate}} (const LV2\+\_\+\+Descriptor \texorpdfstring{$\ast$}{*}\doxymbox{\hyperlink{aloschen_8c_a349808c8f8e70d7b4d57ffda8eceae61}{descriptor}}, double rate, const char \texorpdfstring{$\ast$}{*}bundle\+\_\+path, const LV2\+\_\+\+Feature \texorpdfstring{$\ast$}{*}const \texorpdfstring{$\ast$}{*}features)
+\item 
+static void \doxymbox{\hyperlink{aloschen_8c_a2aa66e1241c1247cd28190d01901f7b8}{connect\+\_\+port}} (LV2\+\_\+\+Handle \doxymbox{\hyperlink{loop__engine_8c_ac797cf19a9583ded1a202726dadbd423}{instance}}, uint32\+\_\+t port, void \texorpdfstring{$\ast$}{*}data)
+\item 
+static void \doxymbox{\hyperlink{aloschen_8c_a7e0cf251ae5e522cd84fc109c91a8c93}{activate}} (LV2\+\_\+\+Handle \doxymbox{\hyperlink{loop__engine_8c_ac797cf19a9583ded1a202726dadbd423}{instance}})
+\item 
+static void \doxymbox{\hyperlink{aloschen_8c_aac7dd426990c4ec19a7b6b7b2fe9c393}{deactivate}} (LV2\+\_\+\+Handle \doxymbox{\hyperlink{loop__engine_8c_ac797cf19a9583ded1a202726dadbd423}{instance}})
+\item 
+static void \doxymbox{\hyperlink{aloschen_8c_a6c677c1af04569f433452541d8ec70f8}{run}} (LV2\+\_\+\+Handle \doxymbox{\hyperlink{loop__engine_8c_ac797cf19a9583ded1a202726dadbd423}{instance}}, uint32\+\_\+t n\+\_\+samples)
+\item 
+static void \doxymbox{\hyperlink{aloschen_8c_a541977c718a94a2594e143ff098735e5}{cleanup}} (LV2\+\_\+\+Handle \doxymbox{\hyperlink{loop__engine_8c_ac797cf19a9583ded1a202726dadbd423}{instance}})
+\item 
+static const void \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{aloschen_8c_a00ab64dc33c0c5480d0e5b514bf65677}{extension\+\_\+data}} (const char \texorpdfstring{$\ast$}{*}uri)
+\item 
+LV2\+\_\+\+SYMBOL\+\_\+\+EXPORT const LV2\+\_\+\+Descriptor \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{aloschen_8c_a85931188a8e12a97aff7512f08dd96a5}{lv2\+\_\+descriptor}} (uint32\+\_\+t index)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+static const LV2\+\_\+\+Descriptor \doxymbox{\hyperlink{aloschen_8c_a349808c8f8e70d7b4d57ffda8eceae61}{descriptor}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{aloschen_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{aloschen_8c_ae71449b1cc6e6250b91f539153a7a0d3}\index{aloschen.c@{aloschen.c}!M\_PI@{M\_PI}}
+\index{M\_PI@{M\_PI}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{M\_PI}{M\_PI}}
+{\footnotesize\ttfamily \label{aloschen_8c_ae71449b1cc6e6250b91f539153a7a0d3} 
+\+\#define M\+\_\+\+PI~3.\+14159265358979323846}
+
+
+
+\label{doc-func-members}
+\Hypertarget{aloschen_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{aloschen_8c_a7e0cf251ae5e522cd84fc109c91a8c93}\index{aloschen.c@{aloschen.c}!activate@{activate}}
+\index{activate@{activate}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{activate()}{activate()}}
+{\footnotesize\ttfamily \label{aloschen_8c_a7e0cf251ae5e522cd84fc109c91a8c93} 
+void activate (\begin{DoxyParamCaption}\item[{LV2\+\_\+\+Handle}]{instance}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00466\ \{}
+\DoxyCodeLine{00467\ \ \ \doxymbox{\hyperlink{structAlo}{Alo}}*\ self\ =\ (\doxymbox{\hyperlink{structAlo}{Alo}}*)\doxymbox{\hyperlink{loop__engine_8c_ac797cf19a9583ded1a202726dadbd423}{instance}};}
+\DoxyCodeLine{00468\ \ \ \doxymbox{\hyperlink{aloschen_8c_a9b35ef520341e7725d0e88b26f013f0d}{alo\_log}}(\textcolor{stringliteral}{"{}Activate"{}});}
+\DoxyCodeLine{00469\ }
+\DoxyCodeLine{00470\ \ \ \textcolor{comment}{/*\ Initialize\ transport/cycle/click\ state\ once\ ports\ are\ connected.\ */}}
+\DoxyCodeLine{00471\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a446b2137af21a9e994214984679f6bc8}{reset}}(self);}
+\DoxyCodeLine{00472\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{aloschen_8c_a7e0cf251ae5e522cd84fc109c91a8c93_cgraph}
+\end{center}
+\end{figure}
+\Hypertarget{aloschen_8c_a35ffffc81b0f616afcf043b871f39a44}\index{aloschen.c@{aloschen.c}!alloc\_track\_buffers@{alloc\_track\_buffers}}
+\index{alloc\_track\_buffers@{alloc\_track\_buffers}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{alloc\_track\_buffers()}{alloc\_track\_buffers()}}
+{\footnotesize\ttfamily \label{aloschen_8c_a35ffffc81b0f616afcf043b871f39a44} 
+bool alloc\+\_\+track\+\_\+buffers (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00127\ \{}
+\DoxyCodeLine{00128\ \ \ \textcolor{keywordflow}{if}\ (!self)\ \{}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00130\ \ \ \}}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_aca84f89334d99f6b88952a417f6f1e0c}{sampler\_src\_buf}}\ =\ (\textcolor{keywordtype}{float}*)calloc(\doxymbox{\hyperlink{alo__engine_8h_a1a60ab095699795391e49b3f9897b574}{LOOP\_SIZE}}\ *\ 2,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00133\ \ \ \textcolor{keywordflow}{if}\ (!self-\/>\doxymbox{\hyperlink{structAlo_aca84f89334d99f6b88952a417f6f1e0c}{sampler\_src\_buf}})\ \{}
+\DoxyCodeLine{00134\ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}ALO:\ sampler\ source\ buffer\ allocation\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00136\ \ \ \}}
+\DoxyCodeLine{00137\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a46ab936eb56d3cd00718c28e88b8a124}{sampler\_src\_buf\_shadow}}\ =\ (\textcolor{keywordtype}{float}*)calloc(\doxymbox{\hyperlink{alo__engine_8h_a1a60ab095699795391e49b3f9897b574}{LOOP\_SIZE}}\ *\ 2,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00138\ \ \ \textcolor{keywordflow}{if}\ (!self-\/>\doxymbox{\hyperlink{structAlo_a46ab936eb56d3cd00718c28e88b8a124}{sampler\_src\_buf\_shadow}})\ \{}
+\DoxyCodeLine{00139\ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}ALO:\ sampler\ shadow\ buffer\ allocation\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00141\ \ \ \}}
+\DoxyCodeLine{00142\ }
+\DoxyCodeLine{00143\ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78}{rt\_block\_cap}}\ ==\ 0u)\ \{}
+\DoxyCodeLine{00144\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78}{rt\_block\_cap}}\ =\ \doxymbox{\hyperlink{alo__engine_8h_a2da0a067cfc804254aa695118d8bd7b3}{ALO\_RT\_BLOCK\_CAP}};}
+\DoxyCodeLine{00145\ \ \ \}}
+\DoxyCodeLine{00146\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a294ed9a8307ba696f9c8e2477ed885df}{rt\_play\_l}}\ \ =\ (\textcolor{keywordtype}{float}*)calloc((\textcolor{keywordtype}{size\_t})self-\/>\doxymbox{\hyperlink{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78}{rt\_block\_cap}},\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00147\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_aa45b344b8823ff4dd7cfdc7c9efb4b57}{rt\_play\_r}}\ \ =\ (\textcolor{keywordtype}{float}*)calloc((\textcolor{keywordtype}{size\_t})self-\/>\doxymbox{\hyperlink{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78}{rt\_block\_cap}},\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00148\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_aa3ff4e6b86388744a0eb18a66002f9ab}{rt\_slice\_l}}\ =\ (\textcolor{keywordtype}{float}*)calloc((\textcolor{keywordtype}{size\_t})self-\/>\doxymbox{\hyperlink{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78}{rt\_block\_cap}},\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00149\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_ac74d0c208c8564a6010a0fd4072a8ef3}{rt\_slice\_r}}\ =\ (\textcolor{keywordtype}{float}*)calloc((\textcolor{keywordtype}{size\_t})self-\/>\doxymbox{\hyperlink{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78}{rt\_block\_cap}},\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00150\ \ \ \textcolor{keywordflow}{if}\ (!self-\/>\doxymbox{\hyperlink{structAlo_a294ed9a8307ba696f9c8e2477ed885df}{rt\_play\_l}}\ ||\ !self-\/>\doxymbox{\hyperlink{structAlo_aa45b344b8823ff4dd7cfdc7c9efb4b57}{rt\_play\_r}}\ ||\ !self-\/>\doxymbox{\hyperlink{structAlo_aa3ff4e6b86388744a0eb18a66002f9ab}{rt\_slice\_l}}\ ||\ !self-\/>\doxymbox{\hyperlink{structAlo_ac74d0c208c8564a6010a0fd4072a8ef3}{rt\_slice\_r}})\ \{}
+\DoxyCodeLine{00151\ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}ALO:\ RT\ scratch\ buffer\ allocation\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00152\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00153\ \ \ \}}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ t\ =\ 0;\ t\ <\ \doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}};\ ++t)\ \{}
+\DoxyCodeLine{00156\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a99702b026d583440e0bd9da00f23b2d6}{loop\_buf}}[t]\ =\ (\textcolor{keywordtype}{float}*)calloc(\doxymbox{\hyperlink{alo__engine_8h_a1a60ab095699795391e49b3f9897b574}{LOOP\_SIZE}}\ *\ 2,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keywordflow}{if}\ (!self-\/>\doxymbox{\hyperlink{structAlo_a99702b026d583440e0bd9da00f23b2d6}{loop\_buf}}[t])\ \{}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}ALO:\ loop\ buffer\ allocation\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00160\ \ \ \ \ \}}
+\DoxyCodeLine{00161\ }
+\DoxyCodeLine{00162\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ \doxymbox{\hyperlink{alo__engine_8h_af51a2c70ae6618f938b7a06a284d4215}{ALO\_MAX\_UNDO\_LAYERS}};\ ++l)\ \{}
+\DoxyCodeLine{00163\ \ \ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_ab6d4e2b2083ac09d4cfaa79f781742b2}{od\_buf}}[t][l]\ =\ (\textcolor{keywordtype}{float}*)calloc(\doxymbox{\hyperlink{alo__engine_8h_a1a60ab095699795391e49b3f9897b574}{LOOP\_SIZE}}\ *\ 2,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00164\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!self-\/>\doxymbox{\hyperlink{structAlo_ab6d4e2b2083ac09d4cfaa79f781742b2}{od\_buf}}[t][l])\ \{}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}ALO:\ overdub\ buffer\ allocation\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00168\ \ \ \ \ \}}
+\DoxyCodeLine{00169\ \ \ \}}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00172\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=293pt]{aloschen_8c_a35ffffc81b0f616afcf043b871f39a44_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{aloschen_8c_a9b35ef520341e7725d0e88b26f013f0d}\index{aloschen.c@{aloschen.c}!alo\_log@{alo\_log}}
+\index{alo\_log@{alo\_log}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{alo\_log()}{alo\_log()}}
+{\footnotesize\ttfamily \label{aloschen_8c_a9b35ef520341e7725d0e88b26f013f0d} 
+void alo\+\_\+log (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{message}{, }\item[{}]{...}{}\end{DoxyParamCaption})}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00051\ \{}
+\DoxyCodeLine{00052\ \ \ \textcolor{keywordflow}{if}\ (!\doxymbox{\hyperlink{aloschen_8c_a1534ac11415e3c1939bd0c1c7a1f4bb0}{log\_enabled}}())\ \{}
+\DoxyCodeLine{00053\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00054\ \ \ \}}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \ \ FILE*\ f\ =\ fopen(\textcolor{stringliteral}{"{}/tmp/alo.log"{}},\ \textcolor{stringliteral}{"{}a"{}});}
+\DoxyCodeLine{00057\ \ \ \textcolor{keywordflow}{if}\ (!f)\ \{}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00059\ \ \ \}}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00061\ \ \ \textcolor{keywordtype}{char}\ \ \ \ buffer[2048];}
+\DoxyCodeLine{00062\ \ \ va\_list\ argumentList;}
+\DoxyCodeLine{00063\ \ \ va\_start(argumentList,\ message);}
+\DoxyCodeLine{00064\ \ \ vsnprintf(buffer,\ \textcolor{keyword}{sizeof}(buffer),\ message,\ argumentList);}
+\DoxyCodeLine{00065\ \ \ va\_end(argumentList);}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \ \ fwrite(buffer,\ 1,\ strlen(buffer),\ f);}
+\DoxyCodeLine{00068\ \ \ fputc(\textcolor{charliteral}{'\(\backslash\)n'},\ f);}
+\DoxyCodeLine{00069\ \ \ fclose(f);}
+\DoxyCodeLine{00070\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=243pt]{aloschen_8c_a9b35ef520341e7725d0e88b26f013f0d_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=236pt]{aloschen_8c_a9b35ef520341e7725d0e88b26f013f0d_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{aloschen_8c_a541977c718a94a2594e143ff098735e5}\index{aloschen.c@{aloschen.c}!cleanup@{cleanup}}
+\index{cleanup@{cleanup}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{cleanup()}{cleanup()}}
+{\footnotesize\ttfamily \label{aloschen_8c_a541977c718a94a2594e143ff098735e5} 
+void cleanup (\begin{DoxyParamCaption}\item[{LV2\+\_\+\+Handle}]{instance}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00544\ \{}
+\DoxyCodeLine{00545\ \ \ \doxymbox{\hyperlink{aloschen_8c_a9b35ef520341e7725d0e88b26f013f0d}{alo\_log}}(\textcolor{stringliteral}{"{}Cleanup"{}});}
+\DoxyCodeLine{00546\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{aloschen_8c_a541977c718a94a2594e143ff098735e5_cgraph}
+\end{center}
+\end{figure}
+\Hypertarget{aloschen_8c_a2aa66e1241c1247cd28190d01901f7b8}\index{aloschen.c@{aloschen.c}!connect\_port@{connect\_port}}
+\index{connect\_port@{connect\_port}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{connect\_port()}{connect\_port()}}
+{\footnotesize\ttfamily \label{aloschen_8c_a2aa66e1241c1247cd28190d01901f7b8} 
+void connect\+\_\+port (\begin{DoxyParamCaption}\item[{LV2\+\_\+\+Handle}]{instance}{, }\item[{uint32\+\_\+t}]{port}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{data}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00332\ \{}
+\DoxyCodeLine{00333\ \ \ \doxymbox{\hyperlink{structAlo}{Alo}}*\ self\ =\ (\doxymbox{\hyperlink{structAlo}{Alo}}*)\doxymbox{\hyperlink{loop__engine_8c_ac797cf19a9583ded1a202726dadbd423}{instance}};}
+\DoxyCodeLine{00334\ }
+\DoxyCodeLine{00335\ \ \ \textcolor{keywordflow}{switch}\ ((\doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007a}{PortIndex}})port)\ \{}
+\DoxyCodeLine{00336\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aae9c9c67a7d2175f59f4a9d56d63ee3c9}{ALO\_INPUT\_L}}:}
+\DoxyCodeLine{00337\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a9664740ac9df8fc2f9e8f378cd36f48d}{input\_l}}\ =\ (\textcolor{keyword}{const}\ \textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00338\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00339\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa11ec9bab04fc2ec4df78ff44470a4442}{ALO\_INPUT\_R}}:}
+\DoxyCodeLine{00340\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_ae46fd2aeb032f12d4888be19c1ea5ba9}{input\_r}}\ =\ (\textcolor{keyword}{const}\ \textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00341\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00342\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaef40890ebfb6571e39b9ffe25b06cc42}{ALO\_OUTPUT\_L}}:}
+\DoxyCodeLine{00343\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_acefe7ad7d1e7c45025f737fb9af45eab}{output\_l}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00344\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00345\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa5cfd0d9032c892fcd2aa83618a1f0504}{ALO\_OUTPUT\_R}}:}
+\DoxyCodeLine{00346\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a8960399010078b141900593132350d8d}{output\_r}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00347\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00348\ }
+\DoxyCodeLine{00349\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa5e0c553415a557c18b29494cf8141056}{ALO\_BARS}}:}
+\DoxyCodeLine{00350\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_ac728727c22b2381295781152764c0234}{bars}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00351\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00352\ }
+\DoxyCodeLine{00353\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa6c31c1afbd98a893eec9f39b581a24d6}{ALO\_CONTROL}}:}
+\DoxyCodeLine{00354\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a4d59a2d1048f3f9122498a85698f57c6}{control}}\ =\ (LV2\_Atom\_Sequence*)data;}
+\DoxyCodeLine{00355\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00356\ }
+\DoxyCodeLine{00357\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa9fa5d129f26973e469da90603898be91}{ALO\_MIDIIN}}:}
+\DoxyCodeLine{00358\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a549f3a873fdc4d5291b2845454a01f22}{midiin}}\ =\ (LV2\_Atom\_Sequence*)data;}
+\DoxyCodeLine{00359\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00360\ }
+\DoxyCodeLine{00361\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa8a64b55f7265084638e05cf7ac27c0a5}{ALO\_SLICE\_ROOT}}:}
+\DoxyCodeLine{00362\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a5d5269f301c6823c3d29509f56d3b03c}{slice\_root}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00363\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00364\ }
+\DoxyCodeLine{00365\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaf7f8b0f10893fe055d9860597963d22f}{ALO\_CLICK}}:}
+\DoxyCodeLine{00366\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a52f633fac33fd033cea590dc47588d0d}{click}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00367\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00368\ }
+\DoxyCodeLine{00369\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa2a2da5a2d9353a08c5369a1ee60b18bd}{ALO\_MIX}}:}
+\DoxyCodeLine{00370\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a40f48607847e08cdadaa8344072e908f}{mix}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00371\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00372\ }
+\DoxyCodeLine{00373\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aad6ea7b56b92fd925fb049b6775d76eef}{ALO\_ENABLED}}:}
+\DoxyCodeLine{00374\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_ab10b26cdeeb4de03d1555cf2d96b9657}{enabled}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00375\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00376\ }
+\DoxyCodeLine{00377\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aacf4f205652d7074f611130a689d2434d}{ALO\_LOOP1}}:}
+\DoxyCodeLine{00378\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a2b757f0bf85ac834659ced75dde71b95}{loop\_btn}}[0]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00379\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00380\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa7fe7ab71d0577309be90157b42ca190f}{ALO\_UNDO1}}:}
+\DoxyCodeLine{00381\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a991fce49eb4afda7bf2766dbbb6fa2c2}{undo\_btn}}[0]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00382\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00383\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaeabb3ae56ebfd776307aa7a4a8579cc6}{ALO\_LOOP2}}:}
+\DoxyCodeLine{00384\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a2b757f0bf85ac834659ced75dde71b95}{loop\_btn}}[1]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00385\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00386\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa44b23c08d9111d0488e88e3e5d5d7f81}{ALO\_UNDO2}}:}
+\DoxyCodeLine{00387\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a991fce49eb4afda7bf2766dbbb6fa2c2}{undo\_btn}}[1]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00388\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00389\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa503b54e108f9949494e5561b8407e918}{ALO\_LOOP3}}:}
+\DoxyCodeLine{00390\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a2b757f0bf85ac834659ced75dde71b95}{loop\_btn}}[2]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00391\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00392\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa57896362c367b14f1ab4996397f08902}{ALO\_UNDO3}}:}
+\DoxyCodeLine{00393\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a991fce49eb4afda7bf2766dbbb6fa2c2}{undo\_btn}}[2]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00394\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00395\ }
+\DoxyCodeLine{00396\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaffc1969684a7d244c63b15e3ac7079ea}{ALO\_LOOP1\_VOL}}:}
+\DoxyCodeLine{00397\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a4fbd1d138340aa69e695652da71b5238}{loop\_vol}}[0]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00398\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00399\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaa492d80950350f878565cf6d53a4a3c6}{ALO\_LOOP2\_VOL}}:}
+\DoxyCodeLine{00400\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a4fbd1d138340aa69e695652da71b5238}{loop\_vol}}[1]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00401\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00402\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa6d1c4068d84df525b206a3046018829e}{ALO\_LOOP3\_VOL}}:}
+\DoxyCodeLine{00403\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a4fbd1d138340aa69e695652da71b5238}{loop\_vol}}[2]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00404\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00405\ }
+\DoxyCodeLine{00406\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaf69856bfb53581b20eb92d98c4f44ea1}{ALO\_SAMPLER\_VOL}}:}
+\DoxyCodeLine{00407\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_ae4e2451041bc51eb2944c0ce8e83270a}{sampler\_vol}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00408\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00409\ }
+\DoxyCodeLine{00410\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa384c632a69e0e70016687d8b33bee052}{ALO\_SLICES\_PER\_BAR}}:}
+\DoxyCodeLine{00411\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a751e23f91611a31e01db67d76a9684e4}{slices\_per\_bar}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00412\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00413\ }
+\DoxyCodeLine{00414\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa0680e2171a368dbfdbe262d5ddbb840a}{ALO\_LOOP1\_STATE}}:}
+\DoxyCodeLine{00415\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a13d2ebad953ff08e4e6401528d04863b}{loop\_state\_out}}[0]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00416\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00417\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa88b891c505e776945fab1f12d924966c}{ALO\_LOOP2\_STATE}}:}
+\DoxyCodeLine{00418\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a13d2ebad953ff08e4e6401528d04863b}{loop\_state\_out}}[1]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00419\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00420\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa26529954e89fa4c891825205c4460b7d}{ALO\_LOOP3\_STATE}}:}
+\DoxyCodeLine{00421\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a13d2ebad953ff08e4e6401528d04863b}{loop\_state\_out}}[2]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00422\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00423\ }
+\DoxyCodeLine{00424\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaa1031f40adaa3f6a4af4648d514be744}{ALO\_UNDO1\_STATE}}:}
+\DoxyCodeLine{00425\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_af9a5286aaa79843a99ab64aa920f7f11}{undo\_state\_out}}[0]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00426\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00427\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaae7c120ed92be6bd9591d0e4a0007b07}{ALO\_UNDO2\_STATE}}:}
+\DoxyCodeLine{00428\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_af9a5286aaa79843a99ab64aa920f7f11}{undo\_state\_out}}[1]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00429\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00430\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa48e039ff439dd4d2ded51a2d260c3294}{ALO\_UNDO3\_STATE}}:}
+\DoxyCodeLine{00431\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_af9a5286aaa79843a99ab64aa920f7f11}{undo\_state\_out}}[2]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00432\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00433\ }
+\DoxyCodeLine{00434\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa59684ae83b002f2c90cf85351c08a9bd}{ALO\_LOOP1\_HAS\_AUDIO}}:}
+\DoxyCodeLine{00435\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_aced8b1a256795b956077bfeadf256560}{has\_audio\_out}}[0]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00436\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00437\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aadfc90f945d98f03c0bb4f8a03854074a}{ALO\_LOOP2\_HAS\_AUDIO}}:}
+\DoxyCodeLine{00438\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_aced8b1a256795b956077bfeadf256560}{has\_audio\_out}}[1]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00439\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00440\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa5293c90078bdf930ef92d1c993c44b46}{ALO\_LOOP3\_HAS\_AUDIO}}:}
+\DoxyCodeLine{00441\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_aced8b1a256795b956077bfeadf256560}{has\_audio\_out}}[2]\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00442\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00443\ }
+\DoxyCodeLine{00444\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaa25f3bdac087be7851c35f589c4b4916}{ALO\_BAR\_STEP}}:}
+\DoxyCodeLine{00445\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a1d4f41679c7e08cf6211fa19931a7f72}{bar\_step\_out}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00446\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00447\ }
+\DoxyCodeLine{00448\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa34112032aeab8dbce885ab94348ab818}{ALO\_CYCLE\_PHASE}}:}
+\DoxyCodeLine{00449\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_aa84991f0c9a9dc801aa24e4b3095ce3b}{cycle\_phase\_out}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00450\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00451\ }
+\DoxyCodeLine{00452\ \ \ \textcolor{keywordflow}{case}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa35acdce0d645bc4eb165b16b8dce4e4d}{ALO\_HOST\_BAR\_PHASE}}:}
+\DoxyCodeLine{00453\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_aaa2b6d831ec4354171a4c5474db982e7}{host\_bar\_phase\_out}}\ =\ (\textcolor{keywordtype}{float}*)data;}
+\DoxyCodeLine{00454\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00455\ }
+\DoxyCodeLine{00456\ \ \ \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{00457\ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00458\ \ \ \}}
+\DoxyCodeLine{00459\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{aloschen_8c_a2aa66e1241c1247cd28190d01901f7b8_cgraph}
+\end{center}
+\end{figure}
+\Hypertarget{aloschen_8c_aac7dd426990c4ec19a7b6b7b2fe9c393}\index{aloschen.c@{aloschen.c}!deactivate@{deactivate}}
+\index{deactivate@{deactivate}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{deactivate()}{deactivate()}}
+{\footnotesize\ttfamily \label{aloschen_8c_aac7dd426990c4ec19a7b6b7b2fe9c393} 
+void deactivate (\begin{DoxyParamCaption}\item[{LV2\+\_\+\+Handle}]{instance}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00475\ \{}
+\DoxyCodeLine{00476\ \ \ (void)\doxymbox{\hyperlink{loop__engine_8c_ac797cf19a9583ded1a202726dadbd423}{instance}};}
+\DoxyCodeLine{00477\ \ \ \doxymbox{\hyperlink{aloschen_8c_a9b35ef520341e7725d0e88b26f013f0d}{alo\_log}}(\textcolor{stringliteral}{"{}Deactivate"{}});}
+\DoxyCodeLine{00478\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{aloschen_8c_aac7dd426990c4ec19a7b6b7b2fe9c393_cgraph}
+\end{center}
+\end{figure}
+\Hypertarget{aloschen_8c_a00ab64dc33c0c5480d0e5b514bf65677}\index{aloschen.c@{aloschen.c}!extension\_data@{extension\_data}}
+\index{extension\_data@{extension\_data}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{extension\_data()}{extension\_data()}}
+{\footnotesize\ttfamily \label{aloschen_8c_a00ab64dc33c0c5480d0e5b514bf65677} 
+const void \texorpdfstring{$\ast$}{*} extension\+\_\+data (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{uri}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00553\ \{}
+\DoxyCodeLine{00554\ \ \ (void)uri;}
+\DoxyCodeLine{00555\ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00556\ \}}
+
+\end{DoxyCode}
+\Hypertarget{aloschen_8c_ae88b19c5ebee030b1261eef2f3830bf5}\index{aloschen.c@{aloschen.c}!free\_instance@{free\_instance}}
+\index{free\_instance@{free\_instance}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{free\_instance()}{free\_instance()}}
+{\footnotesize\ttfamily \label{aloschen_8c_ae88b19c5ebee030b1261eef2f3830bf5} 
+void free\+\_\+instance (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00099\ \{}
+\DoxyCodeLine{00100\ \ \ \textcolor{keywordflow}{if}\ (!self)\ \{}
+\DoxyCodeLine{00101\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00102\ \ \ \}}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ t\ =\ 0;\ t\ <\ \doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}};\ ++t)\ \{}
+\DoxyCodeLine{00105\ \ \ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_a99702b026d583440e0bd9da00f23b2d6}{loop\_buf}}[t]);}
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ \doxymbox{\hyperlink{alo__engine_8h_af51a2c70ae6618f938b7a06a284d4215}{ALO\_MAX\_UNDO\_LAYERS}};\ ++l)\ \{}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_ab6d4e2b2083ac09d4cfaa79f781742b2}{od\_buf}}[t][l]);}
+\DoxyCodeLine{00108\ \ \ \ \ \}}
+\DoxyCodeLine{00109\ \ \ \}}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_aae235dd6c4cf8ce4485a009c635910cd}{high\_beat}});}
+\DoxyCodeLine{00112\ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_a37d4511cac8307372c8d4841127eb991}{low\_beat}});}
+\DoxyCodeLine{00113\ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_a1a1b9cc7f84b9772b2b159b3d042f813}{start\_beat}});}
+\DoxyCodeLine{00114\ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_aca84f89334d99f6b88952a417f6f1e0c}{sampler\_src\_buf}});}
+\DoxyCodeLine{00115\ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_a46ab936eb56d3cd00718c28e88b8a124}{sampler\_src\_buf\_shadow}});}
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{/*\ release\ slice\ sampler\ buffers\ as\ well\ */}}
+\DoxyCodeLine{00117\ \ \ \doxymbox{\hyperlink{slice__sampler_8c_acadf02477e536f0f50236de259ba4656}{alo\_slice\_sampler\_free\_buffers}}(\&self-\/>\doxymbox{\hyperlink{structAlo_aadaef3a62865e4bb6caccb008f06952f}{slice\_sampler}});}
+\DoxyCodeLine{00118\ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_a294ed9a8307ba696f9c8e2477ed885df}{rt\_play\_l}});}
+\DoxyCodeLine{00119\ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_aa45b344b8823ff4dd7cfdc7c9efb4b57}{rt\_play\_r}});}
+\DoxyCodeLine{00120\ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_aa3ff4e6b86388744a0eb18a66002f9ab}{rt\_slice\_l}});}
+\DoxyCodeLine{00121\ \ \ free(self-\/>\doxymbox{\hyperlink{structAlo_ac74d0c208c8564a6010a0fd4072a8ef3}{rt\_slice\_r}});}
+\DoxyCodeLine{00122\ \ \ free(self);}
+\DoxyCodeLine{00123\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=327pt]{aloschen_8c_ae88b19c5ebee030b1261eef2f3830bf5_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=267pt]{aloschen_8c_ae88b19c5ebee030b1261eef2f3830bf5_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{aloschen_8c_a7d931ab1bcc93b9e76c5b871259c986b}\index{aloschen.c@{aloschen.c}!instantiate@{instantiate}}
+\index{instantiate@{instantiate}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{instantiate()}{instantiate()}}
+{\footnotesize\ttfamily \label{aloschen_8c_a7d931ab1bcc93b9e76c5b871259c986b} 
+LV2\+\_\+\+Handle instantiate (\begin{DoxyParamCaption}\item[{const LV2\+\_\+\+Descriptor \texorpdfstring{$\ast$}{*}}]{descriptor}{, }\item[{double}]{rate}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{bundle\+\_\+path}{, }\item[{const LV2\+\_\+\+Feature \texorpdfstring{$\ast$}{*}const \texorpdfstring{$\ast$}{*}}]{features}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00179\ \{}
+\DoxyCodeLine{00180\ \ \ (void)\doxymbox{\hyperlink{aloschen_8c_a349808c8f8e70d7b4d57ffda8eceae61}{descriptor}};}
+\DoxyCodeLine{00181\ \ \ (void)bundle\_path;}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \ \ \doxymbox{\hyperlink{aloschen_8c_a9b35ef520341e7725d0e88b26f013f0d}{alo\_log}}(\textcolor{stringliteral}{"{}Instantiate"{}});}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00185\ \ \ \doxymbox{\hyperlink{structAlo}{Alo}}*\ self\ =\ (\doxymbox{\hyperlink{structAlo}{Alo}}*)calloc(1,\ \textcolor{keyword}{sizeof}(\doxymbox{\hyperlink{structAlo}{Alo}}));}
+\DoxyCodeLine{00186\ \ \ \textcolor{keywordflow}{if}\ (!self)\ \{}
+\DoxyCodeLine{00187\ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00188\ \ \ \}}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00190\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_aad4a12f62c42152252e206c74f460efe}{rate}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ =\ rate;}
+\DoxyCodeLine{00191\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_aadaef3a62865e4bb6caccb008f06952f}{slice\_sampler}}.\doxymbox{\hyperlink{structAloSliceSampler_adddd44824a927fa12b6155ac80020336}{rate}}\ \ \ \ \ \ \ =\ (float)rate;}
+\DoxyCodeLine{00192\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_ab714256fce303232d51dec2d282a14b9}{sampler\_src\_shadow\_valid}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00193\ }
+\DoxyCodeLine{00194\ \ \ \textcolor{comment}{/*\ Preallocate\ per-\/slice\ audio\ buffers\ so\ the\ sampler\ can\ copy\ data}}
+\DoxyCodeLine{00195\ \textcolor{comment}{\ \ \ *\ without\ any\ heap\ allocation\ in\ the\ audio\ thread.\ LOOP\_SIZE\ is\ the}}
+\DoxyCodeLine{00196\ \textcolor{comment}{\ \ \ *\ worst-\/case\ slice\ length\ (one\ full\ loop)\ and\ we\ always\ use\ stereo.}}
+\DoxyCodeLine{00197\ \textcolor{comment}{\ \ \ */}}
+\DoxyCodeLine{00198\ \ \ \textcolor{keywordflow}{if}\ (!\doxymbox{\hyperlink{slice__sampler_8c_ad14e222625455db5b8471ab252ab4572}{alo\_slice\_sampler\_alloc\_buffers}}(\&self-\/>\doxymbox{\hyperlink{structAlo_aadaef3a62865e4bb6caccb008f06952f}{slice\_sampler}},\ \doxymbox{\hyperlink{alo__engine_8h_a1a60ab095699795391e49b3f9897b574}{LOOP\_SIZE}},\ 2))\ \{}
+\DoxyCodeLine{00199\ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}ALO:\ slice\ sampler\ buffer\ allocation\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00200\ \ \ \ \ \textcolor{keywordflow}{goto}\ fail;}
+\DoxyCodeLine{00201\ \ \ \}}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_af50f56d63ced84a5a92d080683a6a790}{bpb}}\ \ \ \ \ \ \ \ \ \ =\ \doxymbox{\hyperlink{alo__engine_8h_a49d82f0074355ec53a1a14d02eb5366d}{DEFAULT\_BEATS\_PER\_BAR}};}
+\DoxyCodeLine{00204\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a0be5d351a5b44d8b268dd3c83829a7db}{loop\_beats}}\ \ \ =\ \doxymbox{\hyperlink{alo__engine_8h_a49d82f0074355ec53a1a14d02eb5366d}{DEFAULT\_BEATS\_PER\_BAR}}\ *\ \doxymbox{\hyperlink{alo__engine_8h_a63501bf61db59ce85d14e72b206c1771}{DEFAULT\_NUM\_BARS}};}
+\DoxyCodeLine{00205\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_afa02d54c301de80eecdd75c54405a267}{bpm}}\ \ \ \ \ \ \ \ \ \ =\ \doxymbox{\hyperlink{alo__engine_8h_a99966584d585741a397f4a0719321cc1}{DEFAULT\_BPM}};}
+\DoxyCodeLine{00206\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a11ae2c9abcf459661cb1b5aa2bd36541}{loop\_samples}}\ =\ (uint32\_t)(self-\/>\doxymbox{\hyperlink{structAlo_a0be5d351a5b44d8b268dd3c83829a7db}{loop\_beats}}\ *\ self-\/>\doxymbox{\hyperlink{structAlo_aad4a12f62c42152252e206c74f460efe}{rate}}\ *\ 60.0f\ /\ self-\/>\doxymbox{\hyperlink{structAlo_afa02d54c301de80eecdd75c54405a267}{bpm}});}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a21e17a51a7850b2968f191c609488eb2}{have\_last\_enabled}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00209\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a3beebf9aaff4853d378e5197da454016}{last\_enabled}}\ \ \ \ \ \ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \ \ LV2\_URID\_Map*\ map\ =\ NULL;}
+\DoxyCodeLine{00212\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ features[i];\ ++i)\ \{}
+\DoxyCodeLine{00213\ \ \ \ \ \textcolor{keywordflow}{if}\ (!strcmp(features[i]-\/>URI,\ LV2\_URID\_URI\ \textcolor{stringliteral}{"{}\#map"{}}))\ \{}
+\DoxyCodeLine{00214\ \ \ \ \ \ \ map\ =\ (LV2\_URID\_Map*)features[i]-\/>data;}
+\DoxyCodeLine{00215\ \ \ \ \ \}}
+\DoxyCodeLine{00216\ \ \ \}}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \ \ \textcolor{keywordflow}{if}\ (!map)\ \{}
+\DoxyCodeLine{00219\ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}Host\ does\ not\ support\ urid:map.\(\backslash\)n"{}});}
+\DoxyCodeLine{00220\ \ \ \ \ \textcolor{keywordflow}{goto}\ fail;}
+\DoxyCodeLine{00221\ \ \ \}}
+\DoxyCodeLine{00222\ }
+\DoxyCodeLine{00223\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a9ba5243020fef33befa9d57bcdf71462}{map}}\ =\ map;}
+\DoxyCodeLine{00224\ }
+\DoxyCodeLine{00225\ \ \ \doxymbox{\hyperlink{structAloURIs}{AloURIs}}*\ \textcolor{keyword}{const}\ uris\ \ \ \ \ \ \ =\ \&self-\/>\doxymbox{\hyperlink{structAlo_ab8a0958a50f48e58fa6e60588d71efa6}{uris}};}
+\DoxyCodeLine{00226\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_ae3e284855c62d4e25ed877f519fe858d}{atom\_Blank}}\ \ \ \ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_ATOM\_\_Blank);}
+\DoxyCodeLine{00227\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a6cdc84ef9f659eb17193085ef96e7c52}{atom\_Float}}\ \ \ \ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_ATOM\_\_Float);}
+\DoxyCodeLine{00228\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a321f3d169533b6e22bc08e53c18fa2ed}{atom\_Int}}\ \ \ \ \ \ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_ATOM\_\_Int);}
+\DoxyCodeLine{00229\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a4c7305a0a18238113240fedff324361f}{atom\_Long}}\ \ \ \ \ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_ATOM\_\_Long);}
+\DoxyCodeLine{00230\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a9dc6ad244d08585d8d17e2dd42a6c8c6}{atom\_Object}}\ \ \ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_ATOM\_\_Object);}
+\DoxyCodeLine{00231\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a201915debf642893790f571055547040}{atom\_Path}}\ \ \ \ \ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_ATOM\_\_Path);}
+\DoxyCodeLine{00232\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a26d9d528119146f438fa68c5a37bf340}{atom\_Resource}}\ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_ATOM\_\_Resource);}
+\DoxyCodeLine{00233\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a150af5bedc8e835cce46b1c041e774c6}{atom\_Sequence}}\ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_ATOM\_\_Sequence);}
+\DoxyCodeLine{00234\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_ae7d1126537f31e420fd426fcb4c0e41a}{time\_Position}}\ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_TIME\_\_Position);}
+\DoxyCodeLine{00235\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a0ce439ac97fdcd81f4c79fe1e6cac7ac}{time\_beat}}\ \ \ \ \ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_TIME\_\_beat);}
+\DoxyCodeLine{00236\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_aa46353c263f73a7aef3091a17ce32f43}{time\_barBeat}}\ \ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_TIME\_\_barBeat);}
+\DoxyCodeLine{00237\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a604b6c4d03b6679ab55d51a16b66de13}{time\_bar}}\ \ \ \ \ \ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_TIME\_\_bar);}
+\DoxyCodeLine{00238\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a00594d8e1faab224d255d80d63702a00}{time\_beatsPerMinute}}\ =\ map-\/>map(map-\/>handle,\ LV2\_TIME\_\_beatsPerMinute);}
+\DoxyCodeLine{00239\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a95c362660f346aa085c46a7a3a5c2b1f}{time\_speed}}\ \ \ \ \ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_TIME\_\_speed);}
+\DoxyCodeLine{00240\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_ae8f5dd232c8565d75351981e32b2bd5a}{time\_beatsPerBar}}\ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_TIME\_\_beatsPerBar);}
+\DoxyCodeLine{00241\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a6a6f5a0f0aac818b03925e54e6ef23de}{midi\_MidiEvent}}\ \ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_MIDI\_\_MidiEvent);}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a881f4e05d37044443eada680196e3268}{bufsz\_maxBlockLength}}\ \ \ \ \ =\ map-\/>map(map-\/>handle,\ LV2\_BUF\_SIZE\_\_maxBlockLength);}
+\DoxyCodeLine{00244\ \ \ uris-\/>\doxymbox{\hyperlink{structAloURIs_a7df2dabdb0746337c6a9b0f25ae9442e}{bufsz\_nominalBlockLength}}\ =\ map-\/>map(map-\/>handle,\ LV2\_BUF\_SIZE\_\_nominalBlockLength);}
+\DoxyCodeLine{00245\ }
+\DoxyCodeLine{00246\ \ \ \textcolor{comment}{/*\ Determine\ RT\ scratch\ capacity\ from\ LV2\ options\ (instantiate-\/time\ only).\ */}}
+\DoxyCodeLine{00247\ \ \ uint32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ opt\_nominal\ =\ 0u;}
+\DoxyCodeLine{00248\ \ \ uint32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ opt\_max\ \ \ \ \ =\ 0u;}
+\DoxyCodeLine{00249\ \ \ \textcolor{keyword}{const}\ LV2\_Options\_Option*\ options\ \ \ \ \ =\ NULL;}
+\DoxyCodeLine{00250\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ features[i];\ ++i)\ \{}
+\DoxyCodeLine{00251\ \ \ \ \ \textcolor{keywordflow}{if}\ (!strcmp(features[i]-\/>URI,\ LV2\_OPTIONS\_\_options))\ \{}
+\DoxyCodeLine{00252\ \ \ \ \ \ \ options\ =\ (\textcolor{keyword}{const}\ LV2\_Options\_Option*)features[i]-\/>data;}
+\DoxyCodeLine{00253\ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00254\ \ \ \ \ \}}
+\DoxyCodeLine{00255\ \ \ \}}
+\DoxyCodeLine{00256\ \ \ \textcolor{keywordflow}{if}\ (options)\ \{}
+\DoxyCodeLine{00257\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keyword}{const}\ LV2\_Options\_Option*\ o\ =\ options;\ o-\/>key;\ ++o)\ \{}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ uint32\_t\ v\ =\ 0u;}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (o-\/>type\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a321f3d169533b6e22bc08e53c18fa2ed}{atom\_Int}}\ \&\&\ o-\/>value)\ \{}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ int32\_t\ vi\ =\ *(\textcolor{keyword}{const}\ int32\_t*)o-\/>value;}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (vi\ >\ 0)\ \{}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ \ \ \ \ v\ =\ (uint32\_t)vi;}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (o-\/>type\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a4c7305a0a18238113240fedff324361f}{atom\_Long}}\ \&\&\ o-\/>value)\ \{}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ int64\_t\ vl\ =\ *(\textcolor{keyword}{const}\ int64\_t*)o-\/>value;}
+\DoxyCodeLine{00266\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (vl\ >\ 0\ \&\&\ vl\ <=\ (int64\_t)UINT32\_MAX)\ \{}
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \ \ \ \ v\ =\ (uint32\_t)vl;}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00269\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (v\ ==\ 0u)\ \{}
+\DoxyCodeLine{00272\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{00273\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00275\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (o-\/>key\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a7df2dabdb0746337c6a9b0f25ae9442e}{bufsz\_nominalBlockLength}})\ \{}
+\DoxyCodeLine{00276\ \ \ \ \ \ \ \ \ opt\_nominal\ =\ v;}
+\DoxyCodeLine{00277\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (o-\/>key\ ==\ uris-\/>\doxymbox{\hyperlink{structAloURIs_a881f4e05d37044443eada680196e3268}{bufsz\_maxBlockLength}})\ \{}
+\DoxyCodeLine{00278\ \ \ \ \ \ \ \ \ opt\_max\ =\ v;}
+\DoxyCodeLine{00279\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00280\ \ \ \ \ \}}
+\DoxyCodeLine{00281\ \ \ \}}
+\DoxyCodeLine{00282\ }
+\DoxyCodeLine{00283\ \ \ \textcolor{comment}{//\ TODO:\ Comment\ this\ logic}}
+\DoxyCodeLine{00284\ \ \ uint32\_t\ cap\ =\ \doxymbox{\hyperlink{alo__engine_8h_a2da0a067cfc804254aa695118d8bd7b3}{ALO\_RT\_BLOCK\_CAP}};}
+\DoxyCodeLine{00285\ \ \ \textcolor{keywordflow}{if}\ (opt\_max\ !=\ 0u)\ \{}
+\DoxyCodeLine{00286\ \ \ \ \ cap\ =\ opt\_max;}
+\DoxyCodeLine{00287\ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (opt\_nominal\ !=\ 0u)\ \{}
+\DoxyCodeLine{00288\ \ \ \ \ cap\ =\ opt\_nominal;}
+\DoxyCodeLine{00289\ \ \ \}}
+\DoxyCodeLine{00290\ \ \ \textcolor{keywordflow}{if}\ (cap\ ==\ 0u)\ \{}
+\DoxyCodeLine{00291\ \ \ \ \ cap\ =\ \doxymbox{\hyperlink{alo__engine_8h_a2da0a067cfc804254aa695118d8bd7b3}{ALO\_RT\_BLOCK\_CAP}};}
+\DoxyCodeLine{00292\ \ \ \}}
+\DoxyCodeLine{00293\ \ \ \textcolor{keywordflow}{if}\ (cap\ >\ \doxymbox{\hyperlink{alo__engine_8h_a2da0a067cfc804254aa695118d8bd7b3}{ALO\_RT\_BLOCK\_CAP}})\ \{}
+\DoxyCodeLine{00294\ \ \ \ \ cap\ =\ \doxymbox{\hyperlink{alo__engine_8h_a2da0a067cfc804254aa695118d8bd7b3}{ALO\_RT\_BLOCK\_CAP}};}
+\DoxyCodeLine{00295\ \ \ \}}
+\DoxyCodeLine{00296\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78}{rt\_block\_cap}}\ =\ cap;}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00298\ \ \ \textcolor{keywordflow}{if}\ (!\doxymbox{\hyperlink{aloschen_8c_a35ffffc81b0f616afcf043b871f39a44}{alloc\_track\_buffers}}(self))\ \{}
+\DoxyCodeLine{00299\ \ \ \ \ \textcolor{keywordflow}{goto}\ fail;}
+\DoxyCodeLine{00300\ \ \ \}}
+\DoxyCodeLine{00301\ }
+\DoxyCodeLine{00302\ \ \ \textcolor{comment}{/*\ Generate\ pulses\ for\ the\ metronome\ */}}
+\DoxyCodeLine{00303\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}}\ \ \ =\ (uint32\_t)(0.02f\ *\ self-\/>\doxymbox{\hyperlink{structAlo_aad4a12f62c42152252e206c74f460efe}{rate}});}
+\DoxyCodeLine{00304\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_aae235dd6c4cf8ce4485a009c635910cd}{high\_beat}}\ \ =\ (\textcolor{keywordtype}{float}*)malloc(self-\/>\doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}}\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00305\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a37d4511cac8307372c8d4841127eb991}{low\_beat}}\ \ \ =\ (\textcolor{keywordtype}{float}*)malloc(self-\/>\doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}}\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00306\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a1a1b9cc7f84b9772b2b159b3d042f813}{start\_beat}}\ =\ (\textcolor{keywordtype}{float}*)malloc(self-\/>\doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}}\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00307\ }
+\DoxyCodeLine{00308\ \ \ \textcolor{keywordflow}{if}\ (!self-\/>\doxymbox{\hyperlink{structAlo_aae235dd6c4cf8ce4485a009c635910cd}{high\_beat}}\ ||\ !self-\/>\doxymbox{\hyperlink{structAlo_a37d4511cac8307372c8d4841127eb991}{low\_beat}}\ ||\ !self-\/>\doxymbox{\hyperlink{structAlo_a1a1b9cc7f84b9772b2b159b3d042f813}{start\_beat}})\ \{}
+\DoxyCodeLine{00309\ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}ALO:\ click\ allocation\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00310\ \ \ \ \ \textcolor{keywordflow}{goto}\ fail;}
+\DoxyCodeLine{00311\ \ \ \}}
+\DoxyCodeLine{00312\ }
+\DoxyCodeLine{00313\ \ \ \doxymbox{\hyperlink{aloschen_8c_ad02f1b859fea9fa6ff832ac4241f9d63}{sine\_pulse}}(self-\/>\doxymbox{\hyperlink{structAlo_aae235dd6c4cf8ce4485a009c635910cd}{high\_beat}},\ \doxymbox{\hyperlink{alo__engine_8h_a20f40cba3240b2de5b6153dc907954fc}{HIGH\_BEAT\_FREQ}},\ self-\/>\doxymbox{\hyperlink{structAlo_aad4a12f62c42152252e206c74f460efe}{rate}},\ self-\/>\doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}});}
+\DoxyCodeLine{00314\ \ \ \doxymbox{\hyperlink{aloschen_8c_ad02f1b859fea9fa6ff832ac4241f9d63}{sine\_pulse}}(self-\/>\doxymbox{\hyperlink{structAlo_a37d4511cac8307372c8d4841127eb991}{low\_beat}},\ \doxymbox{\hyperlink{alo__engine_8h_a397b9d343c4a798cdf91cb5b408091fc}{LOW\_BEAT\_FREQ}},\ self-\/>\doxymbox{\hyperlink{structAlo_aad4a12f62c42152252e206c74f460efe}{rate}},\ self-\/>\doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}});}
+\DoxyCodeLine{00315\ \ \ \doxymbox{\hyperlink{aloschen_8c_ad02f1b859fea9fa6ff832ac4241f9d63}{sine\_pulse}}(self-\/>\doxymbox{\hyperlink{structAlo_a1a1b9cc7f84b9772b2b159b3d042f813}{start\_beat}},\ \doxymbox{\hyperlink{alo__engine_8h_a32d4b98accbfc0efcd0a1d56675f74e7}{START\_BEAT\_FREQ}},\ self-\/>\doxymbox{\hyperlink{structAlo_aad4a12f62c42152252e206c74f460efe}{rate}},\ self-\/>\doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}});}
+\DoxyCodeLine{00316\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_aa107aa1547ec3b6233d576c2946a9f7e}{high\_beat\_offset}}\ \ =\ self-\/>\doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}};}
+\DoxyCodeLine{00317\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a54798dac7ac49de68b5884e3203bd4c9}{low\_beat\_offset}}\ \ \ =\ self-\/>\doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}};}
+\DoxyCodeLine{00318\ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a1c44580c43be41d14ec758b87e64c6cb}{start\_beat\_offset}}\ =\ self-\/>\doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}};}
+\DoxyCodeLine{00319\ }
+\DoxyCodeLine{00320\ \ \ \textcolor{keywordflow}{return}\ (LV2\_Handle)self;}
+\DoxyCodeLine{00321\ }
+\DoxyCodeLine{00322\ fail:}
+\DoxyCodeLine{00323\ \ \ \doxymbox{\hyperlink{aloschen_8c_ae88b19c5ebee030b1261eef2f3830bf5}{free\_instance}}(self);}
+\DoxyCodeLine{00324\ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00325\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{aloschen_8c_a7d931ab1bcc93b9e76c5b871259c986b_cgraph}
+\end{center}
+\end{figure}
+\Hypertarget{aloschen_8c_a1534ac11415e3c1939bd0c1c7a1f4bb0}\index{aloschen.c@{aloschen.c}!log\_enabled@{log\_enabled}}
+\index{log\_enabled@{log\_enabled}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{log\_enabled()}{log\_enabled()}}
+{\footnotesize\ttfamily \label{aloschen_8c_a1534ac11415e3c1939bd0c1c7a1f4bb0} 
+bool log\+\_\+enabled (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00044\ \{}
+\DoxyCodeLine{00045\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ v\ =\ getenv(\textcolor{stringliteral}{"{}ALO\_LOG"{}});}
+\DoxyCodeLine{00046\ \ \ \textcolor{keywordflow}{return}\ v\ \&\&\ (v[0]\ ==\ \textcolor{charliteral}{'1'}\ ||\ v[0]\ ==\ \textcolor{charliteral}{'y'}\ ||\ v[0]\ ==\ \textcolor{charliteral}{'Y'}\ ||\ v[0]\ ==\ \textcolor{charliteral}{'t'}\ ||\ v[0]\ ==\ \textcolor{charliteral}{'T'});}
+\DoxyCodeLine{00047\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=347pt]{aloschen_8c_a1534ac11415e3c1939bd0c1c7a1f4bb0_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{aloschen_8c_a85931188a8e12a97aff7512f08dd96a5}\index{aloschen.c@{aloschen.c}!lv2\_descriptor@{lv2\_descriptor}}
+\index{lv2\_descriptor@{lv2\_descriptor}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{lv2\_descriptor()}{lv2\_descriptor()}}
+{\footnotesize\ttfamily \label{aloschen_8c_a85931188a8e12a97aff7512f08dd96a5} 
+LV2\+\_\+\+SYMBOL\+\_\+\+EXPORT const LV2\+\_\+\+Descriptor \texorpdfstring{$\ast$}{*} lv2\+\_\+descriptor (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{index}{}\end{DoxyParamCaption})}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00576\ \{}
+\DoxyCodeLine{00577\ \ \ \textcolor{keywordflow}{switch}\ (index)\ \{}
+\DoxyCodeLine{00578\ \ \ \textcolor{keywordflow}{case}\ 0:}
+\DoxyCodeLine{00579\ \ \ \ \ \textcolor{keywordflow}{return}\ \&\doxymbox{\hyperlink{aloschen_8c_a349808c8f8e70d7b4d57ffda8eceae61}{descriptor}};}
+\DoxyCodeLine{00580\ \ \ \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{00581\ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00582\ \ \ \}}
+\DoxyCodeLine{00583\ \}}
+
+\end{DoxyCode}
+\Hypertarget{aloschen_8c_a6c677c1af04569f433452541d8ec70f8}\index{aloschen.c@{aloschen.c}!run@{run}}
+\index{run@{run}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}}
+{\footnotesize\ttfamily \label{aloschen_8c_a6c677c1af04569f433452541d8ec70f8} 
+void run (\begin{DoxyParamCaption}\item[{LV2\+\_\+\+Handle}]{instance}{, }\item[{uint32\+\_\+t}]{n\+\_\+samples}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00485\ \{}
+\DoxyCodeLine{00486\ \ \ \doxymbox{\hyperlink{structAlo}{Alo}}*\ self\ =\ (\doxymbox{\hyperlink{structAlo}{Alo}}*)\doxymbox{\hyperlink{loop__engine_8c_ac797cf19a9583ded1a202726dadbd423}{instance}};}
+\DoxyCodeLine{00487\ }
+\DoxyCodeLine{00488\ \ \ \textcolor{comment}{/*\ lv2:enabled\ behaves\ like\ a\ bypass:\ when\ disabled,\ stop\ looper/click}}
+\DoxyCodeLine{00489\ \textcolor{comment}{\ \ \ *\ processing\ and\ reset\ counters/state.}}
+\DoxyCodeLine{00490\ \textcolor{comment}{\ \ \ */}}
+\DoxyCodeLine{00491\ \ \ \textcolor{keywordtype}{bool}\ enabled\_now\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00492\ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_ab10b26cdeeb4de03d1555cf2d96b9657}{enabled}})\ \{}
+\DoxyCodeLine{00493\ \ \ \ \ enabled\_now\ =\ (*(self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_ab10b26cdeeb4de03d1555cf2d96b9657}{enabled}})\ >=\ 0.5f);}
+\DoxyCodeLine{00494\ \ \ \}}
+\DoxyCodeLine{00495\ }
+\DoxyCodeLine{00496\ \ \ \textcolor{keywordflow}{if}\ (!self-\/>\doxymbox{\hyperlink{structAlo_a21e17a51a7850b2968f191c609488eb2}{have\_last\_enabled}})\ \{}
+\DoxyCodeLine{00497\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a21e17a51a7850b2968f191c609488eb2}{have\_last\_enabled}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00498\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a3beebf9aaff4853d378e5197da454016}{last\_enabled}}\ \ \ \ \ \ =\ enabled\_now;}
+\DoxyCodeLine{00499\ \ \ \ \ \textcolor{keywordflow}{if}\ (!enabled\_now)\ \{}
+\DoxyCodeLine{00500\ \ \ \ \ \ \ \doxymbox{\hyperlink{alo__engine_8h_a446b2137af21a9e994214984679f6bc8}{reset}}(self);}
+\DoxyCodeLine{00501\ \ \ \ \ \}}
+\DoxyCodeLine{00502\ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_a3beebf9aaff4853d378e5197da454016}{last\_enabled}}\ !=\ enabled\_now)\ \{}
+\DoxyCodeLine{00503\ \ \ \ \ \textcolor{comment}{/*\ Reset\ on\ both\ edges\ so\ re-\/enabling\ picks\ up\ any\ changed\ timing\ params}}
+\DoxyCodeLine{00504\ \textcolor{comment}{\ \ \ \ \ *\ while\ the\ plugin\ was\ disabled.}}
+\DoxyCodeLine{00505\ \textcolor{comment}{\ \ \ \ \ */}}
+\DoxyCodeLine{00506\ \ \ \ \ \doxymbox{\hyperlink{alo__engine_8h_a446b2137af21a9e994214984679f6bc8}{reset}}(self);}
+\DoxyCodeLine{00507\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a3beebf9aaff4853d378e5197da454016}{last\_enabled}}\ =\ enabled\_now;}
+\DoxyCodeLine{00508\ \ \ \}}
+\DoxyCodeLine{00509\ }
+\DoxyCodeLine{00510\ \ \ \textcolor{keywordflow}{if}\ (!enabled\_now)\ \{}
+\DoxyCodeLine{00511\ \ \ \ \ \textcolor{comment}{/*\ Dry\ passthrough\ when\ bypassed/disabled.\ */}}
+\DoxyCodeLine{00512\ \ \ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_acefe7ad7d1e7c45025f737fb9af45eab}{output\_l}})\ \{}
+\DoxyCodeLine{00513\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a9664740ac9df8fc2f9e8f378cd36f48d}{input\_l}})\ \{}
+\DoxyCodeLine{00514\ \ \ \ \ \ \ \ \ memcpy(self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_acefe7ad7d1e7c45025f737fb9af45eab}{output\_l}},\ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a9664740ac9df8fc2f9e8f378cd36f48d}{input\_l}},\ n\_samples\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00515\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00516\ \ \ \ \ \ \ \ \ memset(self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_acefe7ad7d1e7c45025f737fb9af45eab}{output\_l}},\ 0,\ n\_samples\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00517\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00518\ \ \ \ \ \}}
+\DoxyCodeLine{00519\ \ \ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a8960399010078b141900593132350d8d}{output\_r}})\ \{}
+\DoxyCodeLine{00520\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_ae46fd2aeb032f12d4888be19c1ea5ba9}{input\_r}})\ \{}
+\DoxyCodeLine{00521\ \ \ \ \ \ \ \ \ memcpy(self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a8960399010078b141900593132350d8d}{output\_r}},\ self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_ae46fd2aeb032f12d4888be19c1ea5ba9}{input\_r}},\ n\_samples\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00522\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00523\ \ \ \ \ \ \ \ \ memset(self-\/>\doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}.\doxymbox{\hyperlink{structAloPorts_a8960399010078b141900593132350d8d}{output\_r}},\ 0,\ n\_samples\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00524\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00525\ \ \ \ \ \}}
+\DoxyCodeLine{00526\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00527\ \ \ \}}
+\DoxyCodeLine{00528\ }
+\DoxyCodeLine{00529\ \ \ \textcolor{comment}{/*\ Handle\ control\ and\ MIDI\ events\ first\ so\ we\ quantize\ to\ the\ right\ boundary.\ */}}
+\DoxyCodeLine{00530\ \ \ \doxymbox{\hyperlink{alo__engine_8h_ad7b6840eecb462d116dda1e5e63c9763}{run\_events}}(self,\ n\_samples);}
+\DoxyCodeLine{00531\ }
+\DoxyCodeLine{00532\ \ \ \textcolor{comment}{/*\ Process\ audio\ loops\ (record\ +\ playback).\ */}}
+\DoxyCodeLine{00533\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a784d869cdc5c390ca0cfb2d222712309}{run\_loops}}(self,\ n\_samples);}
+\DoxyCodeLine{00534\ }
+\DoxyCodeLine{00535\ \ \ \textcolor{comment}{/*\ Click/metronome.\ */}}
+\DoxyCodeLine{00536\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a6db7b1aa771cb74ac68e2fbf355a9fd8}{run\_clicks}}(self,\ n\_samples);}
+\DoxyCodeLine{00537\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{aloschen_8c_a6c677c1af04569f433452541d8ec70f8_cgraph}
+\end{center}
+\end{figure}
+\Hypertarget{aloschen_8c_ad02f1b859fea9fa6ff832ac4241f9d63}\index{aloschen.c@{aloschen.c}!sine\_pulse@{sine\_pulse}}
+\index{sine\_pulse@{sine\_pulse}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{sine\_pulse()}{sine\_pulse()}}
+{\footnotesize\ttfamily \label{aloschen_8c_ad02f1b859fea9fa6ff832ac4241f9d63} 
+void sine\+\_\+pulse (\begin{DoxyParamCaption}\item[{float \texorpdfstring{$\ast$}{*}}]{target}{, }\item[{double}]{frequency}{, }\item[{double}]{sample\+\_\+rate}{, }\item[{uint32\+\_\+t}]{num\+\_\+samples}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00080\ \{}
+\DoxyCodeLine{00081\ \ \ \textcolor{keyword}{const}\ uint32\_t\ half\_length\ \ \ \ \ =\ (uint32\_t)(num\_samples\ *\ 0.5f);}
+\DoxyCodeLine{00082\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ \ \ \ amplitude\_step\ \ =\ 1.0f\ /\ (float)half\_length;}
+\DoxyCodeLine{00083\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ \ \ sample\_sin\_step\ =\ 2.0\ *\ \doxymbox{\hyperlink{aloschen_8c_ae71449b1cc6e6250b91f539153a7a0d3}{M\_PI}}\ *\ frequency\ /\ sample\_rate;}
+\DoxyCodeLine{00084\ \ \ \textcolor{keywordtype}{float}\ \ \ \ \ \ \ \ \ \ amplitude\ \ \ \ \ \ \ =\ 0.0f;}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ i\ =\ 0;\ i\ <\ half\_length;\ ++i)\ \{}
+\DoxyCodeLine{00087\ \ \ \ \ amplitude\ =\ fminf(amplitude\ +\ amplitude\_step,\ 1.0f);}
+\DoxyCodeLine{00088\ \ \ \ \ target[i]\ =\ 0.5f\ *\ amplitude\ *\ (float)sin(i\ *\ sample\_sin\_step);}
+\DoxyCodeLine{00089\ \ \ \}}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ i\ =\ half\_length;\ i\ <\ num\_samples;\ ++i)\ \{}
+\DoxyCodeLine{00092\ \ \ \ \ amplitude\ =\ fmaxf(amplitude\ -\/\ amplitude\_step,\ 0.0f);}
+\DoxyCodeLine{00093\ \ \ \ \ target[i]\ =\ 0.5f\ *\ amplitude\ *\ (float)sin(i\ *\ sample\_sin\_step);}
+\DoxyCodeLine{00094\ \ \ \}}
+\DoxyCodeLine{00095\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=252pt]{aloschen_8c_ad02f1b859fea9fa6ff832ac4241f9d63_icgraph}
+\end{center}
+\end{figure}
+
+
+\label{doc-var-members}
+\Hypertarget{aloschen_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{aloschen_8c_a349808c8f8e70d7b4d57ffda8eceae61}\index{aloschen.c@{aloschen.c}!descriptor@{descriptor}}
+\index{descriptor@{descriptor}!aloschen.c@{aloschen.c}}
+\doxysubsubsection{\texorpdfstring{descriptor}{descriptor}}
+{\footnotesize\ttfamily \label{aloschen_8c_a349808c8f8e70d7b4d57ffda8eceae61} 
+const LV2\+\_\+\+Descriptor descriptor\hspace{0.3cm}{\ttfamily [static]}}
+
+{\bfseries Initial value:\+}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ =\ \{}
+\DoxyCodeLine{\ \ \ \ \doxymbox{\hyperlink{alo__engine_8h_a6a64b271ece29aed5f1b78f3c593477d}{ALO\_URI}},\ \ \ \ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a7d931ab1bcc93b9e76c5b871259c986b}{instantiate}},\ \ \ }
+\DoxyCodeLine{\ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a2aa66e1241c1247cd28190d01901f7b8}{connect\_port}},\ \ }
+\DoxyCodeLine{\ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a7e0cf251ae5e522cd84fc109c91a8c93}{activate}},\ \ \ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a6c677c1af04569f433452541d8ec70f8}{run}},\ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \doxymbox{\hyperlink{aloschen_8c_aac7dd426990c4ec19a7b6b7b2fe9c393}{deactivate}},\ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a541977c718a94a2594e143ff098735e5}{cleanup}},\ \ \ \ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a00ab64dc33c0c5480d0e5b514bf65677}{extension\_data}}\ }
+\DoxyCodeLine{\}}
+
+\end{DoxyCode}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00562\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00563\ \ \ \ \ \doxymbox{\hyperlink{alo__engine_8h_a6a64b271ece29aed5f1b78f3c593477d}{ALO\_URI}},\ \ \ \ \ \ \ \textcolor{comment}{/*\ URI\ */}}
+\DoxyCodeLine{00564\ \ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a7d931ab1bcc93b9e76c5b871259c986b}{instantiate}},\ \ \ \textcolor{comment}{/*\ instantiate\ */}}
+\DoxyCodeLine{00565\ \ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a2aa66e1241c1247cd28190d01901f7b8}{connect\_port}},\ \ \textcolor{comment}{/*\ connect\_port\ */}}
+\DoxyCodeLine{00566\ \ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a7e0cf251ae5e522cd84fc109c91a8c93}{activate}},\ \ \ \ \ \ \textcolor{comment}{/*\ activate\ */}}
+\DoxyCodeLine{00567\ \ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a6c677c1af04569f433452541d8ec70f8}{run}},\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ run\ */}}
+\DoxyCodeLine{00568\ \ \ \ \ \doxymbox{\hyperlink{aloschen_8c_aac7dd426990c4ec19a7b6b7b2fe9c393}{deactivate}},\ \ \ \ \textcolor{comment}{/*\ deactivate\ */}}
+\DoxyCodeLine{00569\ \ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a541977c718a94a2594e143ff098735e5}{cleanup}},\ \ \ \ \ \ \ \textcolor{comment}{/*\ cleanup\ */}}
+\DoxyCodeLine{00570\ \ \ \ \ \doxymbox{\hyperlink{aloschen_8c_a00ab64dc33c0c5480d0e5b514bf65677}{extension\_data}}\ \textcolor{comment}{/*\ extension\_data\ */}}
+\DoxyCodeLine{00571\ \};}
+
+\end{DoxyCode}

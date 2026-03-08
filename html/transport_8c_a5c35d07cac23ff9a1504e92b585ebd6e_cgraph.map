@@ -1,0 +1,5 @@
+<map id="update_transport_phase" name="update_transport_phase">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,14,184,42"/>
+<area shape="rect" id="Node000002" href="$transport_8c.html#a9885e723f03133341beb2504be1a0691" title="Compute the current phase index (in samples) for the looper based on the host&#39;s absolute beat positio..." alt="" coords="232,5,422,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="184,25,219,27,213,28,184,30"/>
+</map>

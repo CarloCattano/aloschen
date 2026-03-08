@@ -1,0 +1,645 @@
+\doxysection{Alo Struct Reference}
+\hypertarget{structAlo}{}\label{structAlo}\index{Alo@{Alo}}
+
+
+{\ttfamily \+\#include $<$alo\+\_\+engine.\+h$>$}
+
+
+
+Collaboration diagram for Alo:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{structAlo__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+LV2\+\_\+\+URID\+\_\+\+Map \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_a9ba5243020fef33befa9d57bcdf71462}{map}}
+\item 
+\doxymbox{\hyperlink{structAloURIs}{Alo\+URIs}} \doxymbox{\hyperlink{structAlo_ab8a0958a50f48e58fa6e60588d71efa6}{uris}}
+\item 
+\doxymbox{\hyperlink{structAloPorts}{Alo\+Ports}} \doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}}
+\item 
+double \doxymbox{\hyperlink{structAlo_aad4a12f62c42152252e206c74f460efe}{rate}}
+\item 
+float \doxymbox{\hyperlink{structAlo_afa02d54c301de80eecdd75c54405a267}{bpm}}
+\item 
+float \doxymbox{\hyperlink{structAlo_af50f56d63ced84a5a92d080683a6a790}{bpb}}
+\item 
+float \doxymbox{\hyperlink{structAlo_a777b0cf8547e4e0d6ea0dae1f454ada2}{speed}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_ab22773f4d8644bd7aa0377f2768c62d9}{have\+\_\+speed}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a0be5d351a5b44d8b268dd3c83829a7db}{loop\+\_\+beats}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a11ae2c9abcf459661cb1b5aa2bd36541}{loop\+\_\+samples}}
+\item 
+float \doxymbox{\hyperlink{structAlo_a351793ca5791bf0f429fe2c9e272103f}{current\+\_\+position}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_ac85f2aa7049dade259f5aff4694fd1fd}{have\+\_\+transport}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a9958995ca0360ba6c81bdd73b1925199}{transport\+\_\+moving}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a032aad64226406f06720d401a2801423}{transport\+\_\+updated\+\_\+this\+\_\+cycle}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a7af02eec16bfee4dfc10d1fe03df3cdd}{transport\+\_\+blocks\+\_\+without\+\_\+update}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a8eedc398fe1dbe7baf44688e15f094fb}{transport\+\_\+loop\+\_\+index}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a8c1d2fdaaaab740f849a1746c9a779d8}{transport\+\_\+loop\+\_\+index\+\_\+pending}}
+\item 
+float \doxymbox{\hyperlink{structAlo_ad74113e160abf6b3bb53856a719a27d3}{last\+\_\+bar\+\_\+beat}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a6c7422e310ef4cff4423b9a63002b63c}{have\+\_\+last\+\_\+bar\+\_\+beat}}
+\item 
+int64\+\_\+t \doxymbox{\hyperlink{structAlo_a6050768d8011577d5adacbc5b2a1dde6}{bar\+\_\+counter\+\_\+fallback}}
+\item 
+double \doxymbox{\hyperlink{structAlo_a4ce2a4567f200d2f4aee5fb9387ba675}{last\+\_\+transport\+\_\+beats}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a40c59af7a7c6c95dd5b596840dfe098e}{have\+\_\+last\+\_\+transport\+\_\+beats}}
+\item 
+double \doxymbox{\hyperlink{structAlo_a4629131192a0b858f2caaea3f2d3ccce}{loop\+\_\+origin\+\_\+beats}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_aeaae34963c1a4f9dc959a2bc569e521c}{have\+\_\+loop\+\_\+origin}}
+\item 
+\doxymbox{\hyperlink{structAloSliceSampler}{Alo\+Slice\+Sampler}} \doxymbox{\hyperlink{structAlo_aadaef3a62865e4bb6caccb008f06952f}{slice\+\_\+sampler}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78}{rt\+\_\+block\+\_\+cap}}
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_a294ed9a8307ba696f9c8e2477ed885df}{rt\+\_\+play\+\_\+l}}
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_aa45b344b8823ff4dd7cfdc7c9efb4b57}{rt\+\_\+play\+\_\+r}}
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_aa3ff4e6b86388744a0eb18a66002f9ab}{rt\+\_\+slice\+\_\+l}}
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_ac74d0c208c8564a6010a0fd4072a8ef3}{rt\+\_\+slice\+\_\+r}}
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_aca84f89334d99f6b88952a417f6f1e0c}{sampler\+\_\+src\+\_\+buf}}
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_a46ab936eb56d3cd00718c28e88b8a124}{sampler\+\_\+src\+\_\+buf\+\_\+shadow}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_ab714256fce303232d51dec2d282a14b9}{sampler\+\_\+src\+\_\+shadow\+\_\+valid}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a5f35ab40bcda440ae80ba92c27fe2535}{sampler\+\_\+src\+\_\+valid}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a1675eaeb02c081afd4d47cc6c22bbec5}{sampler\+\_\+src\+\_\+dirty}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a313494def40d2c56c4a954bbaccf9bb1}{sampler\+\_\+src\+\_\+rebuild\+\_\+active}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a375b765b792bece9287d525ebbca678a}{sampler\+\_\+src\+\_\+pos}}
+\item 
+float \doxymbox{\hyperlink{structAlo_a934b978828d834665fbc2c2dd2333d6b}{sampler\+\_\+src\+\_\+peak\+\_\+abs}}
+\item 
+float \doxymbox{\hyperlink{structAlo_ae898fce33094b66a56d9af07143735bf}{sampler\+\_\+src\+\_\+norm\+\_\+gain}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a748da6ee608252c2b639a9310b857e40}{sampler\+\_\+src\+\_\+loop\+\_\+samples}}
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_a99702b026d583440e0bd9da00f23b2d6}{loop\+\_\+buf}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+bool \doxymbox{\hyperlink{structAlo_a0bab0e1ffba851e6399f36d2b95a96b4}{have\+\_\+loop}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_ab6d4e2b2083ac09d4cfaa79f781742b2}{od\+\_\+buf}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+\+[\doxymbox{\hyperlink{alo__engine_8h_af51a2c70ae6618f938b7a06a284d4215}{ALO\+\_\+\+MAX\+\_\+\+UNDO\+\_\+\+LAYERS}}]\+
+\item 
+uint8\+\_\+t \doxymbox{\hyperlink{structAlo_a41966e14193f389052ce4bff05923397}{od\+\_\+count}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+uint8\+\_\+t \doxymbox{\hyperlink{structAlo_a5e5a49f8f8412218b93f63b683dd82f2}{rec\+\_\+od\+\_\+layer}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+uint8\+\_\+t \doxymbox{\hyperlink{structAlo_a77383e367bf3b1b89f96104c1ff89135}{pending\+\_\+undo}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+bool \doxymbox{\hyperlink{structAlo_a51f6b4c50b783ff2a4352be6376ef256}{pending\+\_\+clear\+\_\+all}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+\doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96f}{Track\+Rec\+State}} \doxymbox{\hyperlink{structAlo_ab8e8b4845135c20d24ef01b214c0ee1f}{track\+\_\+state}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a0a15594461a1c1b7ddb658d69e53aba9}{rec\+\_\+remaining\+\_\+samples}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+bool \doxymbox{\hyperlink{structAlo_a5eda2e06d30526b810dac6b64da1a12d}{last\+\_\+loop\+\_\+input}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+bool \doxymbox{\hyperlink{structAlo_a8ca2fe4623795d18ea51af7de2796375}{last\+\_\+undo\+\_\+input}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a77d8f8594fce0ea998e648460118a414}{loop\+\_\+btn\+\_\+high\+\_\+frames}} \+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a5c9f950b769e1a8fdeff826a44843d24}{loop\+\_\+start}}
+\item 
+double \doxymbox{\hyperlink{structAlo_a382fd4704b7fd745dfa5b221ac16673e}{loop\+\_\+playhead}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_aad720539fb43e73aa11d7ea4358d643a}{loop\+\_\+phase}}
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_aae235dd6c4cf8ce4485a009c635910cd}{high\+\_\+beat}}
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_a37d4511cac8307372c8d4841127eb991}{low\+\_\+beat}}
+\item 
+float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAlo_a1a1b9cc7f84b9772b2b159b3d042f813}{start\+\_\+beat}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\+\_\+len}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_aa107aa1547ec3b6233d576c2946a9f7e}{high\+\_\+beat\+\_\+offset}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a54798dac7ac49de68b5884e3203bd4c9}{low\+\_\+beat\+\_\+offset}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a1c44580c43be41d14ec758b87e64c6cb}{start\+\_\+beat\+\_\+offset}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_abfa407043113140e66ef7e78d98ba249}{click\+\_\+bar\+\_\+in\+\_\+cycle}}
+\item 
+int8\+\_\+t \doxymbox{\hyperlink{structAlo_a39e0dcc009eb3dcadab130abfe1894f8}{ui\+\_\+last\+\_\+bar\+\_\+step}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAlo_a31b2d0c6d86a7851b8b3563d1ffdfcb0}{ui\+\_\+last\+\_\+bars\+\_\+i}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a99571addcfd83befa07fc2f0297acd79}{ui\+\_\+cycle\+\_\+resync\+\_\+pending}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a192751b53e84e98441b9be529f83b5e1}{ui\+\_\+transport\+\_\+was\+\_\+stopped}}
+\item 
+double \doxymbox{\hyperlink{structAlo_a812e23740ff5b8a8ceb737e026325f92}{ui\+\_\+cycle\+\_\+origin\+\_\+beats}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_acd1f9067067f62fe5e41bd9cf8df6ec7}{ui\+\_\+have\+\_\+cycle\+\_\+origin}}
+\item 
+float \doxymbox{\hyperlink{structAlo_a8cd295d45cc6a0b756e6a6f0485933d5}{ui\+\_\+prev\+\_\+bar\+\_\+beat}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a6b0a28ebd2c19cf82e927ad0ce8b57e5}{ui\+\_\+have\+\_\+prev\+\_\+bar\+\_\+beat}}
+\item 
+float \doxymbox{\hyperlink{structAlo_a9020dc8366c520dc4c8663d80817db7c}{inmix}}
+\item 
+float \doxymbox{\hyperlink{structAlo_a8f4aea98736dfb28ef93c5be94264ee6}{loopmix}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a21e17a51a7850b2968f191c609488eb2}{have\+\_\+last\+\_\+enabled}}
+\item 
+bool \doxymbox{\hyperlink{structAlo_a3beebf9aaff4853d378e5197da454016}{last\+\_\+enabled}}
+\item 
+int \doxymbox{\hyperlink{structAlo_a7b587fb00fd81303681524afa3dc5dd8}{pending\+\_\+arm\+\_\+track}}
+\item 
+\doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96f}{Track\+Rec\+State}} \doxymbox{\hyperlink{structAlo_af46da689f580560372ce66320fcd2639}{pending\+\_\+arm\+\_\+type}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-variable-members}
+\Hypertarget{structAlo_doc-variable-members}
+\doxysubsection{Member Data Documentation}
+\Hypertarget{structAlo_a6050768d8011577d5adacbc5b2a1dde6}\index{Alo@{Alo}!bar\_counter\_fallback@{bar\_counter\_fallback}}
+\index{bar\_counter\_fallback@{bar\_counter\_fallback}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{bar\_counter\_fallback}{bar\_counter\_fallback}}
+{\footnotesize\ttfamily \label{structAlo_a6050768d8011577d5adacbc5b2a1dde6} 
+int64\+\_\+t Alo::\+bar\+\_\+counter\+\_\+fallback}
+
+\Hypertarget{structAlo_a258b32e43ba565d7b2960a2027c50780}\index{Alo@{Alo}!beat\_len@{beat\_len}}
+\index{beat\_len@{beat\_len}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{beat\_len}{beat\_len}}
+{\footnotesize\ttfamily \label{structAlo_a258b32e43ba565d7b2960a2027c50780} 
+uint32\+\_\+t Alo::\+beat\+\_\+len}
+
+\Hypertarget{structAlo_af50f56d63ced84a5a92d080683a6a790}\index{Alo@{Alo}!bpb@{bpb}}
+\index{bpb@{bpb}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{bpb}{bpb}}
+{\footnotesize\ttfamily \label{structAlo_af50f56d63ced84a5a92d080683a6a790} 
+float Alo::\+bpb}
+
+\Hypertarget{structAlo_afa02d54c301de80eecdd75c54405a267}\index{Alo@{Alo}!bpm@{bpm}}
+\index{bpm@{bpm}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{bpm}{bpm}}
+{\footnotesize\ttfamily \label{structAlo_afa02d54c301de80eecdd75c54405a267} 
+float Alo::\+bpm}
+
+\Hypertarget{structAlo_abfa407043113140e66ef7e78d98ba249}\index{Alo@{Alo}!click\_bar\_in\_cycle@{click\_bar\_in\_cycle}}
+\index{click\_bar\_in\_cycle@{click\_bar\_in\_cycle}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{click\_bar\_in\_cycle}{click\_bar\_in\_cycle}}
+{\footnotesize\ttfamily \label{structAlo_abfa407043113140e66ef7e78d98ba249} 
+uint32\+\_\+t Alo::\+click\+\_\+bar\+\_\+in\+\_\+cycle}
+
+Metronome bar index within the user-\/selected Bars cycle (0..bars-\/1). \Hypertarget{structAlo_a351793ca5791bf0f429fe2c9e272103f}\index{Alo@{Alo}!current\_position@{current\_position}}
+\index{current\_position@{current\_position}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{current\_position}{current\_position}}
+{\footnotesize\ttfamily \label{structAlo_a351793ca5791bf0f429fe2c9e272103f} 
+float Alo::\+current\+\_\+position}
+
+\Hypertarget{structAlo_a6c7422e310ef4cff4423b9a63002b63c}\index{Alo@{Alo}!have\_last\_bar\_beat@{have\_last\_bar\_beat}}
+\index{have\_last\_bar\_beat@{have\_last\_bar\_beat}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{have\_last\_bar\_beat}{have\_last\_bar\_beat}}
+{\footnotesize\ttfamily \label{structAlo_a6c7422e310ef4cff4423b9a63002b63c} 
+bool Alo::\+have\+\_\+last\+\_\+bar\+\_\+beat}
+
+\Hypertarget{structAlo_a21e17a51a7850b2968f191c609488eb2}\index{Alo@{Alo}!have\_last\_enabled@{have\_last\_enabled}}
+\index{have\_last\_enabled@{have\_last\_enabled}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{have\_last\_enabled}{have\_last\_enabled}}
+{\footnotesize\ttfamily \label{structAlo_a21e17a51a7850b2968f191c609488eb2} 
+bool Alo::\+have\+\_\+last\+\_\+enabled}
+
+Track lv2:\+enabled state to avoid per-\/block resets when disabled. \Hypertarget{structAlo_a40c59af7a7c6c95dd5b596840dfe098e}\index{Alo@{Alo}!have\_last\_transport\_beats@{have\_last\_transport\_beats}}
+\index{have\_last\_transport\_beats@{have\_last\_transport\_beats}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{have\_last\_transport\_beats}{have\_last\_transport\_beats}}
+{\footnotesize\ttfamily \label{structAlo_a40c59af7a7c6c95dd5b596840dfe098e} 
+bool Alo::\+have\+\_\+last\+\_\+transport\+\_\+beats}
+
+\Hypertarget{structAlo_a0bab0e1ffba851e6399f36d2b95a96b4}\index{Alo@{Alo}!have\_loop@{have\_loop}}
+\index{have\_loop@{have\_loop}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{have\_loop}{have\_loop}}
+{\footnotesize\ttfamily \label{structAlo_a0bab0e1ffba851e6399f36d2b95a96b4} 
+bool Alo::\+have\+\_\+loop\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+\Hypertarget{structAlo_aeaae34963c1a4f9dc959a2bc569e521c}\index{Alo@{Alo}!have\_loop\_origin@{have\_loop\_origin}}
+\index{have\_loop\_origin@{have\_loop\_origin}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{have\_loop\_origin}{have\_loop\_origin}}
+{\footnotesize\ttfamily \label{structAlo_aeaae34963c1a4f9dc959a2bc569e521c} 
+bool Alo::\+have\+\_\+loop\+\_\+origin}
+
+\Hypertarget{structAlo_ab22773f4d8644bd7aa0377f2768c62d9}\index{Alo@{Alo}!have\_speed@{have\_speed}}
+\index{have\_speed@{have\_speed}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{have\_speed}{have\_speed}}
+{\footnotesize\ttfamily \label{structAlo_ab22773f4d8644bd7aa0377f2768c62d9} 
+bool Alo::\+have\+\_\+speed}
+
+\Hypertarget{structAlo_ac85f2aa7049dade259f5aff4694fd1fd}\index{Alo@{Alo}!have\_transport@{have\_transport}}
+\index{have\_transport@{have\_transport}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{have\_transport}{have\_transport}}
+{\footnotesize\ttfamily \label{structAlo_ac85f2aa7049dade259f5aff4694fd1fd} 
+bool Alo::\+have\+\_\+transport}
+
+\Hypertarget{structAlo_aae235dd6c4cf8ce4485a009c635910cd}\index{Alo@{Alo}!high\_beat@{high\_beat}}
+\index{high\_beat@{high\_beat}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{high\_beat}{high\_beat}}
+{\footnotesize\ttfamily \label{structAlo_aae235dd6c4cf8ce4485a009c635910cd} 
+float\texorpdfstring{$\ast$}{*} Alo::\+high\+\_\+beat}
+
+\Hypertarget{structAlo_aa107aa1547ec3b6233d576c2946a9f7e}\index{Alo@{Alo}!high\_beat\_offset@{high\_beat\_offset}}
+\index{high\_beat\_offset@{high\_beat\_offset}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{high\_beat\_offset}{high\_beat\_offset}}
+{\footnotesize\ttfamily \label{structAlo_aa107aa1547ec3b6233d576c2946a9f7e} 
+uint32\+\_\+t Alo::\+high\+\_\+beat\+\_\+offset}
+
+\Hypertarget{structAlo_a9020dc8366c520dc4c8663d80817db7c}\index{Alo@{Alo}!inmix@{inmix}}
+\index{inmix@{inmix}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{inmix}{inmix}}
+{\footnotesize\ttfamily \label{structAlo_a9020dc8366c520dc4c8663d80817db7c} 
+float Alo::\+inmix}
+
+\Hypertarget{structAlo_ad74113e160abf6b3bb53856a719a27d3}\index{Alo@{Alo}!last\_bar\_beat@{last\_bar\_beat}}
+\index{last\_bar\_beat@{last\_bar\_beat}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{last\_bar\_beat}{last\_bar\_beat}}
+{\footnotesize\ttfamily \label{structAlo_ad74113e160abf6b3bb53856a719a27d3} 
+float Alo::\+last\+\_\+bar\+\_\+beat}
+
+\Hypertarget{structAlo_a3beebf9aaff4853d378e5197da454016}\index{Alo@{Alo}!last\_enabled@{last\_enabled}}
+\index{last\_enabled@{last\_enabled}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{last\_enabled}{last\_enabled}}
+{\footnotesize\ttfamily \label{structAlo_a3beebf9aaff4853d378e5197da454016} 
+bool Alo::\+last\+\_\+enabled}
+
+\Hypertarget{structAlo_a5eda2e06d30526b810dac6b64da1a12d}\index{Alo@{Alo}!last\_loop\_input@{last\_loop\_input}}
+\index{last\_loop\_input@{last\_loop\_input}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{last\_loop\_input}{last\_loop\_input}}
+{\footnotesize\ttfamily \label{structAlo_a5eda2e06d30526b810dac6b64da1a12d} 
+bool Alo::\+last\+\_\+loop\+\_\+input\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+\Hypertarget{structAlo_a4ce2a4567f200d2f4aee5fb9387ba675}\index{Alo@{Alo}!last\_transport\_beats@{last\_transport\_beats}}
+\index{last\_transport\_beats@{last\_transport\_beats}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{last\_transport\_beats}{last\_transport\_beats}}
+{\footnotesize\ttfamily \label{structAlo_a4ce2a4567f200d2f4aee5fb9387ba675} 
+double Alo::\+last\+\_\+transport\+\_\+beats}
+
+\Hypertarget{structAlo_a8ca2fe4623795d18ea51af7de2796375}\index{Alo@{Alo}!last\_undo\_input@{last\_undo\_input}}
+\index{last\_undo\_input@{last\_undo\_input}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{last\_undo\_input}{last\_undo\_input}}
+{\footnotesize\ttfamily \label{structAlo_a8ca2fe4623795d18ea51af7de2796375} 
+bool Alo::\+last\+\_\+undo\+\_\+input\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+\Hypertarget{structAlo_a0be5d351a5b44d8b268dd3c83829a7db}\index{Alo@{Alo}!loop\_beats@{loop\_beats}}
+\index{loop\_beats@{loop\_beats}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{loop\_beats}{loop\_beats}}
+{\footnotesize\ttfamily \label{structAlo_a0be5d351a5b44d8b268dd3c83829a7db} 
+uint32\+\_\+t Alo::\+loop\+\_\+beats}
+
+\Hypertarget{structAlo_a77d8f8594fce0ea998e648460118a414}\index{Alo@{Alo}!loop\_btn\_high\_frames@{loop\_btn\_high\_frames}}
+\index{loop\_btn\_high\_frames@{loop\_btn\_high\_frames}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{loop\_btn\_high\_frames}{loop\_btn\_high\_frames}}
+{\footnotesize\ttfamily \label{structAlo_a77d8f8594fce0ea998e648460118a414} 
+uint32\+\_\+t Alo::\+loop\+\_\+btn\+\_\+high\+\_\+frames\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+Number of consecutive \doxylink{alo__engine_8h_ad7b6840eecb462d116dda1e5e63c9763}{run\+\_\+events()} calls where the loop button input has been high. Used to support both momentary (pulsed) and latching toggle controls without double-\/toggling. \Hypertarget{structAlo_a99702b026d583440e0bd9da00f23b2d6}\index{Alo@{Alo}!loop\_buf@{loop\_buf}}
+\index{loop\_buf@{loop\_buf}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{loop\_buf}{loop\_buf}}
+{\footnotesize\ttfamily \label{structAlo_a99702b026d583440e0bd9da00f23b2d6} 
+float\texorpdfstring{$\ast$}{*} Alo::\+loop\+\_\+buf\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+Per-\/track loop audio buffer (stereo stored as \+[0..LOOP\+\_\+\+SIZE) L, \+[LOOP\+\_\+\+SIZE..2\texorpdfstring{$\ast$}{*}\+LOOP\+\_\+\+SIZE) R). \Hypertarget{structAlo_a4629131192a0b858f2caaea3f2d3ccce}\index{Alo@{Alo}!loop\_origin\_beats@{loop\_origin\_beats}}
+\index{loop\_origin\_beats@{loop\_origin\_beats}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{loop\_origin\_beats}{loop\_origin\_beats}}
+{\footnotesize\ttfamily \label{structAlo_a4629131192a0b858f2caaea3f2d3ccce} 
+double Alo::\+loop\+\_\+origin\+\_\+beats}
+
+\Hypertarget{structAlo_aad720539fb43e73aa11d7ea4358d643a}\index{Alo@{Alo}!loop\_phase@{loop\_phase}}
+\index{loop\_phase@{loop\_phase}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{loop\_phase}{loop\_phase}}
+{\footnotesize\ttfamily \label{structAlo_aad720539fb43e73aa11d7ea4358d643a} 
+uint32\+\_\+t Alo::\+loop\+\_\+phase}
+
+\Hypertarget{structAlo_a382fd4704b7fd745dfa5b221ac16673e}\index{Alo@{Alo}!loop\_playhead@{loop\_playhead}}
+\index{loop\_playhead@{loop\_playhead}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{loop\_playhead}{loop\_playhead}}
+{\footnotesize\ttfamily \label{structAlo_a382fd4704b7fd745dfa5b221ac16673e} 
+double Alo::\+loop\+\_\+playhead}
+
+\Hypertarget{structAlo_a11ae2c9abcf459661cb1b5aa2bd36541}\index{Alo@{Alo}!loop\_samples@{loop\_samples}}
+\index{loop\_samples@{loop\_samples}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{loop\_samples}{loop\_samples}}
+{\footnotesize\ttfamily \label{structAlo_a11ae2c9abcf459661cb1b5aa2bd36541} 
+uint32\+\_\+t Alo::\+loop\+\_\+samples}
+
+\Hypertarget{structAlo_a5c9f950b769e1a8fdeff826a44843d24}\index{Alo@{Alo}!loop\_start@{loop\_start}}
+\index{loop\_start@{loop\_start}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{loop\_start}{loop\_start}}
+{\footnotesize\ttfamily \label{structAlo_a5c9f950b769e1a8fdeff826a44843d24} 
+uint32\+\_\+t Alo::\+loop\+\_\+start}
+
+\Hypertarget{structAlo_a8f4aea98736dfb28ef93c5be94264ee6}\index{Alo@{Alo}!loopmix@{loopmix}}
+\index{loopmix@{loopmix}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{loopmix}{loopmix}}
+{\footnotesize\ttfamily \label{structAlo_a8f4aea98736dfb28ef93c5be94264ee6} 
+float Alo::\+loopmix}
+
+\Hypertarget{structAlo_a37d4511cac8307372c8d4841127eb991}\index{Alo@{Alo}!low\_beat@{low\_beat}}
+\index{low\_beat@{low\_beat}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{low\_beat}{low\_beat}}
+{\footnotesize\ttfamily \label{structAlo_a37d4511cac8307372c8d4841127eb991} 
+float\texorpdfstring{$\ast$}{*} Alo::\+low\+\_\+beat}
+
+\Hypertarget{structAlo_a54798dac7ac49de68b5884e3203bd4c9}\index{Alo@{Alo}!low\_beat\_offset@{low\_beat\_offset}}
+\index{low\_beat\_offset@{low\_beat\_offset}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{low\_beat\_offset}{low\_beat\_offset}}
+{\footnotesize\ttfamily \label{structAlo_a54798dac7ac49de68b5884e3203bd4c9} 
+uint32\+\_\+t Alo::\+low\+\_\+beat\+\_\+offset}
+
+\Hypertarget{structAlo_a9ba5243020fef33befa9d57bcdf71462}\index{Alo@{Alo}!map@{map}}
+\index{map@{map}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{map}{map}}
+{\footnotesize\ttfamily \label{structAlo_a9ba5243020fef33befa9d57bcdf71462} 
+LV2\+\_\+\+URID\+\_\+\+Map\texorpdfstring{$\ast$}{*} Alo::\+map}
+
+\Hypertarget{structAlo_ab6d4e2b2083ac09d4cfaa79f781742b2}\index{Alo@{Alo}!od\_buf@{od\_buf}}
+\index{od\_buf@{od\_buf}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{od\_buf}{od\_buf}}
+{\footnotesize\ttfamily \label{structAlo_ab6d4e2b2083ac09d4cfaa79f781742b2} 
+float\texorpdfstring{$\ast$}{*} Alo::\+od\+\_\+buf\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+\+[\doxymbox{\hyperlink{alo__engine_8h_af51a2c70ae6618f938b7a06a284d4215}{ALO\+\_\+\+MAX\+\_\+\+UNDO\+\_\+\+LAYERS}}]\+}
+
+Per-\/track overdub layers (each layer is a full loop-\/sized stereo buffer). \Hypertarget{structAlo_a41966e14193f389052ce4bff05923397}\index{Alo@{Alo}!od\_count@{od\_count}}
+\index{od\_count@{od\_count}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{od\_count}{od\_count}}
+{\footnotesize\ttfamily \label{structAlo_a41966e14193f389052ce4bff05923397} 
+uint8\+\_\+t Alo::\+od\+\_\+count\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+Number of active overdub layers. \Hypertarget{structAlo_a7b587fb00fd81303681524afa3dc5dd8}\index{Alo@{Alo}!pending\_arm\_track@{pending\_arm\_track}}
+\index{pending\_arm\_track@{pending\_arm\_track}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{pending\_arm\_track}{pending\_arm\_track}}
+{\footnotesize\ttfamily \label{structAlo_a7b587fb00fd81303681524afa3dc5dd8} 
+int Alo::\+pending\+\_\+arm\+\_\+track}
+
+\Hypertarget{structAlo_af46da689f580560372ce66320fcd2639}\index{Alo@{Alo}!pending\_arm\_type@{pending\_arm\_type}}
+\index{pending\_arm\_type@{pending\_arm\_type}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{pending\_arm\_type}{pending\_arm\_type}}
+{\footnotesize\ttfamily \label{structAlo_af46da689f580560372ce66320fcd2639} 
+\doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96f}{Track\+Rec\+State}} Alo::\+pending\+\_\+arm\+\_\+type}
+
+\Hypertarget{structAlo_a51f6b4c50b783ff2a4352be6376ef256}\index{Alo@{Alo}!pending\_clear\_all@{pending\_clear\_all}}
+\index{pending\_clear\_all@{pending\_clear\_all}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{pending\_clear\_all}{pending\_clear\_all}}
+{\footnotesize\ttfamily \label{structAlo_a51f6b4c50b783ff2a4352be6376ef256} 
+bool Alo::\+pending\+\_\+clear\+\_\+all\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+\Hypertarget{structAlo_a77383e367bf3b1b89f96104c1ff89135}\index{Alo@{Alo}!pending\_undo@{pending\_undo}}
+\index{pending\_undo@{pending\_undo}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{pending\_undo}{pending\_undo}}
+{\footnotesize\ttfamily \label{structAlo_a77383e367bf3b1b89f96104c1ff89135} 
+uint8\+\_\+t Alo::\+pending\+\_\+undo\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+Pending quantized undo requests (applied at next bar downbeat). \Hypertarget{structAlo_a69132cc693f18baacc13f4f518696f62}\index{Alo@{Alo}!ports@{ports}}
+\index{ports@{ports}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{ports}{ports}}
+{\footnotesize\ttfamily \label{structAlo_a69132cc693f18baacc13f4f518696f62} 
+\doxymbox{\hyperlink{structAloPorts}{Alo\+Ports}} Alo::\+ports}
+
+\Hypertarget{structAlo_aad4a12f62c42152252e206c74f460efe}\index{Alo@{Alo}!rate@{rate}}
+\index{rate@{rate}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{rate}{rate}}
+{\footnotesize\ttfamily \label{structAlo_aad4a12f62c42152252e206c74f460efe} 
+double Alo::\+rate}
+
+\Hypertarget{structAlo_a5e5a49f8f8412218b93f63b683dd82f2}\index{Alo@{Alo}!rec\_od\_layer@{rec\_od\_layer}}
+\index{rec\_od\_layer@{rec\_od\_layer}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{rec\_od\_layer}{rec\_od\_layer}}
+{\footnotesize\ttfamily \label{structAlo_a5e5a49f8f8412218b93f63b683dd82f2} 
+uint8\+\_\+t Alo::\+rec\+\_\+od\+\_\+layer\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+Target overdub layer index while recording an overdub. \Hypertarget{structAlo_a0a15594461a1c1b7ddb658d69e53aba9}\index{Alo@{Alo}!rec\_remaining\_samples@{rec\_remaining\_samples}}
+\index{rec\_remaining\_samples@{rec\_remaining\_samples}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{rec\_remaining\_samples}{rec\_remaining\_samples}}
+{\footnotesize\ttfamily \label{structAlo_a0a15594461a1c1b7ddb658d69e53aba9} 
+uint32\+\_\+t Alo::\+rec\+\_\+remaining\+\_\+samples\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+Remaining samples until auto-\/stop (base/\+overdub). \Hypertarget{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78}\index{Alo@{Alo}!rt\_block\_cap@{rt\_block\_cap}}
+\index{rt\_block\_cap@{rt\_block\_cap}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{rt\_block\_cap}{rt\_block\_cap}}
+{\footnotesize\ttfamily \label{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78} 
+uint32\+\_\+t Alo::\+rt\+\_\+block\+\_\+cap}
+
+\Hypertarget{structAlo_a294ed9a8307ba696f9c8e2477ed885df}\index{Alo@{Alo}!rt\_play\_l@{rt\_play\_l}}
+\index{rt\_play\_l@{rt\_play\_l}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{rt\_play\_l}{rt\_play\_l}}
+{\footnotesize\ttfamily \label{structAlo_a294ed9a8307ba696f9c8e2477ed885df} 
+float\texorpdfstring{$\ast$}{*} Alo::\+rt\+\_\+play\+\_\+l}
+
+\Hypertarget{structAlo_aa45b344b8823ff4dd7cfdc7c9efb4b57}\index{Alo@{Alo}!rt\_play\_r@{rt\_play\_r}}
+\index{rt\_play\_r@{rt\_play\_r}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{rt\_play\_r}{rt\_play\_r}}
+{\footnotesize\ttfamily \label{structAlo_aa45b344b8823ff4dd7cfdc7c9efb4b57} 
+float\texorpdfstring{$\ast$}{*} Alo::\+rt\+\_\+play\+\_\+r}
+
+\Hypertarget{structAlo_aa3ff4e6b86388744a0eb18a66002f9ab}\index{Alo@{Alo}!rt\_slice\_l@{rt\_slice\_l}}
+\index{rt\_slice\_l@{rt\_slice\_l}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{rt\_slice\_l}{rt\_slice\_l}}
+{\footnotesize\ttfamily \label{structAlo_aa3ff4e6b86388744a0eb18a66002f9ab} 
+float\texorpdfstring{$\ast$}{*} Alo::\+rt\+\_\+slice\+\_\+l}
+
+\Hypertarget{structAlo_ac74d0c208c8564a6010a0fd4072a8ef3}\index{Alo@{Alo}!rt\_slice\_r@{rt\_slice\_r}}
+\index{rt\_slice\_r@{rt\_slice\_r}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{rt\_slice\_r}{rt\_slice\_r}}
+{\footnotesize\ttfamily \label{structAlo_ac74d0c208c8564a6010a0fd4072a8ef3} 
+float\texorpdfstring{$\ast$}{*} Alo::\+rt\+\_\+slice\+\_\+r}
+
+\Hypertarget{structAlo_aca84f89334d99f6b88952a417f6f1e0c}\index{Alo@{Alo}!sampler\_src\_buf@{sampler\_src\_buf}}
+\index{sampler\_src\_buf@{sampler\_src\_buf}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{sampler\_src\_buf}{sampler\_src\_buf}}
+{\footnotesize\ttfamily \label{structAlo_aca84f89334d99f6b88952a417f6f1e0c} 
+float\texorpdfstring{$\ast$}{*} Alo::\+sampler\+\_\+src\+\_\+buf}
+
+\Hypertarget{structAlo_a46ab936eb56d3cd00718c28e88b8a124}\index{Alo@{Alo}!sampler\_src\_buf\_shadow@{sampler\_src\_buf\_shadow}}
+\index{sampler\_src\_buf\_shadow@{sampler\_src\_buf\_shadow}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{sampler\_src\_buf\_shadow}{sampler\_src\_buf\_shadow}}
+{\footnotesize\ttfamily \label{structAlo_a46ab936eb56d3cd00718c28e88b8a124} 
+float\texorpdfstring{$\ast$}{*} Alo::\+sampler\+\_\+src\+\_\+buf\+\_\+shadow}
+
+\Hypertarget{structAlo_a1675eaeb02c081afd4d47cc6c22bbec5}\index{Alo@{Alo}!sampler\_src\_dirty@{sampler\_src\_dirty}}
+\index{sampler\_src\_dirty@{sampler\_src\_dirty}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{sampler\_src\_dirty}{sampler\_src\_dirty}}
+{\footnotesize\ttfamily \label{structAlo_a1675eaeb02c081afd4d47cc6c22bbec5} 
+bool Alo::\+sampler\+\_\+src\+\_\+dirty}
+
+\Hypertarget{structAlo_a748da6ee608252c2b639a9310b857e40}\index{Alo@{Alo}!sampler\_src\_loop\_samples@{sampler\_src\_loop\_samples}}
+\index{sampler\_src\_loop\_samples@{sampler\_src\_loop\_samples}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{sampler\_src\_loop\_samples}{sampler\_src\_loop\_samples}}
+{\footnotesize\ttfamily \label{structAlo_a748da6ee608252c2b639a9310b857e40} 
+uint32\+\_\+t Alo::\+sampler\+\_\+src\+\_\+loop\+\_\+samples}
+
+\Hypertarget{structAlo_ae898fce33094b66a56d9af07143735bf}\index{Alo@{Alo}!sampler\_src\_norm\_gain@{sampler\_src\_norm\_gain}}
+\index{sampler\_src\_norm\_gain@{sampler\_src\_norm\_gain}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{sampler\_src\_norm\_gain}{sampler\_src\_norm\_gain}}
+{\footnotesize\ttfamily \label{structAlo_ae898fce33094b66a56d9af07143735bf} 
+float Alo::\+sampler\+\_\+src\+\_\+norm\+\_\+gain}
+
+\Hypertarget{structAlo_a934b978828d834665fbc2c2dd2333d6b}\index{Alo@{Alo}!sampler\_src\_peak\_abs@{sampler\_src\_peak\_abs}}
+\index{sampler\_src\_peak\_abs@{sampler\_src\_peak\_abs}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{sampler\_src\_peak\_abs}{sampler\_src\_peak\_abs}}
+{\footnotesize\ttfamily \label{structAlo_a934b978828d834665fbc2c2dd2333d6b} 
+float Alo::\+sampler\+\_\+src\+\_\+peak\+\_\+abs}
+
+\Hypertarget{structAlo_a375b765b792bece9287d525ebbca678a}\index{Alo@{Alo}!sampler\_src\_pos@{sampler\_src\_pos}}
+\index{sampler\_src\_pos@{sampler\_src\_pos}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{sampler\_src\_pos}{sampler\_src\_pos}}
+{\footnotesize\ttfamily \label{structAlo_a375b765b792bece9287d525ebbca678a} 
+uint32\+\_\+t Alo::\+sampler\+\_\+src\+\_\+pos}
+
+\Hypertarget{structAlo_a313494def40d2c56c4a954bbaccf9bb1}\index{Alo@{Alo}!sampler\_src\_rebuild\_active@{sampler\_src\_rebuild\_active}}
+\index{sampler\_src\_rebuild\_active@{sampler\_src\_rebuild\_active}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{sampler\_src\_rebuild\_active}{sampler\_src\_rebuild\_active}}
+{\footnotesize\ttfamily \label{structAlo_a313494def40d2c56c4a954bbaccf9bb1} 
+bool Alo::\+sampler\+\_\+src\+\_\+rebuild\+\_\+active}
+
+\Hypertarget{structAlo_ab714256fce303232d51dec2d282a14b9}\index{Alo@{Alo}!sampler\_src\_shadow\_valid@{sampler\_src\_shadow\_valid}}
+\index{sampler\_src\_shadow\_valid@{sampler\_src\_shadow\_valid}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{sampler\_src\_shadow\_valid}{sampler\_src\_shadow\_valid}}
+{\footnotesize\ttfamily \label{structAlo_ab714256fce303232d51dec2d282a14b9} 
+bool Alo::\+sampler\+\_\+src\+\_\+shadow\+\_\+valid}
+
+\Hypertarget{structAlo_a5f35ab40bcda440ae80ba92c27fe2535}\index{Alo@{Alo}!sampler\_src\_valid@{sampler\_src\_valid}}
+\index{sampler\_src\_valid@{sampler\_src\_valid}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{sampler\_src\_valid}{sampler\_src\_valid}}
+{\footnotesize\ttfamily \label{structAlo_a5f35ab40bcda440ae80ba92c27fe2535} 
+bool Alo::\+sampler\+\_\+src\+\_\+valid}
+
+\Hypertarget{structAlo_aadaef3a62865e4bb6caccb008f06952f}\index{Alo@{Alo}!slice\_sampler@{slice\_sampler}}
+\index{slice\_sampler@{slice\_sampler}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{slice\_sampler}{slice\_sampler}}
+{\footnotesize\ttfamily \label{structAlo_aadaef3a62865e4bb6caccb008f06952f} 
+\doxymbox{\hyperlink{structAloSliceSampler}{Alo\+Slice\+Sampler}} Alo::\+slice\+\_\+sampler}
+
+\Hypertarget{structAlo_a777b0cf8547e4e0d6ea0dae1f454ada2}\index{Alo@{Alo}!speed@{speed}}
+\index{speed@{speed}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{speed}{speed}}
+{\footnotesize\ttfamily \label{structAlo_a777b0cf8547e4e0d6ea0dae1f454ada2} 
+float Alo::\+speed}
+
+\Hypertarget{structAlo_a1a1b9cc7f84b9772b2b159b3d042f813}\index{Alo@{Alo}!start\_beat@{start\_beat}}
+\index{start\_beat@{start\_beat}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{start\_beat}{start\_beat}}
+{\footnotesize\ttfamily \label{structAlo_a1a1b9cc7f84b9772b2b159b3d042f813} 
+float\texorpdfstring{$\ast$}{*} Alo::\+start\+\_\+beat}
+
+\Hypertarget{structAlo_a1c44580c43be41d14ec758b87e64c6cb}\index{Alo@{Alo}!start\_beat\_offset@{start\_beat\_offset}}
+\index{start\_beat\_offset@{start\_beat\_offset}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{start\_beat\_offset}{start\_beat\_offset}}
+{\footnotesize\ttfamily \label{structAlo_a1c44580c43be41d14ec758b87e64c6cb} 
+uint32\+\_\+t Alo::\+start\+\_\+beat\+\_\+offset}
+
+\Hypertarget{structAlo_ab8e8b4845135c20d24ef01b214c0ee1f}\index{Alo@{Alo}!track\_state@{track\_state}}
+\index{track\_state@{track\_state}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{track\_state}{track\_state}}
+{\footnotesize\ttfamily \label{structAlo_ab8e8b4845135c20d24ef01b214c0ee1f} 
+\doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96f}{Track\+Rec\+State}} Alo::\+track\+\_\+state\+[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\+\_\+\+TRACKS}}]\+}
+
+\Hypertarget{structAlo_a7af02eec16bfee4dfc10d1fe03df3cdd}\index{Alo@{Alo}!transport\_blocks\_without\_update@{transport\_blocks\_without\_update}}
+\index{transport\_blocks\_without\_update@{transport\_blocks\_without\_update}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{transport\_blocks\_without\_update}{transport\_blocks\_without\_update}}
+{\footnotesize\ttfamily \label{structAlo_a7af02eec16bfee4dfc10d1fe03df3cdd} 
+uint32\+\_\+t Alo::\+transport\+\_\+blocks\+\_\+without\+\_\+update}
+
+Number of consecutive cycles without time:\+Position updates. \Hypertarget{structAlo_a8eedc398fe1dbe7baf44688e15f094fb}\index{Alo@{Alo}!transport\_loop\_index@{transport\_loop\_index}}
+\index{transport\_loop\_index@{transport\_loop\_index}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{transport\_loop\_index}{transport\_loop\_index}}
+{\footnotesize\ttfamily \label{structAlo_a8eedc398fe1dbe7baf44688e15f094fb} 
+uint32\+\_\+t Alo::\+transport\+\_\+loop\+\_\+index}
+
+\Hypertarget{structAlo_a8c1d2fdaaaab740f849a1746c9a779d8}\index{Alo@{Alo}!transport\_loop\_index\_pending@{transport\_loop\_index\_pending}}
+\index{transport\_loop\_index\_pending@{transport\_loop\_index\_pending}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{transport\_loop\_index\_pending}{transport\_loop\_index\_pending}}
+{\footnotesize\ttfamily \label{structAlo_a8c1d2fdaaaab740f849a1746c9a779d8} 
+bool Alo::\+transport\+\_\+loop\+\_\+index\+\_\+pending}
+
+\Hypertarget{structAlo_a9958995ca0360ba6c81bdd73b1925199}\index{Alo@{Alo}!transport\_moving@{transport\_moving}}
+\index{transport\_moving@{transport\_moving}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{transport\_moving}{transport\_moving}}
+{\footnotesize\ttfamily \label{structAlo_a9958995ca0360ba6c81bdd73b1925199} 
+bool Alo::\+transport\+\_\+moving}
+
+\Hypertarget{structAlo_a032aad64226406f06720d401a2801423}\index{Alo@{Alo}!transport\_updated\_this\_cycle@{transport\_updated\_this\_cycle}}
+\index{transport\_updated\_this\_cycle@{transport\_updated\_this\_cycle}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{transport\_updated\_this\_cycle}{transport\_updated\_this\_cycle}}
+{\footnotesize\ttfamily \label{structAlo_a032aad64226406f06720d401a2801423} 
+bool Alo::\+transport\+\_\+updated\+\_\+this\+\_\+cycle}
+
+True when \doxylink{alo__engine_8h_ad7b6840eecb462d116dda1e5e63c9763}{run\+\_\+events()} observed a time:\+Position update this cycle. \Hypertarget{structAlo_a812e23740ff5b8a8ceb737e026325f92}\index{Alo@{Alo}!ui\_cycle\_origin\_beats@{ui\_cycle\_origin\_beats}}
+\index{ui\_cycle\_origin\_beats@{ui\_cycle\_origin\_beats}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{ui\_cycle\_origin\_beats}{ui\_cycle\_origin\_beats}}
+{\footnotesize\ttfamily \label{structAlo_a812e23740ff5b8a8ceb737e026325f92} 
+double Alo::\+ui\+\_\+cycle\+\_\+origin\+\_\+beats}
+
+Host beat position of the Bars-\/cycle origin (set on the first downbeat after resync). \Hypertarget{structAlo_a99571addcfd83befa07fc2f0297acd79}\index{Alo@{Alo}!ui\_cycle\_resync\_pending@{ui\_cycle\_resync\_pending}}
+\index{ui\_cycle\_resync\_pending@{ui\_cycle\_resync\_pending}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{ui\_cycle\_resync\_pending}{ui\_cycle\_resync\_pending}}
+{\footnotesize\ttfamily \label{structAlo_a99571addcfd83befa07fc2f0297acd79} 
+bool Alo::\+ui\+\_\+cycle\+\_\+resync\+\_\+pending}
+
+When set, force the UI step indicator to restart at step 0 on the next downbeat. \Hypertarget{structAlo_acd1f9067067f62fe5e41bd9cf8df6ec7}\index{Alo@{Alo}!ui\_have\_cycle\_origin@{ui\_have\_cycle\_origin}}
+\index{ui\_have\_cycle\_origin@{ui\_have\_cycle\_origin}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{ui\_have\_cycle\_origin}{ui\_have\_cycle\_origin}}
+{\footnotesize\ttfamily \label{structAlo_acd1f9067067f62fe5e41bd9cf8df6ec7} 
+bool Alo::\+ui\+\_\+have\+\_\+cycle\+\_\+origin}
+
+\Hypertarget{structAlo_a6b0a28ebd2c19cf82e927ad0ce8b57e5}\index{Alo@{Alo}!ui\_have\_prev\_bar\_beat@{ui\_have\_prev\_bar\_beat}}
+\index{ui\_have\_prev\_bar\_beat@{ui\_have\_prev\_bar\_beat}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{ui\_have\_prev\_bar\_beat}{ui\_have\_prev\_bar\_beat}}
+{\footnotesize\ttfamily \label{structAlo_a6b0a28ebd2c19cf82e927ad0ce8b57e5} 
+bool Alo::\+ui\+\_\+have\+\_\+prev\+\_\+bar\+\_\+beat}
+
+\Hypertarget{structAlo_a39e0dcc009eb3dcadab130abfe1894f8}\index{Alo@{Alo}!ui\_last\_bar\_step@{ui\_last\_bar\_step}}
+\index{ui\_last\_bar\_step@{ui\_last\_bar\_step}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{ui\_last\_bar\_step}{ui\_last\_bar\_step}}
+{\footnotesize\ttfamily \label{structAlo_a39e0dcc009eb3dcadab130abfe1894f8} 
+int8\+\_\+t Alo::\+ui\+\_\+last\+\_\+bar\+\_\+step}
+
+Last bar-\/step value sent to the UI output port (throttle UI updates). \Hypertarget{structAlo_a31b2d0c6d86a7851b8b3563d1ffdfcb0}\index{Alo@{Alo}!ui\_last\_bars\_i@{ui\_last\_bars\_i}}
+\index{ui\_last\_bars\_i@{ui\_last\_bars\_i}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{ui\_last\_bars\_i}{ui\_last\_bars\_i}}
+{\footnotesize\ttfamily \label{structAlo_a31b2d0c6d86a7851b8b3563d1ffdfcb0} 
+uint32\+\_\+t Alo::\+ui\+\_\+last\+\_\+bars\+\_\+i}
+
+Last Bars value observed by the engine for UI/\+cycle resync. \Hypertarget{structAlo_a8cd295d45cc6a0b756e6a6f0485933d5}\index{Alo@{Alo}!ui\_prev\_bar\_beat@{ui\_prev\_bar\_beat}}
+\index{ui\_prev\_bar\_beat@{ui\_prev\_bar\_beat}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{ui\_prev\_bar\_beat}{ui\_prev\_bar\_beat}}
+{\footnotesize\ttfamily \label{structAlo_a8cd295d45cc6a0b756e6a6f0485933d5} 
+float Alo::\+ui\+\_\+prev\+\_\+bar\+\_\+beat}
+
+Track bar\+Beat wrap to detect downbeats at block boundaries. \Hypertarget{structAlo_a192751b53e84e98441b9be529f83b5e1}\index{Alo@{Alo}!ui\_transport\_was\_stopped@{ui\_transport\_was\_stopped}}
+\index{ui\_transport\_was\_stopped@{ui\_transport\_was\_stopped}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{ui\_transport\_was\_stopped}{ui\_transport\_was\_stopped}}
+{\footnotesize\ttfamily \label{structAlo_a192751b53e84e98441b9be529f83b5e1} 
+bool Alo::\+ui\+\_\+transport\+\_\+was\+\_\+stopped}
+
+Track transport stop/\+run transitions (when time:\+speed is available). \Hypertarget{structAlo_ab8a0958a50f48e58fa6e60588d71efa6}\index{Alo@{Alo}!uris@{uris}}
+\index{uris@{uris}!Alo@{Alo}}
+\doxysubsubsection{\texorpdfstring{uris}{uris}}
+{\footnotesize\ttfamily \label{structAlo_ab8a0958a50f48e58fa6e60588d71efa6} 
+\doxymbox{\hyperlink{structAloURIs}{Alo\+URIs}} Alo::\+uris}
+
+
+
+The documentation for this struct was generated from the following file:\+\begin{DoxyCompactItemize}
+\item 
+source/\+\doxymbox{\hyperlink{alo__engine_8h}{alo\+\_\+engine.\+h}}\end{DoxyCompactItemize}

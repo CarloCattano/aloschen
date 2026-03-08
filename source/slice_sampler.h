@@ -1,3 +1,8 @@
+/**
+ * @file slice_sampler.h
+ * @brief Slice sampler API and data structures.
+ */
+
 #ifndef ALO_SLICE_SAMPLER_MAX_PENDING
 #define ALO_SLICE_SAMPLER_MAX_PENDING 8
 #endif
@@ -128,13 +133,24 @@ struct Alo;
 
 // Buffer management API
 
-// Call at init/reset to allocate all slice buffers (outside RT)
+/**
+ * @brief Allocate scratch buffers for all slices (call outside realtime).
+ */
 bool alo_slice_sampler_alloc_buffers(AloSliceSampler* s, uint32_t max_len, uint32_t channels);
-// Call to free all buffers (outside RT)
+
+/**
+ * @brief Free previously allocated slice buffers (outside realtime).
+ */
 void alo_slice_sampler_free_buffers(AloSliceSampler* s);
-// Mark all slice buffers invalid (starts an incremental clear)
+
+/**
+ * @brief Mark all slice buffers invalid; begins incremental clear cycle.
+ */
 void alo_slice_sampler_clear_buffers(AloSliceSampler* s);
-// Progress an in-flight clear job by up to max_samples zero operations
+
+/**
+ * @brief Advance an active clear job by up to @p max_samples zeros.
+ */
 void alo_slice_sampler_step_clear(AloSliceSampler* s, uint32_t max_samples);
 
 void alo_slice_sampler_reset(AloSliceSampler* s);

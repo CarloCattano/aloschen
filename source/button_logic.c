@@ -14,9 +14,10 @@ static inline bool any_other_track_busy(const Alo* self, int exclude)
 }
 
 /* cppcheck-suppress unusedFunction - analyzed cross-file calls not detected */
+/* handle loop button press for track t; arms/records/overdubs/cancels */
 void handle_loop_press(Alo* self, int t)
 {
-  // Cancel queued arm if pressing same track
+  /* Cancel queued arm if pressing same track */
   if (self && self->pending_arm_track == t) {
     self->pending_arm_track = -1;
     update_loop_state_ports(self);
@@ -65,6 +66,7 @@ void handle_loop_press(Alo* self, int t)
 }
 
 /* cppcheck-suppress unusedFunction - analyzed cross-file calls not detected */
+/* process undo button press for track t */
 void handle_undo_press(Alo* self, int t)
 {
   if (!self || !track_is_active(self, t))

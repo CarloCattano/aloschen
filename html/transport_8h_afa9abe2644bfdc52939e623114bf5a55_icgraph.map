@@ -1,0 +1,18 @@
+<map id="request_ui_cycle_resync" name="request_ui_cycle_resync">
+<area shape="rect" id="Node000001" title="Notify engine that UI cycle should resynchronize on next update." alt="" coords="695,83,875,110"/>
+<area shape="rect" id="Node000002" href="$loop__engine_8c.html#afcf2eb3343f7db1ce3f379ccc5b2a15b" title=" " alt="" coords="516,57,620,85"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="677,84,620,80,620,74,682,84"/>
+<area shape="rect" id="Node000004" href="$loop__engine_8c.html#a2ba55e8c87fff5da7cb9489eb87ceec5" title=" " alt="" coords="96,71,189,98"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="677,101,475,106,355,104,237,99,190,94,189,89,237,94,356,99,475,101,682,100"/>
+<area shape="rect" id="Node000006" href="$loop__engine_8c.html#a784d869cdc5c390ca0cfb2d222712309" title=" " alt="" coords="297,159,381,186"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="734,116,647,143,574,156,501,165,382,174,381,168,501,159,574,151,646,138,729,116"/>
+<area shape="rect" id="Node000007" href="$loop__engine_8c.html#a65cceb8b83955ab5a4aab16d3e2ed374" title=" " alt="" coords="489,5,647,33"/>
+<area shape="poly" id="edge8_Node000001_Node000007" title=" " alt="" coords="728,77,646,48,612,36,612,31,648,43,734,77"/>
+<area shape="rect" id="Node000003" href="$transport_8c.html#a7ca7680e3143681678d0213c33ff636c" title=" " alt="" coords="237,57,441,85"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="498,72,442,74,441,69,504,71"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="219,80,190,84,189,79,224,78"/>
+<area shape="rect" id="Node000005" href="$aloschen_8c.html#a6c677c1af04569f433452541d8ec70f8" title=" " alt="" coords="5,108,48,136"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="81,106,50,117,47,113,85,102"/>
+<area shape="poly" id="edge7_Node000006_Node000005" title=" " alt="" coords="281,166,48,128,49,123,282,161"/>
+<area shape="poly" id="edge9_Node000007_Node000004" title=" " alt="" coords="471,20,360,29,298,37,238,48,204,59,173,72,171,68,202,54,236,43,297,31,360,23,476,18"/>
+</map>

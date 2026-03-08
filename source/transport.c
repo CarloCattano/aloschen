@@ -1,3 +1,5 @@
+/* transport and timing helpers for the looper engine */
+
 #include "transport.h"
 #include "alo_util.h"
 /* cppcheck-suppress missingIncludeSystem */
@@ -7,6 +9,7 @@
 /* cppcheck-suppress missingInclude */
 #include "lv2/atom/util.h"
 
+/* compute phase index from host beat position */
 bool compute_transport_phase_index(const Alo* self, double global_beats,
                                    uint32_t* out_phase_samples)
 {
@@ -34,10 +37,9 @@ bool compute_transport_phase_index(const Alo* self, double global_beats,
   return true;
 }
 
-/* -------------------------------------------------------------------------
- * Loop/timing helpers 
- * ------------------------------------------------------------------------- */
+/* Timing helpers */
 
+/* return number of beats in current loop */
 uint32_t compute_loop_beats(const Alo* self)
 {
   if (!self) {
@@ -50,6 +52,7 @@ uint32_t compute_loop_beats(const Alo* self)
   return bpb_ok * bars_ok;
 }
 
+/* compute beat position of next cycle start */
 double compute_next_cycle_start_beats(const Alo* self, double global_beats0)
 {
   if (!self) {
@@ -83,6 +86,7 @@ double compute_next_cycle_start_beats(const Alo* self, double global_beats0)
   return global_beats0 + (cycle_len_beats - phase);
 }
 
+/* update transport phase index from beat value */
 void update_transport_phase(Alo* self, double global_beats)
 {
   if (!self)
@@ -96,10 +100,9 @@ void update_transport_phase(Alo* self, double global_beats)
   self->transport_loop_index_pending = true;
 }
 
-/* -------------------------------------------------------------------------
- * Transport beats update 
- * ------------------------------------------------------------------------- */
+/* Transport beats update */
 
+/* helper for new transport beat notifications */
 static void update_transport_beats(Alo* self, double global_beats)
 {
   if (!self)
@@ -151,6 +154,7 @@ static void update_transport_beats(Alo* self, double global_beats)
   self->have_last_transport_beats = true;
 }
 
+/* parse LV2 time atom and update transport fields */
 void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj)
 {
   if (!self || !obj)

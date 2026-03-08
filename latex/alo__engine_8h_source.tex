@@ -1,0 +1,272 @@
+\doxysection{alo\+\_\+engine.\+h}
+\hypertarget{alo__engine_8h_source}{}\label{alo__engine_8h_source}\index{source/alo\_engine.h@{source/alo\_engine.h}}
+\doxymbox{\hyperlink{alo__engine_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#ifndef\ ALO\_ENGINE\_H}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#define\ ALO\_ENGINE\_H}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ <stdbool.h>}\ \textcolor{comment}{/*\ cppcheck-\/suppress\ missingIncludeSystem\ */}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <stdint.h>}\ \textcolor{comment}{/*\ cppcheck-\/suppress\ missingIncludeSystem\ */}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <lv2/atom/atom.h>}\ \textcolor{comment}{/*\ cppcheck-\/suppress\ missingIncludeSystem\ */}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#include\ <lv2/urid/urid.h>}\ \textcolor{comment}{/*\ cppcheck-\/suppress\ missingIncludeSystem\ */}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#include\ <lv2/midi/midi.h>}\ \textcolor{comment}{/*\ cppcheck-\/suppress\ missingIncludeSystem\ */}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ <lv2/core/lv2.h>}\ \textcolor{comment}{/*\ cppcheck-\/suppress\ missingIncludeSystem\ */}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ "{}\doxymbox{\hyperlink{slice__sampler_8h}{slice\_sampler.h}}"{}}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#define\ ALO\_URI\ "{}http://ktano-\/studio.com/aloschen"{}}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#define\ LOOP\_SIZE\ 2880000}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#define\ NUM\_TRACKS\ 3}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#ifndef\ ALO\_MAX\_UNDO\_LAYERS}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ Number\ of\ overdub\ layers\ per\ track\ (base\ layer\ is\ separate).}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#define\ ALO\_MAX\_UNDO\_LAYERS\ 7}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#define\ DEFAULT\_BEATS\_PER\_BAR\ 4}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#define\ DEFAULT\_NUM\_BARS\ 4}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#define\ DEFAULT\_BPM\ 120}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#define\ HIGH\_BEAT\_FREQ\ 880}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#define\ LOW\_BEAT\_FREQ\ 440}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#define\ START\_BEAT\_FREQ\ 1760}}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{comment}{/*\ Upper\ bound\ for\ preallocated\ per-\/block\ scratch\ buffers\ used\ in\ the\ audio}}
+\DoxyCodeLine{00036\ \textcolor{comment}{\ *\ thread.\ If\ a\ host\ provides\ blocks\ larger\ than\ this,\ the\ engine\ will\ process}}
+\DoxyCodeLine{00037\ \textcolor{comment}{\ *\ them\ in\ bounded\ chunks\ (still\ no\ heap\ allocation\ in\ run()).}}
+\DoxyCodeLine{00038\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#ifndef\ ALO\_RT\_BLOCK\_CAP}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#define\ ALO\_RT\_BLOCK\_CAP\ 65536u}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{enum}}
+\DoxyCodeLine{00044\ \{}
+\DoxyCodeLine{00045\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96fa8cbff7d547a478ccbe77cea44f9b9c86}{TRACK\_IDLE}}\ =\ 0,}
+\DoxyCodeLine{00046\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96faecefe82584a99d59d52fe8c4c07223fa}{TRACK\_ARM\_BASE}},}
+\DoxyCodeLine{00047\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96fa303b0d33cb6f0ce7a693d215353f4284}{TRACK\_REC\_BASE}},}
+\DoxyCodeLine{00048\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96fa0ec4663f8b51a3aac06c4110796c0bf2}{TRACK\_ARM\_OVERDUB}},}
+\DoxyCodeLine{00049\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96fa7076f0eeae43c21bff14f24907dcd9e7}{TRACK\_REC\_OVERDUB}},}
+\DoxyCodeLine{00050\ \}\ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96f}{TrackRecState}};}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{enum}}
+\DoxyCodeLine{00053\ \{}
+\DoxyCodeLine{00054\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aae9c9c67a7d2175f59f4a9d56d63ee3c9}{ALO\_INPUT\_L}}\ \ \ \ \ \ \ \ \ =\ 0,}
+\DoxyCodeLine{00055\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa11ec9bab04fc2ec4df78ff44470a4442}{ALO\_INPUT\_R}}\ \ \ \ \ \ \ \ \ =\ 1,}
+\DoxyCodeLine{00056\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaef40890ebfb6571e39b9ffe25b06cc42}{ALO\_OUTPUT\_L}}\ \ \ \ \ \ \ \ =\ 2,}
+\DoxyCodeLine{00057\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa5cfd0d9032c892fcd2aa83618a1f0504}{ALO\_OUTPUT\_R}}\ \ \ \ \ \ \ \ =\ 3,}
+\DoxyCodeLine{00058\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aacf4f205652d7074f611130a689d2434d}{ALO\_LOOP1}}\ \ \ \ \ \ \ \ \ \ \ =\ 4,}
+\DoxyCodeLine{00059\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa7fe7ab71d0577309be90157b42ca190f}{ALO\_UNDO1}}\ \ \ \ \ \ \ \ \ \ \ =\ 5,}
+\DoxyCodeLine{00060\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaeabb3ae56ebfd776307aa7a4a8579cc6}{ALO\_LOOP2}}\ \ \ \ \ \ \ \ \ \ \ =\ 6,}
+\DoxyCodeLine{00061\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa44b23c08d9111d0488e88e3e5d5d7f81}{ALO\_UNDO2}}\ \ \ \ \ \ \ \ \ \ \ =\ 7,}
+\DoxyCodeLine{00062\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa503b54e108f9949494e5561b8407e918}{ALO\_LOOP3}}\ \ \ \ \ \ \ \ \ \ \ =\ 8,}
+\DoxyCodeLine{00063\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa57896362c367b14f1ab4996397f08902}{ALO\_UNDO3}}\ \ \ \ \ \ \ \ \ \ \ =\ 9,}
+\DoxyCodeLine{00064\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa9fa5d129f26973e469da90603898be91}{ALO\_MIDIIN}}\ \ \ \ \ \ \ \ \ \ =\ 10,}
+\DoxyCodeLine{00065\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa8a64b55f7265084638e05cf7ac27c0a5}{ALO\_SLICE\_ROOT}}\ \ \ \ \ \ =\ 11,}
+\DoxyCodeLine{00066\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaf7f8b0f10893fe055d9860597963d22f}{ALO\_CLICK}}\ \ \ \ \ \ \ \ \ \ \ =\ 12,}
+\DoxyCodeLine{00067\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa5e0c553415a557c18b29494cf8141056}{ALO\_BARS}}\ \ \ \ \ \ \ \ \ \ \ \ =\ 13,}
+\DoxyCodeLine{00068\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa6c31c1afbd98a893eec9f39b581a24d6}{ALO\_CONTROL}}\ \ \ \ \ \ \ \ \ =\ 14,}
+\DoxyCodeLine{00069\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa2a2da5a2d9353a08c5369a1ee60b18bd}{ALO\_MIX}}\ \ \ \ \ \ \ \ \ \ \ \ \ =\ 15,}
+\DoxyCodeLine{00070\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aad6ea7b56b92fd925fb049b6775d76eef}{ALO\_ENABLED}}\ \ \ \ \ \ \ \ \ =\ 16,}
+\DoxyCodeLine{00071\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa0680e2171a368dbfdbe262d5ddbb840a}{ALO\_LOOP1\_STATE}}\ \ \ \ \ =\ 17,}
+\DoxyCodeLine{00072\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa88b891c505e776945fab1f12d924966c}{ALO\_LOOP2\_STATE}}\ \ \ \ \ =\ 18,}
+\DoxyCodeLine{00073\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa26529954e89fa4c891825205c4460b7d}{ALO\_LOOP3\_STATE}}\ \ \ \ \ =\ 19,}
+\DoxyCodeLine{00074\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaa25f3bdac087be7851c35f589c4b4916}{ALO\_BAR\_STEP}}\ \ \ \ \ \ \ \ =\ 20,}
+\DoxyCodeLine{00075\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaffc1969684a7d244c63b15e3ac7079ea}{ALO\_LOOP1\_VOL}}\ \ \ \ \ \ \ =\ 21,}
+\DoxyCodeLine{00076\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaa492d80950350f878565cf6d53a4a3c6}{ALO\_LOOP2\_VOL}}\ \ \ \ \ \ \ =\ 22,}
+\DoxyCodeLine{00077\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa6d1c4068d84df525b206a3046018829e}{ALO\_LOOP3\_VOL}}\ \ \ \ \ \ \ =\ 23,}
+\DoxyCodeLine{00078\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaa1031f40adaa3f6a4af4648d514be744}{ALO\_UNDO1\_STATE}}\ \ \ \ \ =\ 24,}
+\DoxyCodeLine{00079\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaae7c120ed92be6bd9591d0e4a0007b07}{ALO\_UNDO2\_STATE}}\ \ \ \ \ =\ 25,}
+\DoxyCodeLine{00080\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa48e039ff439dd4d2ded51a2d260c3294}{ALO\_UNDO3\_STATE}}\ \ \ \ \ =\ 26,}
+\DoxyCodeLine{00081\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa59684ae83b002f2c90cf85351c08a9bd}{ALO\_LOOP1\_HAS\_AUDIO}}\ =\ 27,}
+\DoxyCodeLine{00082\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aadfc90f945d98f03c0bb4f8a03854074a}{ALO\_LOOP2\_HAS\_AUDIO}}\ =\ 28,}
+\DoxyCodeLine{00083\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa5293c90078bdf930ef92d1c993c44b46}{ALO\_LOOP3\_HAS\_AUDIO}}\ =\ 29,}
+\DoxyCodeLine{00084\ \ \ \textcolor{comment}{/*\ Debug/visualization\ outputs\ (MOD\ GUI\ rings).\ */}}
+\DoxyCodeLine{00085\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa34112032aeab8dbce885ab94348ab818}{ALO\_CYCLE\_PHASE}}\ \ \ \ =\ 30,}
+\DoxyCodeLine{00086\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa35acdce0d645bc4eb165b16b8dce4e4d}{ALO\_HOST\_BAR\_PHASE}}\ =\ 31,}
+\DoxyCodeLine{00087\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aaf69856bfb53581b20eb92d98c4f44ea1}{ALO\_SAMPLER\_VOL}}\ \ \ \ =\ 32,}
+\DoxyCodeLine{00088\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007aa384c632a69e0e70016687d8b33bee052}{ALO\_SLICES\_PER\_BAR}}\ =\ 33,}
+\DoxyCodeLine{00089\ \}\ \doxymbox{\hyperlink{alo__engine_8h_a41301420b6a2483a529413860721007a}{PortIndex}};}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \textcolor{comment}{/*\ Keep\ in\ sync\ with\ the\ highest\ port\ index\ +\ 1.\ */}}
+\DoxyCodeLine{00092\ \textcolor{preprocessor}{\#define\ ALO\_PORT\_COUNT\ 34}}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct}}
+\DoxyCodeLine{00095\ \{}
+\DoxyCodeLine{00096\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_ae3e284855c62d4e25ed877f519fe858d}{atom\_Blank}};}
+\DoxyCodeLine{00097\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a6cdc84ef9f659eb17193085ef96e7c52}{atom\_Float}};}
+\DoxyCodeLine{00098\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a321f3d169533b6e22bc08e53c18fa2ed}{atom\_Int}};}
+\DoxyCodeLine{00099\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a4c7305a0a18238113240fedff324361f}{atom\_Long}};}
+\DoxyCodeLine{00100\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a9dc6ad244d08585d8d17e2dd42a6c8c6}{atom\_Object}};}
+\DoxyCodeLine{00101\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a6a6f5a0f0aac818b03925e54e6ef23de}{midi\_MidiEvent}};}
+\DoxyCodeLine{00102\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a201915debf642893790f571055547040}{atom\_Path}};}
+\DoxyCodeLine{00103\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a26d9d528119146f438fa68c5a37bf340}{atom\_Resource}};}
+\DoxyCodeLine{00104\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a150af5bedc8e835cce46b1c041e774c6}{atom\_Sequence}};}
+\DoxyCodeLine{00105\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_ae7d1126537f31e420fd426fcb4c0e41a}{time\_Position}};}
+\DoxyCodeLine{00107\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a0ce439ac97fdcd81f4c79fe1e6cac7ac}{time\_beat}};}
+\DoxyCodeLine{00109\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_aa46353c263f73a7aef3091a17ce32f43}{time\_barBeat}};}
+\DoxyCodeLine{00111\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a604b6c4d03b6679ab55d51a16b66de13}{time\_bar}};}
+\DoxyCodeLine{00113\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a00594d8e1faab224d255d80d63702a00}{time\_beatsPerMinute}};}
+\DoxyCodeLine{00115\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_ae8f5dd232c8565d75351981e32b2bd5a}{time\_beatsPerBar}};}
+\DoxyCodeLine{00117\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a95c362660f346aa085c46a7a3a5c2b1f}{time\_speed}};}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \ \ \textcolor{comment}{/*\ LV2\ options\ /\ buf-\/size\ (instantiate-\/time\ only).\ */}}
+\DoxyCodeLine{00121\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a881f4e05d37044443eada680196e3268}{bufsz\_maxBlockLength}};}
+\DoxyCodeLine{00122\ \ \ LV2\_URID\ \doxymbox{\hyperlink{structAloURIs_a7df2dabdb0746337c6a9b0f25ae9442e}{bufsz\_nominalBlockLength}};}
+\DoxyCodeLine{00123\ \}\ \doxymbox{\hyperlink{structAloURIs}{AloURIs}};}
+\DoxyCodeLine{00124\ }
+\DoxyCodeLine{00125\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct}}
+\DoxyCodeLine{00126\ \{}
+\DoxyCodeLine{00127\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a9664740ac9df8fc2f9e8f378cd36f48d}{input\_l}};}
+\DoxyCodeLine{00128\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_ae46fd2aeb032f12d4888be19c1ea5ba9}{input\_r}};}
+\DoxyCodeLine{00129\ \ \ \textcolor{keywordtype}{float}*\ \ \ \ \ \ \ \doxymbox{\hyperlink{structAloPorts_acefe7ad7d1e7c45025f737fb9af45eab}{output\_l}};}
+\DoxyCodeLine{00131\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a8960399010078b141900593132350d8d}{output\_r}};}
+\DoxyCodeLine{00132\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a2b757f0bf85ac834659ced75dde71b95}{loop\_btn}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00133\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a991fce49eb4afda7bf2766dbbb6fa2c2}{undo\_btn}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00135\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a4fbd1d138340aa69e695652da71b5238}{loop\_vol}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00137\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_ae4e2451041bc51eb2944c0ce8e83270a}{sampler\_vol}};}
+\DoxyCodeLine{00138\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_ac728727c22b2381295781152764c0234}{bars}};}
+\DoxyCodeLine{00140\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a751e23f91611a31e01db67d76a9684e4}{slices\_per\_bar}};}
+\DoxyCodeLine{00141\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a5d5269f301c6823c3d29509f56d3b03c}{slice\_root}};}
+\DoxyCodeLine{00142\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a52f633fac33fd033cea590dc47588d0d}{click}};}
+\DoxyCodeLine{00143\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a40f48607847e08cdadaa8344072e908f}{mix}};}
+\DoxyCodeLine{00144\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_ab10b26cdeeb4de03d1555cf2d96b9657}{enabled}};}
+\DoxyCodeLine{00146\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a13d2ebad953ff08e4e6401528d04863b}{loop\_state\_out}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00148\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_af9a5286aaa79843a99ab64aa920f7f11}{undo\_state\_out}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00150\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_aced8b1a256795b956077bfeadf256560}{has\_audio\_out}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00152\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_a1d4f41679c7e08cf6211fa19931a7f72}{bar\_step\_out}};}
+\DoxyCodeLine{00154\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_aa84991f0c9a9dc801aa24e4b3095ce3b}{cycle\_phase\_out}};}
+\DoxyCodeLine{00156\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAloPorts_aaa2b6d831ec4354171a4c5474db982e7}{host\_bar\_phase\_out}};}
+\DoxyCodeLine{00158\ \ \ LV2\_Atom\_Sequence*\ \doxymbox{\hyperlink{structAloPorts_a4d59a2d1048f3f9122498a85698f57c6}{control}};}
+\DoxyCodeLine{00159\ \ \ LV2\_Atom\_Sequence*\ \doxymbox{\hyperlink{structAloPorts_a549f3a873fdc4d5291b2845454a01f22}{midiin}};}
+\DoxyCodeLine{00160\ \}\ \doxymbox{\hyperlink{structAloPorts}{AloPorts}};}
+\DoxyCodeLine{00161\ }
+\DoxyCodeLine{00162\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\doxymbox{\hyperlink{structAlo}{Alo}}}
+\DoxyCodeLine{00163\ \{}
+\DoxyCodeLine{00164\ \ \ LV2\_URID\_Map*\ \doxymbox{\hyperlink{structAlo_a9ba5243020fef33befa9d57bcdf71462}{map}};}
+\DoxyCodeLine{00165\ \ \ \doxymbox{\hyperlink{structAloURIs}{AloURIs}}\ \ \ \ \ \ \ \doxymbox{\hyperlink{structAlo_ab8a0958a50f48e58fa6e60588d71efa6}{uris}};}
+\DoxyCodeLine{00166\ \ \ \doxymbox{\hyperlink{structAloPorts}{AloPorts}}\ \ \ \ \ \ \doxymbox{\hyperlink{structAlo_a69132cc693f18baacc13f4f518696f62}{ports}};}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \ \ \textcolor{keywordtype}{double}\ \ \ \doxymbox{\hyperlink{structAlo_aad4a12f62c42152252e206c74f460efe}{rate}};}
+\DoxyCodeLine{00169\ \ \ \textcolor{keywordtype}{float}\ \ \ \ \doxymbox{\hyperlink{structAlo_afa02d54c301de80eecdd75c54405a267}{bpm}};}
+\DoxyCodeLine{00170\ \ \ \textcolor{keywordtype}{float}\ \ \ \ \doxymbox{\hyperlink{structAlo_af50f56d63ced84a5a92d080683a6a790}{bpb}};}
+\DoxyCodeLine{00171\ \ \ \textcolor{keywordtype}{float}\ \ \ \ \doxymbox{\hyperlink{structAlo_a777b0cf8547e4e0d6ea0dae1f454ada2}{speed}};}
+\DoxyCodeLine{00172\ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \doxymbox{\hyperlink{structAlo_ab22773f4d8644bd7aa0377f2768c62d9}{have\_speed}};}
+\DoxyCodeLine{00173\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a0be5d351a5b44d8b268dd3c83829a7db}{loop\_beats}};}
+\DoxyCodeLine{00174\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a11ae2c9abcf459661cb1b5aa2bd36541}{loop\_samples}};}
+\DoxyCodeLine{00175\ \ \ \textcolor{keywordtype}{float}\ \ \ \ \doxymbox{\hyperlink{structAlo_a351793ca5791bf0f429fe2c9e272103f}{current\_position}};}
+\DoxyCodeLine{00176\ }
+\DoxyCodeLine{00177\ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{structAlo_ac85f2aa7049dade259f5aff4694fd1fd}{have\_transport}};}
+\DoxyCodeLine{00178\ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{structAlo_a9958995ca0360ba6c81bdd73b1925199}{transport\_moving}};}
+\DoxyCodeLine{00180\ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{structAlo_a032aad64226406f06720d401a2801423}{transport\_updated\_this\_cycle}};}
+\DoxyCodeLine{00182\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a7af02eec16bfee4dfc10d1fe03df3cdd}{transport\_blocks\_without\_update}};}
+\DoxyCodeLine{00183\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a8eedc398fe1dbe7baf44688e15f094fb}{transport\_loop\_index}};}
+\DoxyCodeLine{00184\ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \doxymbox{\hyperlink{structAlo_a8c1d2fdaaaab740f849a1746c9a779d8}{transport\_loop\_index\_pending}};}
+\DoxyCodeLine{00185\ \ \ \textcolor{keywordtype}{float}\ \ \ \ \doxymbox{\hyperlink{structAlo_ad74113e160abf6b3bb53856a719a27d3}{last\_bar\_beat}};}
+\DoxyCodeLine{00186\ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \doxymbox{\hyperlink{structAlo_a6c7422e310ef4cff4423b9a63002b63c}{have\_last\_bar\_beat}};}
+\DoxyCodeLine{00187\ \ \ int64\_t\ \ \doxymbox{\hyperlink{structAlo_a6050768d8011577d5adacbc5b2a1dde6}{bar\_counter\_fallback}};}
+\DoxyCodeLine{00188\ \ \ \textcolor{keywordtype}{double}\ \ \ \doxymbox{\hyperlink{structAlo_a4ce2a4567f200d2f4aee5fb9387ba675}{last\_transport\_beats}};}
+\DoxyCodeLine{00189\ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \doxymbox{\hyperlink{structAlo_a40c59af7a7c6c95dd5b596840dfe098e}{have\_last\_transport\_beats}};}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \ \ \textcolor{comment}{//\ Loop\ phase\ origin\ in\ host\ beats\ (set\ when\ the\ first\ base\ recording\ starts).}}
+\DoxyCodeLine{00192\ \ \ \textcolor{keywordtype}{double}\ \doxymbox{\hyperlink{structAlo_a4629131192a0b858f2caaea3f2d3ccce}{loop\_origin\_beats}};}
+\DoxyCodeLine{00193\ \ \ \textcolor{keywordtype}{bool}\ \ \ \doxymbox{\hyperlink{structAlo_aeaae34963c1a4f9dc959a2bc569e521c}{have\_loop\_origin}};}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00195\ \ \ \doxymbox{\hyperlink{structAloSliceSampler}{AloSliceSampler}}\ \doxymbox{\hyperlink{structAlo_aadaef3a62865e4bb6caccb008f06952f}{slice\_sampler}};}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \ \ \textcolor{comment}{/*\ Preallocated\ per-\/block\ scratch\ buffers\ (RT-\/safe;\ allocated\ once\ at\ init).\ */}}
+\DoxyCodeLine{00198\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_aa5f8df97cdf0cf822c1d3e3145fc5b78}{rt\_block\_cap}};}
+\DoxyCodeLine{00199\ \ \ \textcolor{keywordtype}{float}*\ \ \ \doxymbox{\hyperlink{structAlo_a294ed9a8307ba696f9c8e2477ed885df}{rt\_play\_l}};}
+\DoxyCodeLine{00200\ \ \ \textcolor{keywordtype}{float}*\ \ \ \doxymbox{\hyperlink{structAlo_aa45b344b8823ff4dd7cfdc7c9efb4b57}{rt\_play\_r}};}
+\DoxyCodeLine{00201\ \ \ \textcolor{keywordtype}{float}*\ \ \ \doxymbox{\hyperlink{structAlo_aa3ff4e6b86388744a0eb18a66002f9ab}{rt\_slice\_l}};}
+\DoxyCodeLine{00202\ \ \ \textcolor{keywordtype}{float}*\ \ \ \doxymbox{\hyperlink{structAlo_ac74d0c208c8564a6010a0fd4072a8ef3}{rt\_slice\_r}};}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \ \ \textcolor{comment}{/*\ Sampler\ source\ cache:\ committed\ full-\/loop\ stereo\ mix\ buffer\ (L\ then\ R).}}
+\DoxyCodeLine{00205\ \textcolor{comment}{\ \ \ *\ Rebuilt\ automatically\ (RT-\/safe,\ bounded\ work\ per\ run\ call)\ whenever\ the}}
+\DoxyCodeLine{00206\ \textcolor{comment}{\ \ \ *\ committed\ loop\ content\ changes.}}
+\DoxyCodeLine{00207\ \textcolor{comment}{\ \ \ */}}
+\DoxyCodeLine{00208\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAlo_aca84f89334d99f6b88952a417f6f1e0c}{sampler\_src\_buf}};}
+\DoxyCodeLine{00209\ \ \ \textcolor{comment}{/*\ Secondary\ buffer\ used\ while\ rebuilding\ the\ mix\ so\ that\ existing\ MIDI}}
+\DoxyCodeLine{00210\ \textcolor{comment}{\ \ \ *\ slice\ voices\ can\ continue\ reading\ from\ the\ old\ audio\ without\ interruption.}}
+\DoxyCodeLine{00211\ \textcolor{comment}{\ \ \ *\ When\ a\ rebuild\ completes\ the\ two\ pointers\ are\ swapped\ atomically.}}
+\DoxyCodeLine{00212\ \textcolor{comment}{\ \ \ */}}
+\DoxyCodeLine{00213\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAlo_a46ab936eb56d3cd00718c28e88b8a124}{sampler\_src\_buf\_shadow}};}
+\DoxyCodeLine{00214\ \ \ \textcolor{keywordtype}{bool}\ \ \ \doxymbox{\hyperlink{structAlo_ab714256fce303232d51dec2d282a14b9}{sampler\_src\_shadow\_valid}};}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \doxymbox{\hyperlink{structAlo_a5f35ab40bcda440ae80ba92c27fe2535}{sampler\_src\_valid}};}
+\DoxyCodeLine{00217\ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \doxymbox{\hyperlink{structAlo_a1675eaeb02c081afd4d47cc6c22bbec5}{sampler\_src\_dirty}};}
+\DoxyCodeLine{00218\ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \doxymbox{\hyperlink{structAlo_a313494def40d2c56c4a954bbaccf9bb1}{sampler\_src\_rebuild\_active}};}
+\DoxyCodeLine{00219\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a375b765b792bece9287d525ebbca678a}{sampler\_src\_pos}};}
+\DoxyCodeLine{00220\ \ \ \textcolor{keywordtype}{float}\ \ \ \ \doxymbox{\hyperlink{structAlo_a934b978828d834665fbc2c2dd2333d6b}{sampler\_src\_peak\_abs}};}
+\DoxyCodeLine{00221\ \ \ \textcolor{keywordtype}{float}\ \ \ \ \doxymbox{\hyperlink{structAlo_ae898fce33094b66a56d9af07143735bf}{sampler\_src\_norm\_gain}};}
+\DoxyCodeLine{00222\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a748da6ee608252c2b639a9310b857e40}{sampler\_src\_loop\_samples}};}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00226\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAlo_a99702b026d583440e0bd9da00f23b2d6}{loop\_buf}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00227\ \ \ \textcolor{keywordtype}{bool}\ \ \ \doxymbox{\hyperlink{structAlo_a0bab0e1ffba851e6399f36d2b95a96b4}{have\_loop}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00230\ \ \ \textcolor{keywordtype}{float}*\ \doxymbox{\hyperlink{structAlo_ab6d4e2b2083ac09d4cfaa79f781742b2}{od\_buf}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}][\doxymbox{\hyperlink{alo__engine_8h_af51a2c70ae6618f938b7a06a284d4215}{ALO\_MAX\_UNDO\_LAYERS}}];}
+\DoxyCodeLine{00232\ \ \ uint8\_t\ \doxymbox{\hyperlink{structAlo_a41966e14193f389052ce4bff05923397}{od\_count}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00234\ \ \ uint8\_t\ \doxymbox{\hyperlink{structAlo_a5e5a49f8f8412218b93f63b683dd82f2}{rec\_od\_layer}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00237\ \ \ uint8\_t\ \doxymbox{\hyperlink{structAlo_a77383e367bf3b1b89f96104c1ff89135}{pending\_undo}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00238\ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \doxymbox{\hyperlink{structAlo_a51f6b4c50b783ff2a4352be6376ef256}{pending\_clear\_all}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00239\ }
+\DoxyCodeLine{00240\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96f}{TrackRecState}}\ \doxymbox{\hyperlink{structAlo_ab8e8b4845135c20d24ef01b214c0ee1f}{track\_state}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00242\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a0a15594461a1c1b7ddb658d69e53aba9}{rec\_remaining\_samples}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00244\ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{structAlo_a5eda2e06d30526b810dac6b64da1a12d}{last\_loop\_input}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00245\ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{structAlo_a8ca2fe4623795d18ea51af7de2796375}{last\_undo\_input}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00252\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a77d8f8594fce0ea998e648460118a414}{loop\_btn\_high\_frames}}[\doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}}];}
+\DoxyCodeLine{00253\ }
+\DoxyCodeLine{00254\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a5c9f950b769e1a8fdeff826a44843d24}{loop\_start}};}
+\DoxyCodeLine{00255\ \ \ \textcolor{comment}{/*\ Playhead\ uses\ double\ precision\ to\ support\ sub-\/sample\ positioning.\ \ The}}
+\DoxyCodeLine{00256\ \textcolor{comment}{\ \ \ *\ fractional\ part\ is\ used\ for\ linear\ interpolation\ during\ playback\ to}}
+\DoxyCodeLine{00257\ \textcolor{comment}{\ \ \ *\ eliminate\ jitter\ when\ the\ loop\ length\ does\ not\ divide\ evenly\ into\ the}}
+\DoxyCodeLine{00258\ \textcolor{comment}{\ \ \ *\ sample\ rate.\ \ \`{}loop\_phase`\ is\ the\ corresponding\ integer\ offset\ (0..len-\/1)}}
+\DoxyCodeLine{00259\ \textcolor{comment}{\ \ \ *\ used\ for\ quantized\ events\ and\ wrap\ detection\ without\ modulo\ ops.}}
+\DoxyCodeLine{00260\ \textcolor{comment}{\ \ \ */}}
+\DoxyCodeLine{00261\ \ \ \textcolor{keywordtype}{double}\ \ \ \doxymbox{\hyperlink{structAlo_a382fd4704b7fd745dfa5b221ac16673e}{loop\_playhead}};}
+\DoxyCodeLine{00262\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_aad720539fb43e73aa11d7ea4358d643a}{loop\_phase}};}
+\DoxyCodeLine{00263\ }
+\DoxyCodeLine{00264\ \ \ \textcolor{keywordtype}{float}*\ \ \ \doxymbox{\hyperlink{structAlo_aae235dd6c4cf8ce4485a009c635910cd}{high\_beat}};}
+\DoxyCodeLine{00265\ \ \ \textcolor{keywordtype}{float}*\ \ \ \doxymbox{\hyperlink{structAlo_a37d4511cac8307372c8d4841127eb991}{low\_beat}};}
+\DoxyCodeLine{00266\ \ \ \textcolor{keywordtype}{float}*\ \ \ \doxymbox{\hyperlink{structAlo_a1a1b9cc7f84b9772b2b159b3d042f813}{start\_beat}};}
+\DoxyCodeLine{00267\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a258b32e43ba565d7b2960a2027c50780}{beat\_len}};}
+\DoxyCodeLine{00268\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_aa107aa1547ec3b6233d576c2946a9f7e}{high\_beat\_offset}};}
+\DoxyCodeLine{00269\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a54798dac7ac49de68b5884e3203bd4c9}{low\_beat\_offset}};}
+\DoxyCodeLine{00270\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a1c44580c43be41d14ec758b87e64c6cb}{start\_beat\_offset}};}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00273\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_abfa407043113140e66ef7e78d98ba249}{click\_bar\_in\_cycle}};}
+\DoxyCodeLine{00275\ \ \ int8\_t\ \doxymbox{\hyperlink{structAlo_a39e0dcc009eb3dcadab130abfe1894f8}{ui\_last\_bar\_step}};}
+\DoxyCodeLine{00277\ \ \ uint32\_t\ \doxymbox{\hyperlink{structAlo_a31b2d0c6d86a7851b8b3563d1ffdfcb0}{ui\_last\_bars\_i}};}
+\DoxyCodeLine{00279\ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{structAlo_a99571addcfd83befa07fc2f0297acd79}{ui\_cycle\_resync\_pending}};}
+\DoxyCodeLine{00281\ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{structAlo_a192751b53e84e98441b9be529f83b5e1}{ui\_transport\_was\_stopped}};}
+\DoxyCodeLine{00283\ \ \ \textcolor{keywordtype}{double}\ \doxymbox{\hyperlink{structAlo_a812e23740ff5b8a8ceb737e026325f92}{ui\_cycle\_origin\_beats}};}
+\DoxyCodeLine{00284\ \ \ \textcolor{keywordtype}{bool}\ \ \ \doxymbox{\hyperlink{structAlo_acd1f9067067f62fe5e41bd9cf8df6ec7}{ui\_have\_cycle\_origin}};}
+\DoxyCodeLine{00286\ \ \ \textcolor{keywordtype}{float}\ \doxymbox{\hyperlink{structAlo_a8cd295d45cc6a0b756e6a6f0485933d5}{ui\_prev\_bar\_beat}};}
+\DoxyCodeLine{00287\ \ \ \textcolor{keywordtype}{bool}\ \ \doxymbox{\hyperlink{structAlo_a6b0a28ebd2c19cf82e927ad0ce8b57e5}{ui\_have\_prev\_bar\_beat}};}
+\DoxyCodeLine{00288\ \ \ \textcolor{keywordtype}{float}\ \doxymbox{\hyperlink{structAlo_a9020dc8366c520dc4c8663d80817db7c}{inmix}};}
+\DoxyCodeLine{00289\ \ \ \textcolor{keywordtype}{float}\ \doxymbox{\hyperlink{structAlo_a8f4aea98736dfb28ef93c5be94264ee6}{loopmix}};}
+\DoxyCodeLine{00290\ }
+\DoxyCodeLine{00292\ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{structAlo_a21e17a51a7850b2968f191c609488eb2}{have\_last\_enabled}};}
+\DoxyCodeLine{00293\ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{structAlo_a3beebf9aaff4853d378e5197da454016}{last\_enabled}};}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \ \ \textcolor{keywordtype}{int}\ \ \ \ \ \ \ \ \ \ \ \doxymbox{\hyperlink{structAlo_a7b587fb00fd81303681524afa3dc5dd8}{pending\_arm\_track}};\ \textcolor{comment}{//\ -\/1\ if\ none}}
+\DoxyCodeLine{00296\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96f}{TrackRecState}}\ \doxymbox{\hyperlink{structAlo_af46da689f580560372ce66320fcd2639}{pending\_arm\_type}};}
+\DoxyCodeLine{00297\ \}\ \doxymbox{\hyperlink{structAlo}{Alo}};}
+\DoxyCodeLine{00298\ }
+\DoxyCodeLine{00299\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{alo__engine_8h_a9b35ef520341e7725d0e88b26f013f0d}{alo\_log}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ message,\ ...);}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{alo__engine_8h_a1b58b74c26305eb4c8a6015be26e94a8}{update\_loop\_state\_ports}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self);}
+\DoxyCodeLine{00302\ }
+\DoxyCodeLine{00303\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{alo__engine_8h_a446b2137af21a9e994214984679f6bc8}{reset}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self);}
+\DoxyCodeLine{00304\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{alo__engine_8h_afcf2eb3343f7db1ce3f379ccc5b2a15b}{reset\_timing}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self);}
+\DoxyCodeLine{00305\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{alo__engine_8h_ad7b6840eecb462d116dda1e5e63c9763}{run\_events}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self,\ uint32\_t\ n\_samples);}
+\DoxyCodeLine{00306\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{alo__engine_8h_a784d869cdc5c390ca0cfb2d222712309}{run\_loops}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self,\ uint32\_t\ n\_samples);}
+\DoxyCodeLine{00307\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{alo__engine_8h_a6db7b1aa771cb74ac68e2fbf355a9fd8}{run\_clicks}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self,\ uint32\_t\ n\_samples);}
+\DoxyCodeLine{00308\ }
+\DoxyCodeLine{00309\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ ALO\_ENGINE\_H}}
+
+\end{DoxyCode}

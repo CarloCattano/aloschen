@@ -1,0 +1,197 @@
+\doxysection{source/\+button\+\_\+logic.c File Reference}
+\hypertarget{button__logic_8c}{}\label{button__logic_8c}\index{source/button\_logic.c@{source/button\_logic.c}}
+{\ttfamily \+\#include "{}button\+\_\+logic.\+h"{}}\newline
+{\ttfamily \+\#include "{}transport.\+h"{}}\newline
+Include dependency graph for button\+\_\+logic.\+c:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{button__logic_8c__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+static bool \doxymbox{\hyperlink{button__logic_8c_aee1db211a9a3e7e42c71415b0ab0b048}{any\+\_\+other\+\_\+track\+\_\+busy}} (const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self, int exclude)
+\item 
+void \doxymbox{\hyperlink{button__logic_8c_a02086bd0502ab497c868829d006f5b7a}{handle\+\_\+loop\+\_\+press}} (\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self, int t)
+\begin{DoxyCompactList}\small\item\em Process a press of the loop button on track {\ttfamily t}. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{button__logic_8c_ab5316db9a3247b980ae65c94c8b7e729}{handle\+\_\+undo\+\_\+press}} (\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}self, int t)
+\begin{DoxyCompactList}\small\item\em Process a press of the undo button on track {\ttfamily t}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{button__logic_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{button__logic_8c_aee1db211a9a3e7e42c71415b0ab0b048}\index{button\_logic.c@{button\_logic.c}!any\_other\_track\_busy@{any\_other\_track\_busy}}
+\index{any\_other\_track\_busy@{any\_other\_track\_busy}!button\_logic.c@{button\_logic.c}}
+\doxysubsubsection{\texorpdfstring{any\_other\_track\_busy()}{any\_other\_track\_busy()}}
+{\footnotesize\ttfamily \label{button__logic_8c_aee1db211a9a3e7e42c71415b0ab0b048} 
+bool any\+\_\+other\+\_\+track\+\_\+busy (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{, }\item[{int}]{exclude}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00005\ \{}
+\DoxyCodeLine{00006\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ u\ =\ 0;\ u\ <\ \doxymbox{\hyperlink{alo__engine_8h_a6acd776cf86aa2667dcd3a8cd950e8dc}{NUM\_TRACKS}};\ ++u)\ \{}
+\DoxyCodeLine{00007\ \ \ \ \ \textcolor{keywordflow}{if}\ (u\ ==\ exclude)}
+\DoxyCodeLine{00008\ \ \ \ \ \ \ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{00009\ \ \ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_ab8e8b4845135c20d24ef01b214c0ee1f}{track\_state}}[u]\ ==\ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96fa303b0d33cb6f0ce7a693d215353f4284}{TRACK\_REC\_BASE}}\ ||\ self-\/>\doxymbox{\hyperlink{structAlo_ab8e8b4845135c20d24ef01b214c0ee1f}{track\_state}}[u]\ ==\ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96fa7076f0eeae43c21bff14f24907dcd9e7}{TRACK\_REC\_OVERDUB}})\ \{}
+\DoxyCodeLine{00010\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00011\ \ \ \ \ \}}
+\DoxyCodeLine{00012\ \ \ \}}
+\DoxyCodeLine{00013\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00014\ \}}
+
+\end{DoxyCode}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{button__logic_8c_aee1db211a9a3e7e42c71415b0ab0b048_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{button__logic_8c_a02086bd0502ab497c868829d006f5b7a}\index{button\_logic.c@{button\_logic.c}!handle\_loop\_press@{handle\_loop\_press}}
+\index{handle\_loop\_press@{handle\_loop\_press}!button\_logic.c@{button\_logic.c}}
+\doxysubsubsection{\texorpdfstring{handle\_loop\_press()}{handle\_loop\_press()}}
+{\footnotesize\ttfamily \label{button__logic_8c_a02086bd0502ab497c868829d006f5b7a} 
+void handle\+\_\+loop\+\_\+press (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{, }\item[{int}]{t}{}\end{DoxyParamCaption})}
+
+
+
+Process a press of the loop button on track {\ttfamily t}. 
+
+Behavior depends on track state and other active tracks; may arm, record, overdub, or cancel pending actions. Updates loop-\/state output ports.
+
+
+\begin{DoxyParams}{Parameters}
+{\em self} & Engine instance (may be NULL). \\
+\hline
+{\em t} & Track index. \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00019\ \{}
+\DoxyCodeLine{00020\ \ \ \textcolor{comment}{/*\ Cancel\ queued\ arm\ if\ pressing\ same\ track\ */}}
+\DoxyCodeLine{00021\ \ \ \textcolor{keywordflow}{if}\ (self\ \&\&\ self-\/>\doxymbox{\hyperlink{structAlo_a7b587fb00fd81303681524afa3dc5dd8}{pending\_arm\_track}}\ ==\ t)\ \{}
+\DoxyCodeLine{00022\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a7b587fb00fd81303681524afa3dc5dd8}{pending\_arm\_track}}\ =\ -\/1;}
+\DoxyCodeLine{00023\ \ \ \ \ \doxymbox{\hyperlink{alo__engine_8h_a1b58b74c26305eb4c8a6015be26e94a8}{update\_loop\_state\_ports}}(self);}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00025\ \ \ \}}
+\DoxyCodeLine{00026\ \ \ \textcolor{comment}{//\ If\ another\ track\ is\ recording,\ queue\ this\ press\ instead\ of\ ignoring\ it}}
+\DoxyCodeLine{00027\ \ \ \textcolor{keywordflow}{if}\ (self\ \&\&\ \doxymbox{\hyperlink{button__logic_8c_aee1db211a9a3e7e42c71415b0ab0b048}{any\_other\_track\_busy}}(self,\ t))\ \{}
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_a7b587fb00fd81303681524afa3dc5dd8}{pending\_arm\_track}}\ <\ 0)\ \{}
+\DoxyCodeLine{00029\ \ \ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a7b587fb00fd81303681524afa3dc5dd8}{pending\_arm\_track}}\ =\ t;}
+\DoxyCodeLine{00030\ \ \ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_af46da689f580560372ce66320fcd2639}{pending\_arm\_type}}\ \ =\ self-\/>\doxymbox{\hyperlink{structAlo_a0bab0e1ffba851e6399f36d2b95a96b4}{have\_loop}}[t]\ ?\ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96fa0ec4663f8b51a3aac06c4110796c0bf2}{TRACK\_ARM\_OVERDUB}}\ :\ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96faecefe82584a99d59d52fe8c4c07223fa}{TRACK\_ARM\_BASE}};}
+\DoxyCodeLine{00031\ \ \ \ \ \ \ \doxymbox{\hyperlink{alo__engine_8h_a1b58b74c26305eb4c8a6015be26e94a8}{update\_loop\_state\_ports}}(self);\ \textcolor{comment}{//\ immediate\ UI\ feedback}}
+\DoxyCodeLine{00032\ \ \ \ \ \}}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00034\ \ \ \}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \ \ \textcolor{keywordflow}{if}\ (!self\ ||\ !\doxymbox{\hyperlink{alo__util_8c_a6b55f8a7396a29164300ea5a0c39447d}{track\_is\_active}}(self,\ t))}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \ \ \textcolor{comment}{/*\ If\ the\ user\ presses\ while\ armed/recording,\ treat\ it\ as\ cancel/abort.\ */}}
+\DoxyCodeLine{00040\ \ \ \textcolor{keywordflow}{if}\ (\doxymbox{\hyperlink{alo__util_8c_ab7ed16985f4abe9ddbaadc68e09ad9ba}{track\_is\_busy}}(self,\ t))\ \{}
+\DoxyCodeLine{00041\ \ \ \ \ \doxymbox{\hyperlink{alo__util_8c_a02c5ec1bc4dfbd5b6f6e3be0aeb8c0c8}{clear\_track\_state}}(self,\ t);}
+\DoxyCodeLine{00042\ \ \ \ \ \doxymbox{\hyperlink{alo__engine_8h_a1b58b74c26305eb4c8a6015be26e94a8}{update\_loop\_state\_ports}}(self);}
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00044\ \ \ \}}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \ \ \textcolor{keywordflow}{if}\ (!self-\/>\doxymbox{\hyperlink{structAlo_a0bab0e1ffba851e6399f36d2b95a96b4}{have\_loop}}[t])\ \{}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{comment}{/*\ First-\/ever\ base\ recording\ defines\ the\ loop\ origin.\ */}}
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keywordflow}{if}\ (!self-\/>\doxymbox{\hyperlink{structAlo_aeaae34963c1a4f9dc959a2bc569e521c}{have\_loop\_origin}})\ \{}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \textcolor{comment}{/*\ If\ we\ already\ know\ the\ current\ transport\ position\ we\ can\ sync\ the\ UI}}
+\DoxyCodeLine{00050\ \textcolor{comment}{\ \ \ \ \ \ \ *\ immediately;\ otherwise\ defer\ until\ run\_loops\ quantizes\ the\ start.}}
+\DoxyCodeLine{00051\ \textcolor{comment}{\ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_a40c59af7a7c6c95dd5b596840dfe098e}{have\_last\_transport\_beats}})\ \{}
+\DoxyCodeLine{00053\ \ \ \ \ \ \ \ \ \doxymbox{\hyperlink{button__logic_8h_afa9abe2644bfdc52939e623114bf5a55}{request\_ui\_cycle\_resync}}(self);}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a812e23740ff5b8a8ceb737e026325f92}{ui\_cycle\_origin\_beats}}\ =}
+\DoxyCodeLine{00055\ \ \ \ \ \ \ \ \ \ \ \ \ \doxymbox{\hyperlink{transport_8c_aff1c7ee08c60427659d265b18bad89bd}{compute\_next\_cycle\_start\_beats}}(self,\ self-\/>\doxymbox{\hyperlink{structAlo_a4ce2a4567f200d2f4aee5fb9387ba675}{last\_transport\_beats}});}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_acd1f9067067f62fe5e41bd9cf8df6ec7}{ui\_have\_cycle\_origin}}\ \ \ \ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00057\ \ \ \ \ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a99571addcfd83befa07fc2f0297acd79}{ui\_cycle\_resync\_pending}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00059\ \ \ \ \ \}}
+\DoxyCodeLine{00060\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_ab8e8b4845135c20d24ef01b214c0ee1f}{track\_state}}[t]\ \ \ \ \ \ \ \ \ \ \ =\ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96faecefe82584a99d59d52fe8c4c07223fa}{TRACK\_ARM\_BASE}};}
+\DoxyCodeLine{00061\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a0a15594461a1c1b7ddb658d69e53aba9}{rec\_remaining\_samples}}[t]\ =\ 0;}
+\DoxyCodeLine{00062\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00063\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_ab8e8b4845135c20d24ef01b214c0ee1f}{track\_state}}[t]\ \ \ \ \ \ \ \ \ \ \ =\ \doxymbox{\hyperlink{alo__engine_8h_a784d0e9a79d1f566ac41e838614fc96fa0ec4663f8b51a3aac06c4110796c0bf2}{TRACK\_ARM\_OVERDUB}};}
+\DoxyCodeLine{00064\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a0a15594461a1c1b7ddb658d69e53aba9}{rec\_remaining\_samples}}[t]\ =\ 0;}
+\DoxyCodeLine{00065\ \ \ \}}
+\DoxyCodeLine{00066\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{button__logic_8c_a02086bd0502ab497c868829d006f5b7a_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{button__logic_8c_a02086bd0502ab497c868829d006f5b7a_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{button__logic_8c_ab5316db9a3247b980ae65c94c8b7e729}\index{button\_logic.c@{button\_logic.c}!handle\_undo\_press@{handle\_undo\_press}}
+\index{handle\_undo\_press@{handle\_undo\_press}!button\_logic.c@{button\_logic.c}}
+\doxysubsubsection{\texorpdfstring{handle\_undo\_press()}{handle\_undo\_press()}}
+{\footnotesize\ttfamily \label{button__logic_8c_ab5316db9a3247b980ae65c94c8b7e729} 
+void handle\+\_\+undo\+\_\+press (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{structAlo}{Alo}} \texorpdfstring{$\ast$}{*}}]{self}{, }\item[{int}]{t}{}\end{DoxyParamCaption})}
+
+
+
+Process a press of the undo button on track {\ttfamily t}. 
+
+Stops any active track action and queues an undo if audio exists.
+
+
+\begin{DoxyParams}{Parameters}
+{\em self} & Engine instance (may be NULL). \\
+\hline
+{\em t} & Track index. \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00071\ \{}
+\DoxyCodeLine{00072\ \ \ \textcolor{keywordflow}{if}\ (!self\ ||\ !\doxymbox{\hyperlink{alo__util_8c_a6b55f8a7396a29164300ea5a0c39447d}{track\_is\_active}}(self,\ t))}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \ \ \textcolor{comment}{/*\ Stop\ any\ pending\ action/recording\ immediately\ (quantized\ audio\ change\ later).\ */}}
+\DoxyCodeLine{00076\ \ \ \doxymbox{\hyperlink{alo__util_8c_a02c5ec1bc4dfbd5b6f6e3be0aeb8c0c8}{clear\_track\_state}}(self,\ t);}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_a0bab0e1ffba851e6399f36d2b95a96b4}{have\_loop}}[t]\ ||\ self-\/>\doxymbox{\hyperlink{structAlo_a41966e14193f389052ce4bff05923397}{od\_count}}[t]\ >\ 0)\ \{}
+\DoxyCodeLine{00079\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a77383e367bf3b1b89f96104c1ff89135}{pending\_undo}}[t]++;}
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{keywordflow}{if}\ (self-\/>\doxymbox{\hyperlink{structAlo_a77383e367bf3b1b89f96104c1ff89135}{pending\_undo}}[t]\ >\ \doxymbox{\hyperlink{alo__engine_8h_af51a2c70ae6618f938b7a06a284d4215}{ALO\_MAX\_UNDO\_LAYERS}})}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a77383e367bf3b1b89f96104c1ff89135}{pending\_undo}}[t]\ =\ \doxymbox{\hyperlink{alo__engine_8h_af51a2c70ae6618f938b7a06a284d4215}{ALO\_MAX\_UNDO\_LAYERS}}\ +\ 1;}
+\DoxyCodeLine{00082\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{comment}{/*\ nothing\ to\ undo;\ ignore\ */}}
+\DoxyCodeLine{00084\ \ \ \ \ self-\/>\doxymbox{\hyperlink{structAlo_a77383e367bf3b1b89f96104c1ff89135}{pending\_undo}}[t]\ =\ 0;}
+\DoxyCodeLine{00085\ \ \ \}}
+\DoxyCodeLine{00086\ \ \ \doxymbox{\hyperlink{alo__engine_8h_a1b58b74c26305eb4c8a6015be26e94a8}{update\_loop\_state\_ports}}(self);}
+\DoxyCodeLine{00087\ \}}
+
+\end{DoxyCode}
+Here is the call graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{button__logic_8c_ab5316db9a3247b980ae65c94c8b7e729_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{button__logic_8c_ab5316db9a3247b980ae65c94c8b7e729_icgraph}
+\end{center}
+\end{figure}

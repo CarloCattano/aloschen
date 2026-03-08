@@ -2,6 +2,7 @@
 #include "alo_util.h"
 #include <math.h>
 
+/* update full-loop stereo mix cache for current block */
 void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_audio)
 {
   if (!self)
@@ -18,7 +19,7 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
   }
 
   if (self->sampler_src_dirty) {
-    /* begin rebuild into shadow */
+    /* start rebuild into shadow */
     self->sampler_src_shadow_valid   = false;
     self->sampler_src_rebuild_active = true;
     self->sampler_src_pos            = 0u;
@@ -43,7 +44,7 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
     const uint32_t cap_end = self->loop_samples;
     uint32_t       cap_max = n_samples;
     {
-      const uint32_t kMaxPerRun = 4096u;
+      const uint32_t kMaxPerRun = 4096u; /* cap work per call */
       uint64_t       scaled     = (uint64_t)n_samples * 8u;
       if (scaled < (uint64_t)cap_max)
         scaled = (uint64_t)cap_max;

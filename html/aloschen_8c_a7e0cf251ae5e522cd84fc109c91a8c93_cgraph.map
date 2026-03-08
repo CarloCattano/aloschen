@@ -1,0 +1,36 @@
+<map id="activate" name="activate">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,199,80,226"/>
+<area shape="rect" id="Node000002" href="$aloschen_8c.html#a9b35ef520341e7725d0e88b26f013f0d" title=" " alt="" coords="132,61,200,89"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="54,197,143,98,142,103,58,200"/>
+<area shape="rect" id="Node000004" href="$loop__engine_8c.html#ac797cf19a9583ded1a202726dadbd423" title=" " alt="" coords="128,199,204,226"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="79,210,114,211,110,214,81,215"/>
+<area shape="rect" id="Node000017" href="$alo__engine_8h.html#a446b2137af21a9e994214984679f6bc8" title=" " alt="" coords="139,251,193,278"/>
+<area shape="poly" id="edge17_Node000001_Node000017" title=" " alt="" coords="77,224,127,246,122,249,78,230"/>
+<area shape="rect" id="Node000003" href="$aloschen_8c.html#a1534ac11415e3c1939bd0c1c7a1f4bb0" title=" " alt="" coords="292,5,393,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="199,61,251,43,280,36,276,39,253,48,202,65"/>
+<area shape="rect" id="Node000005" href="$alo__util_8c.html#a492a5688d6c4e2337d1b5663f7b3dc7a" title=" " alt="" coords="492,195,607,222"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="178,196,209,168,229,155,251,145,301,131,342,127,383,133,434,145,479,162,519,186,513,186,477,166,433,150,382,138,342,133,302,136,253,150,232,159,212,173,182,200"/>
+<area shape="rect" id="Node000006" href="$slice__sampler_8c.html#aae96f5ec3e6700b408e4d6371eea630f" title="Mark all slice buffers invalid; begins incremental clear cycle." alt="" coords="254,160,431,204"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="203,203,241,199,236,201,206,208"/>
+<area shape="rect" id="Node000007" href="$slice__sampler_8c.html#a3a722e0bca43a5f01b6424ecb36c65b7" title=" " alt="" coords="254,228,432,256"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="204,216,243,224,238,226,205,221"/>
+<area shape="rect" id="Node000008" href="$alo__util_8c.html#a02c5ec1bc4dfbd5b6f6e3be0aeb8c0c8" title="Reset state for a given track to idle." alt="" coords="276,332,409,360"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="190,224,206,237,221,260,229,280,237,299,254,317,265,326,260,326,250,321,232,302,224,282,216,262,202,241,190,230"/>
+<area shape="rect" id="Node000010" href="$transport_8c.html#a5d13f2b4e3bc3210a95ee7f5a208fdfa" title="Total number of beats in the current loop (bars * beats&#45;per&#45;bar)." alt="" coords="264,280,421,308"/>
+<area shape="poly" id="edge9_Node000004_Node000010" title=" " alt="" coords="188,224,253,265,273,274,267,275,251,270,188,229"/>
+<area shape="rect" id="Node000012" href="$loop__engine_8c.html#a0f493b5e0a059d59089c7e6fd6548b32" title=" " alt="" coords="255,384,430,412"/>
+<area shape="poly" id="edge12_Node000004_Node000012" title=" " alt="" coords="192,224,206,238,217,256,224,274,228,307,233,339,241,354,254,369,260,376,255,375,250,373,236,357,228,340,222,308,218,275,213,259,202,241,191,230"/>
+<area shape="rect" id="Node000013" href="$loop__engine_8c.html#a1b58b74c26305eb4c8a6015be26e94a8" title=" " alt="" coords="252,57,433,85"/>
+<area shape="poly" id="edge13_Node000004_Node000013" title=" " alt="" coords="172,197,202,150,225,124,250,101,274,90,270,93,254,105,228,128,207,154,177,200"/>
+<area shape="rect" id="Node000009" href="$alo__util_8c.html#a6b55f8a7396a29164300ea5a0c39447d" title="Return true if track index is valid." alt="" coords="490,332,609,360"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="410,343,477,346,472,346,410,348"/>
+<area shape="poly" id="edge10_Node000010_Node000005" title=" " alt="" coords="397,277,432,265,507,231,512,229,434,270,399,282"/>
+<area shape="rect" id="Node000011" href="$alo__util_8h.html#ad8b98483fb288b101d5f876d865f8734" title=" " alt="" coords="494,280,605,308"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="421,291,481,293,476,294,421,296"/>
+<area shape="rect" id="Node000014" href="$loop__engine_8c.html#a1aa9f0189a7cf36e3d27dd94258cf8a1" title=" " alt="" coords="484,5,615,33"/>
+<area shape="poly" id="edge14_Node000013_Node000014" title=" " alt="" coords="400,54,479,36,474,39,402,59"/>
+<area shape="rect" id="Node000015" href="$loop__engine_8c.html#a2fbfc1116cd283aab1c43ee569ff3e23" title=" " alt="" coords="483,57,616,85"/>
+<area shape="poly" id="edge15_Node000013_Node000015" title=" " alt="" coords="433,69,471,70,466,72,434,74"/>
+<area shape="rect" id="Node000016" href="$loop__engine_8c.html#aaddc8a571cfe9445143261dc8061eab1" title=" " alt="" coords="481,109,618,137"/>
+<area shape="poly" id="edge16_Node000013_Node000016" title=" " alt="" coords="401,83,479,104,474,106,401,88"/>
+</map>

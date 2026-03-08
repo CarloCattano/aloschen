@@ -1,0 +1,15 @@
+<map id="update_transport_beats" name="update_transport_beats">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,65,181,93"/>
+<area shape="rect" id="Node000002" href="$slice__sampler_8c.html#a3a722e0bca43a5f01b6424ecb36c65b7" title=" " alt="" coords="230,5,408,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="147,62,251,36,247,39,149,67"/>
+<area shape="rect" id="Node000003" href="$loop__engine_8c.html#a544acf177d6f99ba77c2b86f799d776f" title=" " alt="" coords="239,57,398,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="181,77,226,78,221,80,182,82"/>
+<area shape="rect" id="Node000007" href="$loop__engine_8c.html#afa9abe2644bfdc52939e623114bf5a55" title="Notify engine that UI cycle should resynchronize on next update." alt="" coords="229,125,409,153"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="148,91,252,120,247,122,147,96"/>
+<area shape="rect" id="Node000004" href="$alo__util_8h.html#a0109c99214fe26d11bc4e076d3cf43b8" title=" " alt="" coords="458,40,590,68"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="398,67,445,63,439,64,399,72"/>
+<area shape="rect" id="Node000005" href="$alo__util_8c.html#a02c5ec1bc4dfbd5b6f6e3be0aeb8c0c8" title="Reset state for a given track to idle." alt="" coords="457,92,590,120"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="399,87,444,95,439,95,399,92"/>
+<area shape="rect" id="Node000006" href="$alo__util_8c.html#a6b55f8a7396a29164300ea5a0c39447d" title="Return true if track index is valid." alt="" coords="638,92,758,120"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="591,103,625,106,620,106,591,108"/>
+</map>

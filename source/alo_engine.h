@@ -1,3 +1,8 @@
+/**
+ * @file alo_engine.h
+ * @brief Core engine definitions, port indices, and public types.
+ */
+
 #ifndef ALO_ENGINE_H
 #define ALO_ENGINE_H
 

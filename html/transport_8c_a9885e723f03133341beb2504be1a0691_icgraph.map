@@ -1,0 +1,15 @@
+<map id="compute_transport_phase_index" name="compute_transport_phase_index">
+<area shape="rect" id="Node000001" title="Compute the current phase index (in samples) for the looper based on the host&#39;s absolute beat positio..." alt="" coords="716,24,906,68"/>
+<area shape="rect" id="Node000002" href="$loop__engine_8c.html#afcf2eb3343f7db1ce3f379ccc5b2a15b" title=" " alt="" coords="527,5,630,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="698,33,631,28,631,22,703,33"/>
+<area shape="rect" id="Node000006" href="$transport_8c.html#a5c35d07cac23ff9a1504e92b585ebd6e" title=" " alt="" coords="489,57,668,85"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="703,58,668,64,668,59,698,58"/>
+<area shape="rect" id="Node000003" href="$transport_8c.html#a7ca7680e3143681678d0213c33ff636c" title=" " alt="" coords="237,7,441,34"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="509,20,442,23,442,17,514,19"/>
+<area shape="rect" id="Node000004" href="$loop__engine_8c.html#a2ba55e8c87fff5da7cb9489eb87ceec5" title=" " alt="" coords="96,32,189,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="219,36,190,42,189,37,224,35"/>
+<area shape="rect" id="Node000005" href="$aloschen_8c.html#a6c677c1af04569f433452541d8ec70f8" title=" " alt="" coords="5,32,48,60"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="78,47,49,48,48,43,82,44"/>
+<area shape="poly" id="edge7_Node000006_Node000003" title=" " alt="" coords="492,54,408,38,408,32,498,54"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="473,68,189,51,189,46,474,63"/>
+</map>

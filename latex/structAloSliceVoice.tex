@@ -1,0 +1,141 @@
+\doxysection{Alo\+Slice\+Voice Struct Reference}
+\hypertarget{structAloSliceVoice}{}\label{structAloSliceVoice}\index{AloSliceVoice@{AloSliceVoice}}
+
+
+{\ttfamily \+\#include $<$slice\+\_\+sampler.\+h$>$}
+
+
+
+Collaboration diagram for Alo\+Slice\+Voice:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=161pt]{structAloSliceVoice__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+bool \doxymbox{\hyperlink{structAloSliceVoice_a76bf2973890b48a49ba4b54d4c8c1779}{active}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAloSliceVoice_a85d780a79c991ee4194cdd9abdce414b}{key}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAloSliceVoice_ac8b52cc48d8aa3609fb47a072b847f65}{start\+\_\+delay\+\_\+samples}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAloSliceVoice_aeb3f9b11776724abdd05af8cf2a1f2c7}{phase\+\_\+samples}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAloSliceVoice_a6da3d84a738fcf721d1079c61d765bf6}{remaining\+\_\+samples}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAloSliceVoice_a576322b6bcd0486e78976cc332483a8a}{total\+\_\+samples}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAloSliceVoice_a588bb7b63bb769875fa8d3fde334a4e7}{elapsed\+\_\+samples}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAloSliceVoice_a62ba215837ec37f147ab815de260420c}{fade\+\_\+samples}}
+\item 
+float \doxymbox{\hyperlink{structAloSliceVoice_a12ccbd6e2b1bcbae8b13ad33e85caf68}{fade\+\_\+inv}}
+\item 
+float \doxymbox{\hyperlink{structAloSliceVoice_afc0771ad8df9f05efede13446fd31219}{gain}}
+\item 
+\doxymbox{\hyperlink{structAloEnvState}{Alo\+Env\+State}} \doxymbox{\hyperlink{structAloSliceVoice_a68da148e1eaf2c06c5066fb475a4820e}{env}}
+\item 
+const float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAloSliceVoice_af513b7c785467b7866c324723098581a}{slice\+\_\+buf\+\_\+l}}
+\item 
+const float \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{structAloSliceVoice_a13a1b1d9c9d96b3844f4aa1db9302a19}{slice\+\_\+buf\+\_\+r}}
+\item 
+uint32\+\_\+t \doxymbox{\hyperlink{structAloSliceVoice_a753d2b926315fd72be8404bebf58b8a3}{slice\+\_\+buf\+\_\+len}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-variable-members}
+\Hypertarget{structAloSliceVoice_doc-variable-members}
+\doxysubsection{Member Data Documentation}
+\Hypertarget{structAloSliceVoice_a76bf2973890b48a49ba4b54d4c8c1779}\index{AloSliceVoice@{AloSliceVoice}!active@{active}}
+\index{active@{active}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{active}{active}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_a76bf2973890b48a49ba4b54d4c8c1779} 
+bool Alo\+Slice\+Voice::\+active}
+
+\Hypertarget{structAloSliceVoice_a588bb7b63bb769875fa8d3fde334a4e7}\index{AloSliceVoice@{AloSliceVoice}!elapsed\_samples@{elapsed\_samples}}
+\index{elapsed\_samples@{elapsed\_samples}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{elapsed\_samples}{elapsed\_samples}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_a588bb7b63bb769875fa8d3fde334a4e7} 
+uint32\+\_\+t Alo\+Slice\+Voice::\+elapsed\+\_\+samples}
+
+\Hypertarget{structAloSliceVoice_a68da148e1eaf2c06c5066fb475a4820e}\index{AloSliceVoice@{AloSliceVoice}!env@{env}}
+\index{env@{env}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{env}{env}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_a68da148e1eaf2c06c5066fb475a4820e} 
+\doxymbox{\hyperlink{structAloEnvState}{Alo\+Env\+State}} Alo\+Slice\+Voice::\+env}
+
+\Hypertarget{structAloSliceVoice_a12ccbd6e2b1bcbae8b13ad33e85caf68}\index{AloSliceVoice@{AloSliceVoice}!fade\_inv@{fade\_inv}}
+\index{fade\_inv@{fade\_inv}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{fade\_inv}{fade\_inv}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_a12ccbd6e2b1bcbae8b13ad33e85caf68} 
+float Alo\+Slice\+Voice::\+fade\+\_\+inv}
+
+\Hypertarget{structAloSliceVoice_a62ba215837ec37f147ab815de260420c}\index{AloSliceVoice@{AloSliceVoice}!fade\_samples@{fade\_samples}}
+\index{fade\_samples@{fade\_samples}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{fade\_samples}{fade\_samples}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_a62ba215837ec37f147ab815de260420c} 
+uint32\+\_\+t Alo\+Slice\+Voice::\+fade\+\_\+samples}
+
+\Hypertarget{structAloSliceVoice_afc0771ad8df9f05efede13446fd31219}\index{AloSliceVoice@{AloSliceVoice}!gain@{gain}}
+\index{gain@{gain}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{gain}{gain}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_afc0771ad8df9f05efede13446fd31219} 
+float Alo\+Slice\+Voice::\+gain}
+
+\Hypertarget{structAloSliceVoice_a85d780a79c991ee4194cdd9abdce414b}\index{AloSliceVoice@{AloSliceVoice}!key@{key}}
+\index{key@{key}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{key}{key}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_a85d780a79c991ee4194cdd9abdce414b} 
+uint32\+\_\+t Alo\+Slice\+Voice::\+key}
+
+\Hypertarget{structAloSliceVoice_aeb3f9b11776724abdd05af8cf2a1f2c7}\index{AloSliceVoice@{AloSliceVoice}!phase\_samples@{phase\_samples}}
+\index{phase\_samples@{phase\_samples}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{phase\_samples}{phase\_samples}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_aeb3f9b11776724abdd05af8cf2a1f2c7} 
+uint32\+\_\+t Alo\+Slice\+Voice::\+phase\+\_\+samples}
+
+\Hypertarget{structAloSliceVoice_a6da3d84a738fcf721d1079c61d765bf6}\index{AloSliceVoice@{AloSliceVoice}!remaining\_samples@{remaining\_samples}}
+\index{remaining\_samples@{remaining\_samples}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{remaining\_samples}{remaining\_samples}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_a6da3d84a738fcf721d1079c61d765bf6} 
+uint32\+\_\+t Alo\+Slice\+Voice::\+remaining\+\_\+samples}
+
+\Hypertarget{structAloSliceVoice_af513b7c785467b7866c324723098581a}\index{AloSliceVoice@{AloSliceVoice}!slice\_buf\_l@{slice\_buf\_l}}
+\index{slice\_buf\_l@{slice\_buf\_l}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{slice\_buf\_l}{slice\_buf\_l}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_af513b7c785467b7866c324723098581a} 
+const float\texorpdfstring{$\ast$}{*} Alo\+Slice\+Voice::\+slice\+\_\+buf\+\_\+l}
+
+\Hypertarget{structAloSliceVoice_a753d2b926315fd72be8404bebf58b8a3}\index{AloSliceVoice@{AloSliceVoice}!slice\_buf\_len@{slice\_buf\_len}}
+\index{slice\_buf\_len@{slice\_buf\_len}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{slice\_buf\_len}{slice\_buf\_len}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_a753d2b926315fd72be8404bebf58b8a3} 
+uint32\+\_\+t Alo\+Slice\+Voice::\+slice\+\_\+buf\+\_\+len}
+
+\Hypertarget{structAloSliceVoice_a13a1b1d9c9d96b3844f4aa1db9302a19}\index{AloSliceVoice@{AloSliceVoice}!slice\_buf\_r@{slice\_buf\_r}}
+\index{slice\_buf\_r@{slice\_buf\_r}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{slice\_buf\_r}{slice\_buf\_r}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_a13a1b1d9c9d96b3844f4aa1db9302a19} 
+const float\texorpdfstring{$\ast$}{*} Alo\+Slice\+Voice::\+slice\+\_\+buf\+\_\+r}
+
+\Hypertarget{structAloSliceVoice_ac8b52cc48d8aa3609fb47a072b847f65}\index{AloSliceVoice@{AloSliceVoice}!start\_delay\_samples@{start\_delay\_samples}}
+\index{start\_delay\_samples@{start\_delay\_samples}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{start\_delay\_samples}{start\_delay\_samples}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_ac8b52cc48d8aa3609fb47a072b847f65} 
+uint32\+\_\+t Alo\+Slice\+Voice::\+start\+\_\+delay\+\_\+samples}
+
+\Hypertarget{structAloSliceVoice_a576322b6bcd0486e78976cc332483a8a}\index{AloSliceVoice@{AloSliceVoice}!total\_samples@{total\_samples}}
+\index{total\_samples@{total\_samples}!AloSliceVoice@{AloSliceVoice}}
+\doxysubsubsection{\texorpdfstring{total\_samples}{total\_samples}}
+{\footnotesize\ttfamily \label{structAloSliceVoice_a576322b6bcd0486e78976cc332483a8a} 
+uint32\+\_\+t Alo\+Slice\+Voice::\+total\+\_\+samples}
+
+
+
+The documentation for this struct was generated from the following file:\+\begin{DoxyCompactItemize}
+\item 
+source/\+\doxymbox{\hyperlink{slice__sampler_8h}{slice\+\_\+sampler.\+h}}\end{DoxyCompactItemize}

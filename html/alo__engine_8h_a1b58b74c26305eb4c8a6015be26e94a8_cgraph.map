@@ -1,0 +1,9 @@
+<map id="update_loop_state_ports" name="update_loop_state_ports">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,57,187,85"/>
+<area shape="rect" id="Node000002" href="$loop__engine_8c.html#a1aa9f0189a7cf36e3d27dd94258cf8a1" title=" " alt="" coords="238,5,368,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="153,54,232,36,228,39,155,59"/>
+<area shape="rect" id="Node000003" href="$loop__engine_8c.html#a2fbfc1116cd283aab1c43ee569ff3e23" title=" " alt="" coords="237,57,369,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="187,69,224,71,219,72,187,74"/>
+<area shape="rect" id="Node000004" href="$loop__engine_8c.html#aaddc8a571cfe9445143261dc8061eab1" title=" " alt="" coords="235,109,371,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="154,83,233,104,227,106,154,88"/>
+</map>

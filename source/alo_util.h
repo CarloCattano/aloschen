@@ -12,12 +12,27 @@ extern "C" {
 
 /* Utility helpers that are shared across multiple engine components. */
 
-/* Track-state helpers (previously in loop_engine.c).
- * Used by both the engine and button logic.
+/**
+ * @name Track-state helpers
+ * These functions are used by both the engine and button logic.
+ * @{ */
+
+/**
+ * @brief Return true if track index is valid.
  */
 bool track_is_active(const Alo* self, int t);
+
+/**
+ * @brief Return true if a track is busy recording or armed.
+ */
 bool track_is_busy(const Alo* self, int t);
+
+/**
+ * @brief Reset state for a given track to idle.
+ */
 void clear_track_state(Alo* self, int t);
+
+/** @} */
 
 /**
  * Read the current Bars value from the engine, clamped to [1..16] and

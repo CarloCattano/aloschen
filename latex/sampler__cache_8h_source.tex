@@ -1,0 +1,24 @@
+\doxysection{sampler\+\_\+cache.\+h}
+\hypertarget{sampler__cache_8h_source}{}\label{sampler__cache_8h_source}\index{source/sampler\_cache.h@{source/sampler\_cache.h}}
+\doxymbox{\hyperlink{sampler__cache_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ SAMPLER\_CACHE\_H}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ SAMPLER\_CACHE\_H}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ "{}\doxymbox{\hyperlink{alo__engine_8h}{alo\_engine.h}}"{}}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{comment}{/*\ Helpers\ to\ manage\ the\ "{}sampler\_src"{}\ full‑loop\ stereo\ mix\ cache.\ \ The}}
+\DoxyCodeLine{00007\ \textcolor{comment}{\ *\ cache\ is\ rebuilt\ incrementally\ on\ the\ audio\ thread;\ a\ shadow\ buffer\ is\ used}}
+\DoxyCodeLine{00008\ \textcolor{comment}{\ *\ so\ MIDI\ slice\ voices\ remain\ uninterrupted\ while\ the\ new\ mix\ is\ being\ prepared.}}
+\DoxyCodeLine{00009\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{comment}{/*\ Perform\ rebuild/update\ actions\ for\ this\ block.\ \ "{}any\_committed\_audio"{}\ should}}
+\DoxyCodeLine{00012\ \textcolor{comment}{\ *\ be\ true\ if\ at\ least\ one\ loop\ slot\ currently\ contains\ audio.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{\ *\ \`{}n\_samples`\ is\ the\ host\ block\ size;\ this\ function\ will\ copy\ at\ most\ a\ bounded}}
+\DoxyCodeLine{00014\ \textcolor{comment}{\ *\ amount\ of\ data\ to\ avoid\ overruns.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00016\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{sampler__cache_8h_a1d1010d11522852bba8c74e5d5b289f7}{sampler\_cache\_process}}(\doxymbox{\hyperlink{structAlo}{Alo}}*\ self,\ uint32\_t\ n\_samples,\ \textcolor{keywordtype}{bool}\ any\_committed\_audio);}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ SAMPLER\_CACHE\_H}}
+
+\end{DoxyCode}
