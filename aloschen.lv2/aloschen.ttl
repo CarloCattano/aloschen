@@ -24,7 +24,7 @@ doap:maintainer [
 ui:ui <http://ktano-studio.com/aloschen#ui>;
 
 
-lv2:minorVersion 8;
+lv2:minorVersion 13;
 lv2:microVersion 0;
 
 rdfs:comment """
@@ -280,6 +280,55 @@ lv2:port
 	lv2:minimum 2;
 	lv2:maximum 8;
 	lv2:portProperty lv2:integer;
+],
+[
+	a lv2:ControlPort, lv2:InputPort;
+	lv2:index 34;
+	lv2:symbol "split_by_transient";
+	lv2:name "Split by Transient";
+	lv2:default 0;
+	lv2:minimum 0;
+	lv2:maximum 1;
+	lv2:portProperty lv2:integer;
+],
+[
+	a lv2:ControlPort, lv2:OutputPort;
+	lv2:index 35;
+	lv2:symbol "detected_slices";
+	lv2:name "Detected Slices";
+	lv2:default 0;
+	lv2:minimum 0;
+	lv2:maximum 32;
+	lv2:portProperty lv2:integer;
+],
+[
+	a lv2:ControlPort, lv2:InputPort;
+	lv2:index 36;
+	lv2:symbol "transient_threshold";
+	lv2:name "Max Slices";
+	lv2:default 4.0;
+	lv2:minimum 1.0;
+	lv2:maximum 8.0;
+	lv2:portProperty lv2:integer;
+],
+[
+	a lv2:ControlPort, lv2:InputPort;
+	lv2:index 37;
+	lv2:symbol "slice_env_frac";
+	lv2:name "Slice Decay %";
+	lv2:default 0.0;
+	lv2:minimum 0.0;
+	lv2:maximum 100.0;
+],
+[
+	a lv2:ControlPort, lv2:InputPort;
+	lv2:index 38;
+	lv2:symbol "slice_env_attack";
+	lv2:name "Slice Attack";
+	lv2:default 5.0;
+	lv2:minimum 0.0;
+	lv2:maximum 100.0;
+	# hidden from GUI; host may expose if desired
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;

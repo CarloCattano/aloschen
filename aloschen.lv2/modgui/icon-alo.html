@@ -199,6 +199,9 @@
           4
         </div>
       </div>
+      <!-- show detected slices count when in transient mode -->
+      <!-- detected count and threshold have been moved to the right-hand
+           control column to make room for the mix knob. -->
       <div class="mod-separator"></div>
 
       <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
@@ -285,7 +288,93 @@
       </div>
     </div>
 
-    <div class="alo-global-right" aria-label="Global Switches">
+    <div class="alo-global-right" aria-label="Global Controls">
+      <!-- split toggle -->
+      <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
+        <div class="mod-knob-image-wrapper">
+          <div
+            class="mod-knob-image"
+            mod-role="input-control-port"
+            mod-port-symbol="split_by_transient"
+          ></div>
+        </div>
+      </div>
+      <div class="mod-knob">
+        <div class="mod-knob-title">Split</div>
+        <div
+          class="mod-knob-value"
+          mod-role="input-control-value"
+          mod-port-symbol="split_by_transient"
+        >
+          0
+        </div>
+      </div>
+
+      <div class="mod-separator"></div>
+
+      <!-- detected count indicator -->
+      <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
+        <div class="mod-knob-image-wrapper">
+          <div
+            class="mod-knob-image"
+            mod-role="output-control-port"
+            mod-port-symbol="detected_slices"
+          ></div>
+        </div>
+      </div>
+      <div class="mod-knob">
+        <div class="mod-knob-title">Detected</div>
+        <div
+          class="mod-knob-value"
+          mod-role="output-control-value"
+          mod-port-symbol="detected_slices"
+        >
+          0
+        </div>
+      </div>
+      <!-- threshold slider -->
+      <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
+        <div class="mod-knob-image-wrapper">
+          <div
+            class="mod-knob-image"
+            mod-role="input-control-port"
+            mod-port-symbol="transient_threshold"
+          ></div>
+        </div>
+      </div>
+      <div class="mod-knob">
+        <div class="mod-knob-title">MaxS</div>
+        <div
+          class="mod-knob-value"
+          mod-role="input-control-value"
+          mod-port-symbol="transient_threshold"
+        >
+          2.0
+        </div>
+      </div>
+      <!-- slice decay percentage slider -->
+      <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
+        <div class="mod-knob-image-wrapper">
+          <div
+            class="mod-knob-image"
+            mod-role="input-control-port"
+            mod-port-symbol="slice_env_frac"
+          ></div>
+        </div>
+      </div>
+      <div class="mod-knob">
+        <div class="mod-knob-title">Decay%</div>
+        <div
+          class="mod-knob-value"
+          mod-role="input-control-value"
+          mod-port-symbol="slice_env_frac"
+        >
+          0
+        </div>
+      </div>
+
+      <div class="mod-separator"></div>
+
       <div class="alo-footer-switch alo-footer-switch-bypass">
         <div class="alo-footer-switch-label">ON/OFF</div>
         <div class="mod-switch" mod-role="bypass" title="Bypass">
@@ -317,6 +406,10 @@
     <div mod-role="output-control-value" mod-port-symbol="undo1_state">0</div>
     <div mod-role="output-control-value" mod-port-symbol="undo2_state">0</div>
     <div mod-role="output-control-value" mod-port-symbol="undo3_state">0</div>
+    <div mod-role="output-control-value" mod-port-symbol="detected_slices">0</div>
+    <div mod-role="input-control-value" mod-port-symbol="transient_threshold">2.0</div>
+    <div mod-role="input-control-value" mod-port-symbol="split_by_transient">0</div>
+    <div mod-role="input-control-value" mod-port-symbol="slice_env_frac">0</div>
     <div mod-role="output-control-value" mod-port-symbol="bar_step">0</div>
     <div mod-role="output-control-value" mod-port-symbol="cycle_phase">0</div>
     <div mod-role="output-control-value" mod-port-symbol="host_bar_phase">

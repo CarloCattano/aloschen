@@ -175,8 +175,9 @@ static const Control kControls[] = {
     CTL_SLIDER_INT_(ALO_CLICK, "Click", 0.0f, 10.0f),
     CTL_SLIDER_INT_(ALO_MIX, "Mix", 0.0f, 100.0f),
     CTL_SLIDER_INT_(ALO_SLICE_ROOT, "Root", 0.0f, 127.0f),
+    CTL_TOGGLE_(ALO_SPLIT_TRANSIENTS, "Split"),
     CTL_SLIDER_INT_(ALO_SLICES_PER_BAR, "Slices", 2.0f, 8.0f),
-};
+    CTL_SLIDER_INT_(ALO_TRANSIENT_THRESH, "MaxS", 1.0f, 8.0f),    CTL_SLIDER_FLOAT_(ALO_SLICE_ENV_FRAC, "Decay%", 0.0f, 100.0f),};
 
 typedef enum
 {
@@ -890,6 +891,16 @@ static void ui_redraw(AloUI* ui)
   const int base_slider_h = l.slider_h;
   const int base_row_h    = l.row_h - UI_SI(4);
 
+  /* Always show detected slice count so the user can see what the
+     transient detector is doing even when split mode is disabled.  This is
+     helpful for debugging/tweaking the threshold. */
+  {
+    char info[48];
+    snprintf(info, sizeof(info), "detected: %d",
+             (int)ui->port_values[ALO_DETECTED_SLICES]);
+    draw_string(ui, x, l.pad + UI_SI(4), info);
+  }
+
   /* count volume sliders to know where group boundary lies */
   int vol_count = 0;
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
@@ -916,8 +927,9 @@ static void ui_redraw(AloUI* ui)
 
     if (c->port_index == ALO_BARS || c->port_index == ALO_CLICK ||
         c->port_index == ALO_MIX ||
-        c->port_index == ALO_SLICE_ROOT || c->port_index == ALO_SLICES_PER_BAR) {
-      /* shorter sliders for bars/click/mix/rotation/slices – quarter width */
+        c->port_index == ALO_SLICE_ROOT || c->port_index == ALO_SLICES_PER_BAR ||
+        c->port_index == ALO_TRANSIENT_THRESH || c->port_index == ALO_SLICE_ENV_FRAC) {
+      /* shorter sliders for bars/click/mix/rotation/slices/threshold – quarter width */
       slider_w = (int)((float)ui->width * 0.25f);
     }
     if (c->port_index == ALO_LOOP1_VOL || c->port_index == ALO_LOOP2_VOL ||
@@ -938,11 +950,31 @@ static void ui_redraw(AloUI* ui)
     }
 
     char        label[128];
-    const float v = ui->port_values[c->port_index];
-    if (c->type == CTL_SLIDER_FLOAT) {
-      snprintf(label, sizeof(label), "%s: %.2f", c->label, v);
+    float display_val = ui->port_values[c->port_index];
+    const float det_val = ui->port_values[ALO_DETECTED_SLICES];
+    const bool split_on  = ui->port_values[ALO_SPLIT_TRANSIENTS] > 0.5f;
+
+    /* if split mode is active then the slices slider becomes read‑only and
+       reflects the number of detected regions */
+    if (c->port_index == ALO_SLICES_PER_BAR && split_on) {
+      display_val = det_val;
+    }
+
+    if (c->port_index == ALO_SLICES_PER_BAR && !split_on) {
+      /* also append the detector output for reference */
+      if (c->type == CTL_SLIDER_FLOAT) {
+        snprintf(label, sizeof(label), "%s: %.2f (det %.0f)", c->label,
+                 display_val, det_val);
+      } else {
+        snprintf(label, sizeof(label), "%s: %.0f (det %.0f)", c->label,
+                 display_val, det_val);
+      }
     } else {
-      snprintf(label, sizeof(label), "%s: %.0f", c->label, v);
+      if (c->type == CTL_SLIDER_FLOAT) {
+        snprintf(label, sizeof(label), "%s: %.2f", c->label, display_val);
+      } else {
+        snprintf(label, sizeof(label), "%s: %.0f", c->label, display_val);
+      }
     }
     draw_string(ui, x, sy + UI_SI(12), label);
 
@@ -950,7 +982,11 @@ static void ui_redraw(AloUI* ui)
     const int bar_y = sy + UI_SI(18);
     XDrawRectangle(ui->dpy, ui->win, ui->gc, bar_x, bar_y, slider_w, slider_h);
 
-    const float norm   = (c->max > c->min) ? ((v - c->min) / (c->max - c->min)) : 0.0f;
+    /* `v` was undefined; use the displayed value instead so that the
+       slider graphic matches the label (and respects detected-slices override). */
+    const float norm   = (c->max > c->min)
+                           ? ((display_val - c->min) / (c->max - c->min))
+                           : 0.0f;
     const int   fill_w = (int)(clampf(norm, 0.0f, 1.0f) * (float)(slider_w - 2));
 
     ui_set_fg(ui, ui->col_cycle);
@@ -1391,6 +1427,9 @@ static void ui_port_event(LV2UI_Handle handle, uint32_t port_index, uint32_t buf
   }
 
   ui->port_values[port_index] = v;
+  /* schedule redraw for every control update so outputs like detected_slices
+     are reflected without waiting for an X event. */
+  ui->needs_redraw = true;
 
   /*
    * If the DSP reports a loop state change, keep the corresponding loop input
@@ -1505,9 +1544,14 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->port_values[ALO_SAMPLER_VOL]    = 1.0f;
   ui->port_values[ALO_BARS]           = 2.0f;
   ui->port_values[ALO_CLICK]          = 1.0f;
+  ui->port_values[ALO_SLICE_ENV_FRAC]  = 0.0f;
+  ui->port_values[ALO_SLICE_ENV_ATTACK] = 5.0f; /* hidden parameter default */
   ui->port_values[ALO_MIX]            = 50.0f;
   ui->port_values[ALO_SLICE_ROOT]     = 36.0f;
+  ui->port_values[ALO_SPLIT_TRANSIENTS] = 0.0f;
   ui->port_values[ALO_SLICES_PER_BAR] = 4.0f;
+  ui->port_values[ALO_TRANSIENT_THRESH] = 2.0f;
+  ui->port_values[ALO_DETECTED_SLICES] = 0.0f;
   ui->port_values[ALO_BAR_STEP]       = 0.0f;
   ui->port_values[ALO_CYCLE_PHASE]    = 0.0f;
   ui->port_values[ALO_HOST_BAR_PHASE] = 0.0f;

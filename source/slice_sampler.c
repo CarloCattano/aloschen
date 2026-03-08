@@ -2,8 +2,10 @@
 
 #include "slice_sampler.h"
 #include "alo_engine.h"
+#include "alo_util.h"
 #include <string.h>
 #include <stdlib.h>
+#include <math.h> /* cosf() used by envelope */
 
 /* Internal helpers (optimized for realtime) */
 
@@ -21,7 +23,6 @@ static void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* 
                                          uint32_t key, uint32_t start_delay_samples,
                                          uint32_t phase_samples, uint32_t length_samples,
                                          uint32_t fade_samples, float gain);
-static float alo_env_tick(AloEnvState* e);
 
 /* reset sampler state and deactivate voices/pending triggers */
 void alo_slice_sampler_reset(AloSliceSampler* s)
@@ -207,6 +208,14 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
       }
 
       /* envelope tick replaces the ad-hoc fades */
+      /* update release window on-the-fly if user changed decay slider */
+      if (alo && alo->ports.slice_env_frac) {
+        uint32_t new_fade = alo_get_slice_fade_samples(alo, v->total_samples);
+        if (new_fade != (uint32_t)v->env.c0) {
+          v->env.c0    = (float)new_fade;
+          v->env.delta = (new_fade > 0) ? (1.0f / (float)new_fade) : 0.0f;
+        }
+      }
       const float env_gain   = alo_env_tick(&v->env);
       const float total_gain = v->gain * env_gain * global_gain;
 
@@ -256,25 +265,29 @@ static void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* 
     target->slice_buf_l   = NULL;
     target->slice_buf_r   = NULL;
     target->slice_buf_len = 0;
-    /* initialise envelope state for simple fade-in/out using fade_samples */
+    /* initialise envelope state.  attack length is constant (~1ms) while
+       * release length is governed by fade_samples parameter passed in. */
     target->env.running = true;
     target->env.stage   = ENV_ATTACK;
     target->env.phase   = 0.0f;
     target->env.frames  = 0;
     target->env.value   = 0.0f;
-    /* use c1 to store attack_frames, c0 to store release_frames */
-    target->env.c1           = (float)fade_samples;
+    /* compute fixed attack and variable release */
+    uint32_t attack = alo_edge_fade_samples_u32(alo);
+    target->env.c1           = (float)attack;
     target->env.c0           = (float)fade_samples;
     target->env.delta        = (fade_samples > 0) ? (1.0f / (float)fade_samples) : 0.0f;
     target->env.total_frames = length_samples;
   }
 }
 
-/* Envelope tick: simple linear attack-sustain-release over the voice's
- * lifetime.  This is a thin wrapper used by process_chunk to provide smoother
- * start/end ramps compared to the previous ad‑hoc fading helpers.
+/* Envelope tick: attack-sustain-release window using a cosine curve for
+ * the attack and release segments.  The previous linear ramp produced
+ * noticeable high‑frequency energy when fade lengths were very short; the
+ * cosine window has a continuous derivative which helps eliminate subtle
+ * crackle on quick fades.
  */
-static float alo_env_tick(AloEnvState* e)
+float alo_env_tick(AloEnvState* e)
 {
   if (!e || !e->running)
     return 1.0f;
@@ -283,7 +296,8 @@ static float alo_env_tick(AloEnvState* e)
   switch (e->stage) {
   case ENV_ATTACK:
     if (e->frames < (uint32_t)e->c1) {
-      out = e->frames * e->delta;
+      float t = (float)e->frames / (e->c1 > 0.0f ? e->c1 : 1.0f);
+      out = 0.5f * (1.0f - cosf((float)M_PI * t));
       e->frames++;
       e->value = out;
     } else {
@@ -295,16 +309,22 @@ static float alo_env_tick(AloEnvState* e)
     }
     break;
   case ENV_SUSTAIN:
-    /* stay at full level until we are within release window */
+    /* stay at full level until release window is reached.  increment
+     * the frame counter so that the transition eventually occurs; the
+     * counter starts at zero when entering sustain.
+     */
     if (e->frames >= (uint32_t)(e->total_frames - (uint32_t)e->c0)) {
       e->stage  = ENV_RELEASE;
       e->frames = 0;
+    } else {
+      e->frames++;
     }
     out = 1.0f;
     break;
   case ENV_RELEASE:
     if (e->frames < (uint32_t)e->c0) {
-      out = (1.0f - ((float)e->frames * e->delta));
+      float t = (float)e->frames / (e->c0 > 0.0f ? e->c0 : 1.0f);
+      out = 0.5f * (1.0f + cosf((float)M_PI * t));
       e->frames++;
       e->value = out;
     } else {

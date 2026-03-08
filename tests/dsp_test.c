@@ -21,6 +21,9 @@
 #include "alo_util.h"
 #include "alo_engine.h"
 
+/* new transient detector unit under test */
+#include "transient_detector.h"
+
 /* Simple floating-point approximate equality */
 static int feq(float a, float b, float eps)
 {
@@ -132,19 +135,20 @@ static void test_apply_edge_fade_stereo(void)
     /* Apply fade */
     alo_apply_edge_fade_stereo(buf, loop_start, loop_samples, fade_samples);
 
-    /* For fade_samples == 3, inv = 1/(3-1) = 0.5
-     * Start fade-in (i = 0..2):
-     *  i=0 -> g = 0 * inv = 0.0
-     *  i=1 -> g = 1 * inv = 0.5
-     *  i=2 -> g = 2 * inv = 1.0
+    /* With the raised‑cosine fade implemented below the shape is smoother
+     * (zero slope at both ends).  For fade_samples == 3 the gains are:
      *
-     * End fade-out is mirrored at the end of the loop.
-     */
-    const float inv = 1.0f / (float)(fade_samples - 1u);
-
+     *   i=0 -> 0.0
+     *   i=1 -> 0.5 * (1 - cos(pi*0.5)) = 0.5
+     *   i=2 -> 1.0
+     *
+     * i.e. the same numeric values as the linear case for this tiny fade, but
+     * the general formula is different and we test it accordingly. */
+    const float pi = 3.14159265358979323846f;
     /* Start fade checks */
     for (uint32_t i = 0; i < fade_samples; ++i) {
-        const float expected_g = (float)i * inv;
+        float t = (float)i / (float)(fade_samples - 1u);
+        float expected_g = 0.5f * (1.0f - cosf(pi * t));
         const uint32_t idx = loop_start + i;
         assert(feq(buf[idx], 1.0f * expected_g, 1e-6f));
         assert(feq(buf[idx + LOOP_SIZE], 1.0f * expected_g, 1e-6f));
@@ -153,7 +157,8 @@ static void test_apply_edge_fade_stereo(void)
     /* End fade checks: positions s1 - fade_samples + i */
     const uint32_t s1 = loop_start + loop_samples;
     for (uint32_t i = 0; i < fade_samples; ++i) {
-        const float expected_g = (float)(fade_samples - 1u - i) * inv;
+        float t = (float)(fade_samples - 1u - i) / (float)(fade_samples - 1u);
+        float expected_g = 0.5f * (1.0f - cosf(pi * t));
         const uint32_t idx = s1 - fade_samples + i;
         assert(feq(buf[idx], 1.0f * expected_g, 1e-6f));
         assert(feq(buf[idx + LOOP_SIZE], 1.0f * expected_g, 1e-6f));
@@ -162,8 +167,42 @@ static void test_apply_edge_fade_stereo(void)
     free(buf);
 }
 
+/* ------------------------------------------------------------------------- */
 
-/* Main entry: run all tests */
+/* Unit test for transient detector logic described in the assignment. */
+static void test_transient_detector(void)
+{
+    TransientDetector td;
+    td_init(&td, 48000.0f, 2.0f /*threshold*/, 5.0f /*debounce ms*/);
+
+    /* feed a buffer of silence then a single impulse */
+    bool fired = false;
+    for (int i = 0; i < 100; ++i) {
+        if (td_process_sample(&td, (i == 50) ? 1.0f : 0.0f)) {
+            fired = true;
+            /* ensure it only fires once */
+            break;
+        }
+    }
+    assert(fired && "detector failed to fire on synthetic pulse");
+
+    /* if we feed another strong sample immediately, debounce should prevent
+       a second trigger. */
+    fired = false;
+    td_init(&td, 48000.0f, 2.0f, 5.0f);
+    /* first sample triggers */
+    assert(td_process_sample(&td, 1.0f));
+    /* next sample within debounce window should not trigger */
+    for (int i = 0; i < (int)td.debounce_samples - 1; ++i) {
+        if (td_process_sample(&td, 1.0f)) {
+            fired = true;
+            break;
+        }
+    }
+    assert(!fired && "debounce window failed");
+}
+
+
 int main(void)
 {
     test_soft_clip_unit();
@@ -171,8 +210,38 @@ int main(void)
     test_get_bar_len_samples();
     test_apply_edge_fade_stereo();
 
+    /* verify new cosine-shaped envelope tick behaves sensibly */
+    {
+        AloEnvState e = {0};
+        e.running      = true;
+        e.stage        = ENV_ATTACK;
+        e.frames       = 0;
+        e.c1           = 4.0f;   /* short attack */
+        e.c0           = 4.0f;   /* short release */
+        e.total_frames = 10u;
 
-    /* If we reach here all assertions passed. */
-    printf("dsp_test: all tests passed\n");
+        float gains[16];
+        for (int i = 0; i < (int)sizeof(gains) / sizeof(gains[0]); ++i)
+            gains[i] = alo_env_tick(&e);
+
+        /* basic sanity: values between 0 and 1 */
+        for (int i = 0; i < (int)sizeof(gains) / sizeof(gains[0]); ++i)
+            assert(gains[i] >= 0.0f && gains[i] <= 1.0f);
+
+        /* first value should be 0, then rise monotonically until reaching 1 */
+        assert(feq(gains[0], 0.0f, 1e-6f));
+        for (int i = 1; i < 5; ++i)
+            assert(gains[i] >= gains[i - 1]);
+        assert(feq(gains[4], 1.0f, 1e-4f)); /* attack done by frame 4 */
+
+        /* sustain segment should hold at 1 until release starts */
+        assert(feq(gains[5], 1.0f, 1e-4f));
+        assert(feq(gains[6], 1.0f, 1e-4f));
+    }
+
+    /* run our new transient detector test last */
+    test_transient_detector();
+
     return 0;
 }
+

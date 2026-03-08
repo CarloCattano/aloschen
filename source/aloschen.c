@@ -411,6 +411,25 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
     self->ports.slices_per_bar = (float*)data;
     break;
 
+  case ALO_SPLIT_TRANSIENTS:
+    self->ports.split_by_transient = (float*)data;
+    break;
+
+  case ALO_DETECTED_SLICES:
+    self->ports.detected_slices_out = (float*)data;
+    break;
+
+  case ALO_TRANSIENT_THRESH:
+    self->ports.transient_threshold = (float*)data;
+    break;
+  case ALO_SLICE_ENV_FRAC:
+    self->ports.slice_env_frac = (float*)data;
+    break;
+  case ALO_SLICE_ENV_ATTACK:
+    /* not exposed in the UI; host may automate if desired */
+    self->ports.slice_env_attack = (float*)data;
+    break;
+
   case ALO_LOOP1_STATE:
     self->ports.loop_state_out[0] = (float*)data;
     break;
@@ -466,8 +485,6 @@ static void activate(LV2_Handle instance)
 {
   Alo* self = (Alo*)instance;
   alo_log("Activate");
-
-  /* Initialize transport/cycle/click state once ports are connected. */
   reset(self);
 }
 

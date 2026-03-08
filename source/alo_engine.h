@@ -14,6 +14,7 @@
 #include <lv2/core/lv2.h> /* cppcheck-suppress missingIncludeSystem */
 
 #include "slice_sampler.h"
+#include "transient_detector.h"  /* needed for incremental detection state */
 
 #define ALO_URI "http://ktano-studio.com/aloschen"
 
@@ -44,6 +45,13 @@
 #define HIGH_BEAT_FREQ 880
 #define LOW_BEAT_FREQ 440
 #define START_BEAT_FREQ 1760
+
+/* Maximum number of slices the engine must handle simultaneously.  This is
+ * derived from the UI limits: up to 16 bars and 2..8 slices per bar.  It is
+ * used for fixed-size arrays stored in the Alo struct so that the audio
+ * thread can index safely without dynamic allocation.
+ */
+#define ALO_MAX_SLICES (16u * 8u)
 
 /* Upper bound for preallocated per-block scratch buffers used in the audio
  * thread. If a host provides blocks larger than this, the engine will process
@@ -99,10 +107,15 @@ typedef enum
   ALO_HOST_BAR_PHASE = 31,
   ALO_SAMPLER_VOL    = 32,
   ALO_SLICES_PER_BAR = 33,
+  ALO_SPLIT_TRANSIENTS = 34,   /* boolean toggle: split slices at detected transients */
+  ALO_DETECTED_SLICES = 35,    /* output: number of slices currently active/detected */
+  ALO_TRANSIENT_THRESH = 36,   /* control: detection threshold ratio */
+  ALO_SLICE_ENV_FRAC = 37,     /* control: release percent 0..100 of slice */
+  ALO_SLICE_ENV_ATTACK = 38,   /* control: attack length in milliseconds */
 } PortIndex;
 
 /* Keep in sync with the highest port index + 1. */
-#define ALO_PORT_COUNT 34
+#define ALO_PORT_COUNT 39
 
 typedef struct
 {
@@ -151,6 +164,11 @@ typedef struct
   float* bars;
   /** Number of slices per bar for MIDI one-shots (integer 2..8). */
   float* slices_per_bar;
+  float* split_by_transient; /* new control: 0 = uniform slices, >0 = transient-based */
+  float* transient_threshold; /* threshold multiplier for transient detection (now 1..20 maximum) */
+  float* slice_env_frac;       /* release length percent: 0..100 of slice length */
+  float* slice_env_attack;     /* attack length in ms (hidden, not exposed via UI) */
+  float* detected_slices_out; /* output count for UI */
   float* slice_root;
   float* click;
   float* mix;
@@ -306,6 +324,20 @@ typedef struct Alo
    * sqrtf work.
    */
   uint32_t cached_slices_per_bar;
+  float    cached_trans_thresh; /* last-used threshold for dirty detection */
+  bool     cached_split_mode;  /* previous state of split_by_transient */
+  uint32_t detected_slices_count; /* current number of slices after detection */
+  uint32_t detected_slice_offsets[ALO_MAX_SLICES]; /* start offsets of each slice in samples */
+
+  /* state used by the incremental transient detector so that scanning the
+   * loop buffer can be spread across many audio blocks and avoid large
+   * one-shot loops that could cause xruns.  Detection is restarted whenever
+   * the loop content changes, or when the threshold/split-mode values change.
+   */
+  TransientDetector detect_td; /* working detector instance */
+  uint32_t          detect_pos; /* next sample index to inspect */
+  bool              detect_active; /* true while a scan is in progress */
+
   float    cached_slice_gain_scale;
 
   /** Track lv2:enabled state to avoid per-block resets when disabled. */

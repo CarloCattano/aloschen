@@ -21,6 +21,55 @@ aloschen/
 ```
 
 > **All `make` commands must be run from the project root (`aloschen/`), not from `source/`.**
+>
+> ### Transient-slicing support
+> A lightweight `TransientDetector` class was added in
+> `source/transient_detector.h,c`.  When the new `split_by_transient` control
+> port is set true, the sampler will segment the loop buffer at detected onset
+> positions instead of rigid bar subdivisions.  Sane limits are enforced by the
+existing `slices_per_bar` value (and hard‑clamped to 32).  A companion
+`transient_threshold` control lets the user raise/lower the detection ceiling
+and thereby shrink/expand the number of slices produced.  The current count is
+exposed via the `detected_slices` output port and surfaced in both the X11
+UI and ModGUI.  A global `slice_env_frac` control (0..100) was added to let the user
+specify the *release length* of sampler slice voices as a percentage of the
+slice itself; 0 gives the shortest possible fade (1 sample) and 100 uses the
+entire slice. Attack used to be fixed at ≈1 ms but is now exposed as a hidden
+LV2 parameter (`slice_env_attack`) defaulting to 5 ms; hosts may automate it if
+needed but the GUI does not expose a control.  The UI slider for decay now
+updates active voices in real time, and the engine recalculates slice offsets
+when the transient threshhold changes.  The parameter was previously a
+fraction and then a millisecond-scale value; the constant symbol is still
+`slice_env_frac` for compatibility.  Updated unit tests cover the mapping and
+clamping behaviour (`tests/dsp_test.c`, `tests/engine_test.c`).  In addition,
+ the transient‑threshold slider now extends up to 20 (was 10) to allow larger
+values when loops sound too short.
+
+> **TODO (investigation)**: the sampler slicer trigger logic and slice count
+> reporting are still flaky.  In particular:
+>
+> * the `detected_slices` output frequently stays at 0, even though transient
+>   detection runs and the X11 UI slider is reused to display the count. both
+>   the X11 ui label and the ModGUI knob remain unchanged.
+> * The sampler should be capable of generating anywhere from the default 4
+>   slices up to the maximum number of voices whenever `split_by_transient` is
+>   enabled; triggers must fire on the transient positions and play for the
+>   duration of the incoming MIDI note using the envelope system.  Right now
+>   the engine only scans once on commit, making the UI stale and missing
+>   transitions when the loop changes.
+> * Compare with existing mechanisms that update the UI for steps/bars (e.g.
+>   bar‑step output, `alo_port_write` usage) to understand why slice count
+>   updates are ignored.
+> * Establish exactly when the loop is converted to slice regions (the
+>   commit moment?) and ensure the detection state is reset accordingly.
+>
+> This ticket should cover tracing the code paths that write to
+> `detected_slices_out`, verifying host notifications, and adding tests that
+> exercise mid‑run threshold changes.  Improve the slice‑voice triggering so
+> that a note triggers the slice whose boundaries contain the current phase,
+> then play that slice’s audio for the note length with a proper envelope.
+> Essentially, make transient slicing behave like the uniform slicing mode but
+> with variable region boundaries and accurate count reporting.
 
 ---
 

@@ -551,9 +551,15 @@ void run_events(Alo* self, const uint32_t n_samples)
     }
 
     const int      root           = get_slice_root_note(self);
-    const uint32_t bars_i         = alo_get_bars_i(self);
-    const uint32_t slices_per_bar = alo_get_slices_per_bar_u(self);
-    const uint32_t slice_count    = bars_i * slices_per_bar;
+    /* choose slice count depending on mode */
+    uint32_t slice_count;
+    if (alo_get_use_transient_slices_b(self)) {
+      slice_count = self->detected_slices_count ? self->detected_slices_count : 1u;
+    } else {
+      const uint32_t bars_i         = alo_get_bars_i(self);
+      const uint32_t slices_per_bar = alo_get_slices_per_bar_u(self);
+      slice_count = bars_i * slices_per_bar;
+    }
 
     LV2_ATOM_SEQUENCE_FOREACH(midiin, ev)
     {
@@ -587,15 +593,28 @@ void run_events(Alo* self, const uint32_t n_samples)
         continue;
       }
 
-      const uint64_t loop_s = (uint64_t)self->loop_samples;
-      const uint64_t s0     = ((uint64_t)slice_index * loop_s) / (uint64_t)slice_count;
-      const uint64_t s1     = ((uint64_t)(slice_index + 1) * loop_s) / (uint64_t)slice_count;
-      if (s1 <= s0) {
-        continue;
+      uint32_t phase_samples;
+      uint32_t slice_len;
+      if (alo_get_use_transient_slices_b(self) && self->detected_slices_count > 0) {
+        /* map note index to detected offsets list */
+        uint32_t idx = (uint32_t)slice_index;
+        uint32_t start = self->detected_slice_offsets[idx];
+        uint32_t end = (idx + 1 < self->detected_slices_count)
+                          ? self->detected_slice_offsets[idx + 1]
+                          : self->loop_samples;
+        if (end <= start) continue;
+        phase_samples = start;
+        slice_len     = end - start;
+      } else {
+        const uint64_t loop_s = (uint64_t)self->loop_samples;
+        const uint64_t s0     = ((uint64_t)slice_index * loop_s) / (uint64_t)slice_count;
+        const uint64_t s1     = ((uint64_t)(slice_index + 1) * loop_s) / (uint64_t)slice_count;
+        if (s1 <= s0) {
+          continue;
+        }
+        phase_samples = (uint32_t)s0;
+        slice_len     = (uint32_t)(s1 - s0);
       }
-
-      const uint32_t phase_samples = (uint32_t)s0;
-      const uint32_t slice_len     = (uint32_t)(s1 - s0);
 
       uint32_t start_offset_samples = ev->time.frames;
       if (n_samples > 0u && start_offset_samples >= n_samples) {
@@ -608,21 +627,24 @@ void run_events(Alo* self, const uint32_t n_samples)
 
       /* Short fade-in/out to avoid clicks at slice edges (RT-safe).
        * Clamp to a sensible range so very high sample rates don't over-fade.
-       */
-      uint32_t fade_samples = 0u;
-      if (self->rate > 1e-6) {
-        const double fade_s = 0.001; /* 1ms */
-        uint64_t     fs     = (uint64_t)llround((double)self->rate * fade_s);
-        if (fs < 16u) {
-          fs = 16u;
-        } else if (fs > 512u) {
-          fs = 512u;
-        }
-        fade_samples = (uint32_t)fs;
+       *
+       * fade_samples now comes from a percent-of-slice parameter.  A value of
+       * 100 gives a release equal to the full slice length; an empty control
+       * means we use the default edge fade (~1 ms).  Attack is handled
+       * separately in the sampler.
+       *
+       * When the user supplies a percent less than 100, shorten the actual
+       * playback length to match the fade duration so the slice behaves like a
+       * one-shot whose duration is controlled by decay. */
+      uint32_t fade_samples = alo_get_slice_fade_samples(self, slice_len);
+      uint32_t play_len = slice_len;
+      if (fade_samples < slice_len) {
+        play_len = fade_samples;
+        if (play_len == 0u) play_len = 1u;
       }
 
       alo_slice_sampler_schedule(&self->slice_sampler, self, start_offset_samples, phase_samples,
-                                 slice_len, fade_samples, 1.0f);
+                                 play_len, fade_samples, 1.0f);
     }
   }
 

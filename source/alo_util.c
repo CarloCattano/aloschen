@@ -36,6 +36,14 @@ uint32_t alo_get_slices_per_bar_u(const Alo* self)
   return (uint32_t)v;
 }
 
+bool alo_get_use_transient_slices_b(const Alo* self)
+{
+  if (!self || !self->ports.split_by_transient) {
+    return false;
+  }
+  return (*(self->ports.split_by_transient)) > 0.5f;
+}
+
 /* check whether track index is in valid range */
 bool track_is_active(const Alo* self, int t)
 {
@@ -77,6 +85,60 @@ uint32_t alo_edge_fade_samples_u32(const Alo* self)
   return (uint32_t)fs;
 }
 
+uint32_t alo_get_slice_fade_samples(const Alo* self, uint32_t slice_len)
+{
+    /* return a release length controlled by the UI slider.  The port value is
+       * interpreted as a percentage (0..100) of the slice length; zero gives a
+       * minimal fade (1 sample) and 100 uses the entire slice.  Attack side is
+       * governed by an (optional) port; default is 5 ms. */
+    if (self && self->ports.slice_env_frac && slice_len > 0u) {
+        float pct = *(self->ports.slice_env_frac);
+        if (pct < 0.0f) {
+            pct = 0.0f;
+        } else if (pct > 100.0f) {
+            pct = 100.0f;
+        }
+        float frac = pct * 0.01f;
+        uint32_t fs = (uint32_t)((float)slice_len * frac);
+        if (fs < 1u) {
+            fs = 1u;
+        }
+        if (fs > slice_len) {
+            fs = slice_len;
+        }
+        return fs;
+    }
+    /* fallback to default edge fade (≈1 ms) */
+    return alo_edge_fade_samples_u32(self);
+}
+
+uint32_t alo_get_slice_env_attack_samples(const Alo* self)
+{
+    /* provide an attack window for slice voices.  The port value is interpreted
+     * in milliseconds; hosts are free to expose it or leave it hidden.  Default
+     * is a short 5 ms window converted to samples using the current rate. */
+    const float default_ms = 5.0f;
+    float ms = default_ms;
+    if (self && self->ports.slice_env_attack) {
+        ms = *(self->ports.slice_env_attack);
+        if (ms < 0.0f) {
+            ms = 0.0f;
+        }
+        /* clamp to a sensible upper bound (e.g. 100ms) just to avoid overflow */
+        if (ms > 100.0f) {
+            ms = 100.0f;
+        }
+    }
+    if (!self || !(self->rate > 1e-6)) {
+        return (uint32_t)lrintf((double)ms * 0.001);
+    }
+    uint64_t fs = (uint64_t)llround((double)self->rate * ((double)ms * 0.001));
+    if (fs < 1u) {
+        fs = 1u;
+    }
+    return (uint32_t)fs;
+}
+
 /* apply linear cross-fade to edges of a stereo loop buffer */
 void alo_apply_edge_fade_stereo(float* buf, uint32_t loop_start, uint32_t loop_samples,
                                 uint32_t fade_samples)
@@ -106,11 +168,16 @@ void alo_apply_edge_fade_stereo(float* buf, uint32_t loop_start, uint32_t loop_s
     return;
   }
 
+  /* Use a raised-cosine envelope for both fade-in and fade-out.  The
+     derivative at the endpoints is zero, which avoids tiny discontinuities
+     that a linear ramp can leave. */
+  const float pi = 3.14159265358979323846f;
   const float inv = 1.0f / (float)(fade_samples - 1u);
 
   /* Start fade-in */
   for (uint32_t i = 0; i < fade_samples; ++i) {
-    const float    g   = (float)i * inv;
+    float t   = (float)i * inv;
+    float g   = 0.5f * (1.0f - cosf(pi * t));
     const uint32_t idx = s0 + i;
     buf[idx] *= g;
     buf[idx + LOOP_SIZE] *= g;
@@ -118,7 +185,8 @@ void alo_apply_edge_fade_stereo(float* buf, uint32_t loop_start, uint32_t loop_s
 
   /* End fade-out */
   for (uint32_t i = 0; i < fade_samples; ++i) {
-    const float    g   = (float)(fade_samples - 1u - i) * inv;
+    float t   = (float)(fade_samples - 1u - i) * inv;
+    float g   = 0.5f * (1.0f - cosf(pi * t));
     const uint32_t idx = s1 - fade_samples + i;
     buf[idx] *= g;
     buf[idx + LOOP_SIZE] *= g;

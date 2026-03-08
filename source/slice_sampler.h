@@ -55,6 +55,13 @@ typedef struct
   uint32_t    total_frames; /* total duration of the voice (samples) */
 } AloEnvState;
 
+/*
+ * Internal envelope helper; defined in slice_sampler.c.  A public prototype is
+ * exposed here primarily so unit tests can exercise it directly.  Hosts should
+ * treat this as a private API.
+ */
+float alo_env_tick(AloEnvState* e);
+
 typedef struct
 {
   bool        active;

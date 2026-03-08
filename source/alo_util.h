@@ -44,6 +44,14 @@ uint32_t alo_get_bars_i(const Alo* self);
 uint32_t alo_get_slices_per_bar_u(const Alo* self);
 
 /**
+ * @brief Return whether transient-based slice splitting is enabled.
+ *
+ * The control port is treated as a boolean: any value greater than 0.5 is
+ * considered true.  A NULL port defaults to false.
+ */
+bool alo_get_use_transient_slices_b(const Alo* self);
+
+/**
  * Softly clip a signal sample to the (-1,1) range with a smooth curve.
  * This is a simple limiter used to tame occasional peaks without hard
  * distortion.  Equivalent to the old `soft_clip_unit` helper in
@@ -94,10 +102,42 @@ static inline float alo_sanitize_f32(const float x)
  */
 uint32_t alo_edge_fade_samples_u32(const Alo* self);
 
+/** Read the global slice‑decay parameter.  The value is interpreted as a
+ * percentage (0..100) of the slice length; 0 gives the shortest possible
+ * release (~1 sample), 100 uses the whole slice.  A NULL pointer returns 0.0.
+ */
+static inline float alo_get_slice_env_frac(const Alo* self)
+{
+    if (!self || !self->ports.slice_env_frac) {
+        return 0.0f;
+    }
+    float v = *(self->ports.slice_env_frac);
+    if (v < 0.0f) v = 0.0f;
+    if (v > 100.0f) v = 100.0f;
+    return v;
+}
+
+/** Compute number of samples to fade at slice boundaries.  If a global decay
+ * control is configured the returned value is a fraction of the slice length
+ * based on the percent supplied; attack is always handled separately and kept
+ * short (~1 ms).  The result is clamped to [1..slice_len].
+ * otherwise fall back to the default ~1ms value. */
+uint32_t alo_get_slice_fade_samples(const Alo* self, uint32_t slice_len);
+uint32_t alo_get_slice_env_attack_samples(const Alo* self);
+
 /** Total number of slices (bars * slices_per_bar). */
 static inline uint32_t alo_get_slice_count(const Alo* self)
 {
-  return alo_get_bars_i(self) * alo_get_slices_per_bar_u(self);
+  /* Original value is bars * slicesPerBar.  Enforce hard limits so that the
+     sampler and any UI elements never attempt to manage more than 32 slices,
+     and there is always at least one. */
+  uint32_t count = alo_get_bars_i(self) * alo_get_slices_per_bar_u(self);
+  if (count < 1u) {
+    count = 1u;
+  } else if (count > 32u) {
+    count = 32u;
+  }
+  return count;
 }
 
 /** Number of samples in one bar (loop_samples/bars). Guaranteed >=1. */
