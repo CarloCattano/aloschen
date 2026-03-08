@@ -13,8 +13,8 @@
 bool compute_transport_phase_index(const Alo* self, double global_beats,
                                    uint32_t* out_phase_samples)
 {
-  if (!self || !out_phase_samples)
-    return false;
+  ALO_GUARD_BOOL(self);
+  ALO_GUARD_BOOL(out_phase_samples);
 
   const uint32_t loop_beats   = self->loop_beats;
   const uint32_t loop_samples = self->loop_samples;
@@ -62,7 +62,7 @@ double compute_next_cycle_start_beats(const Alo* self, double global_beats0)
    * default here — that would silently impose cycle quantization with a value
    * the caller never set.
    */
-  if (!(self->bpb > 1e-6f)) {
+  if (!(self->bpb > ALO_RATE_EPS)) {
     return global_beats0;
   }
   const double bpb = (double)self->bpb;
@@ -77,7 +77,7 @@ double compute_next_cycle_start_beats(const Alo* self, double global_beats0)
   double phase = alo_fmod_positive(global_beats0, cycle_len_beats);
 
   /* If we're effectively on the boundary, start now (avoid drifting a cycle). */
-  const double kCycleEpsBeats = 1e-3; /* ~0.5ms at 120 BPM */
+  const double kCycleEpsBeats = (double)ALO_BEAT_BOUNDARY_EPS; /* ~0.5ms at 120 BPM */
   if (phase <= kCycleEpsBeats || (cycle_len_beats - phase) <= kCycleEpsBeats) {
     return global_beats0;
   }
@@ -174,7 +174,7 @@ void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj)
 
   if (bpb && bpb->type == uris->atom_Float) {
     const float new_bpb = ((LV2_Atom_Float*)bpb)->body;
-    if (fabsf(self->bpb - new_bpb) > 0.01f) {
+    if (fabsf(self->bpb - new_bpb) > ALO_PARAM_CHANGE_EPS) {
       self->bpb = new_bpb;
       reset_timing(self);
     }
@@ -186,7 +186,7 @@ void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj)
 
   if (bpm && bpm->type == uris->atom_Float) {
     const float new_bpm = ((LV2_Atom_Float*)bpm)->body;
-    if (fabsf(self->bpm - new_bpm) > 0.01f) {
+    if (fabsf(self->bpm - new_bpm) > ALO_PARAM_CHANGE_EPS) {
       self->bpm = new_bpm;
       reset_timing(self);
     }

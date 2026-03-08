@@ -429,6 +429,15 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
     /* not exposed in the UI; host may automate if desired */
     self->ports.slice_env_attack = (float*)data;
     break;
+  case ALO_SLICE_SENS:
+    self->ports.slice_sens = (float*)data;
+    break;
+  case ALO_SLICE_PLAY_MODE:
+    self->ports.slice_play_mode = (float*)data;
+    break;
+  /* slice_offset ports follow; they are output so plugin does not assign them */
+  /* the port index values are contiguous so we can handle them generically */
+  /* handled in the final default label below */
 
   case ALO_LOOP1_STATE:
     self->ports.loop_state_out[0] = (float*)data;

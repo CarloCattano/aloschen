@@ -16,6 +16,7 @@
       <circle class="alo-ring-steps" cx="50" cy="50" r="38"></circle>
       <circle class="alo-ring-steps-active" cx="50" cy="50" r="38"></circle>
       <g class="alo-step-dots" aria-hidden="true"></g>
+      <g class="alo-slice-dots" aria-hidden="true"></g>
     </svg>
   </div>
 
@@ -246,6 +247,29 @@
       </div>
       <div class="mod-separator"></div>
 
+      <!-- slice play mode enum knob -->
+      <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
+        <div class="mod-knob-image-wrapper">
+          <div
+            class="mod-knob-image"
+            mod-role="input-control-port"
+            mod-port-symbol="slice_play_mode"
+          ></div>
+        </div>
+      </div>
+      <div class="mod-knob">
+        <div class="mod-knob-title">Mode</div>
+        <div
+          class="mod-knob-value"
+          mod-role="input-control-value"
+          mod-port-symbol="slice_play_mode"
+        >
+          poly
+        </div>
+      </div>
+
+      <div class="mod-separator"></div>
+
       <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
         <div class="mod-knob-image-wrapper">
           <div
@@ -343,7 +367,7 @@
         </div>
       </div>
       <div class="mod-knob">
-        <div class="mod-knob-title">MaxS</div>
+        <div class="mod-knob-title">Thresh</div>
         <div
           class="mod-knob-value"
           mod-role="input-control-value"

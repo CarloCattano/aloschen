@@ -8,11 +8,11 @@ uint32_t alo_get_bars_i(const Alo* self)
     return DEFAULT_NUM_BARS;
   }
   float bars_f = *(self->ports.bars);
-  if (bars_f < 1.0f) {
-    bars_f = 1.0f;
+  if (bars_f < ALO_BARS_MIN_F) {
+    bars_f = ALO_BARS_MIN_F;
   }
-  if (bars_f > 16.0f) {
-    bars_f = 16.0f;
+  if (bars_f > ALO_BARS_MAX_F) {
+    bars_f = ALO_BARS_MAX_F;
   }
   uint32_t bars_i = (uint32_t)lrintf(bars_f);
   if (!bars_i) {
@@ -28,19 +28,18 @@ uint32_t alo_get_slices_per_bar_u(const Alo* self)
     return 4u;
   }
   int v = (int)floorf(*(self->ports.slices_per_bar));
-  if (v < 2) {
-    v = 2;
-  } else if (v > 8) {
-    v = 8;
+  if (v < (int)ALO_SLICES_PER_BAR_MIN_U) {
+    v = (int)ALO_SLICES_PER_BAR_MIN_U;
+  } else if (v > (int)ALO_SLICES_PER_BAR_MAX_U) {
+    v = (int)ALO_SLICES_PER_BAR_MAX_U;
   }
   return (uint32_t)v;
 }
 
 bool alo_get_use_transient_slices_b(const Alo* self)
 {
-  if (!self || !self->ports.split_by_transient) {
-    return false;
-  }
+  ALO_GUARD_BOOL(self);
+  ALO_GUARD_BOOL(self->ports.split_by_transient);
   return (*(self->ports.split_by_transient)) > 0.5f;
 }
 
@@ -73,14 +72,14 @@ void clear_track_state(Alo* self, int t)
 /* determine fade length (in samples) for loop edges (~1ms) */
 uint32_t alo_edge_fade_samples_u32(const Alo* self)
 {
-  if (!self || !(self->rate > 1e-6)) {
-    return 64u;
+  if (!self || !(self->rate > ALO_RATE_EPS)) {
+    return ALO_EDGE_FADE_DEFAULT_SAMPLES;
   }
   uint64_t fs = (uint64_t)llround((double)self->rate * 0.001); /* 1ms */
-  if (fs < 16u) {
-    fs = 16u;
-  } else if (fs > 512u) {
-    fs = 512u;
+  if (fs < ALO_EDGE_FADE_SAMPLES_MIN) {
+    fs = ALO_EDGE_FADE_SAMPLES_MIN;
+  } else if (fs > ALO_EDGE_FADE_SAMPLES_MAX) {
+    fs = ALO_EDGE_FADE_SAMPLES_MAX;
   }
   return (uint32_t)fs;
 }
@@ -117,7 +116,7 @@ uint32_t alo_get_slice_env_attack_samples(const Alo* self)
     /* provide an attack window for slice voices.  The port value is interpreted
      * in milliseconds; hosts are free to expose it or leave it hidden.  Default
      * is a short 5 ms window converted to samples using the current rate. */
-    const float default_ms = 5.0f;
+    const float default_ms = ALO_SLICE_ENV_ATTACK_DEFAULT_MS;
     float ms = default_ms;
     if (self && self->ports.slice_env_attack) {
         ms = *(self->ports.slice_env_attack);
@@ -137,6 +136,19 @@ uint32_t alo_get_slice_env_attack_samples(const Alo* self)
         fs = 1u;
     }
     return (uint32_t)fs;
+}
+
+/* the sensitivity-to-threshold mapping is simple arithmetic but we provide a
+   helper for tests and possible reuse elsewhere */
+float alo_sensitivity_to_threshold(const Alo* self)
+{
+    float s = 0.0f;
+    if (self && self->ports.slice_sens) {
+        s = *(self->ports.slice_sens);
+        if (s < 0.0f) s = 0.0f;
+        if (s > 1.0f) s = 1.0f;
+    }
+    return ALO_SENS_THRESH_BASE + s * ALO_SENS_THRESH_RANGE;
 }
 
 /* apply linear cross-fade to edges of a stereo loop buffer */

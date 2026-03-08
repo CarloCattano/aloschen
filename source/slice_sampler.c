@@ -3,23 +3,38 @@
 #include "slice_sampler.h"
 #include "alo_engine.h"
 #include "alo_util.h"
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h> /* cosf() used by envelope */
 
+/* handy guard macro to reduce redundant null checks */
+#define ALO_GUARD(ptr) if (!(ptr)) return
+
+/* helper to clear a single slice buffer structure */
+static void alo_slice_buffers_reset(AloSliceBuffer* buf)
+{
+    buf->data   = NULL;
+    buf->length = 0;
+    buf->valid  = false;
+}
+
 /* Internal helpers (optimized for realtime) */
 
-static inline bool alo_voice_is_active(const AloSliceVoice* v)
-{
-  return v && v->active && (v->remaining_samples > 0);
-}
+/* inline helper removed; callers simply test active and remaining_samples */
 
 static inline uint32_t alo_wrap_phase(uint32_t phase, uint32_t limit)
 {
-  return (phase < limit) ? phase : (phase - limit);
+  if (phase >= limit) {
+    phase -= limit;
+  }
+  return phase;
 }
 
-static void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* alo,
+/* allocate a voice according to current play mode and initialise it.
+ * returns the voice pointer so callers can attach slice buffers without a
+ * costly second scan. */
+static AloSliceVoice* alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* alo,
                                          uint32_t key, uint32_t start_delay_samples,
                                          uint32_t phase_samples, uint32_t length_samples,
                                          uint32_t fade_samples, float gain);
@@ -27,8 +42,8 @@ static void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* 
 /* reset sampler state and deactivate voices/pending triggers */
 void alo_slice_sampler_reset(AloSliceSampler* s)
 {
-  if (!s)
-    return;
+  ALO_GUARD(s);
+  s->next_voice = 0;
   for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
     s->voices[i].active            = false;
     s->voices[i].remaining_samples = 0;
@@ -41,15 +56,10 @@ void alo_slice_sampler_reset(AloSliceSampler* s)
 /* mark all slice buffers invalid and begin incremental clearing */
 void alo_slice_sampler_clear_buffers(AloSliceSampler* s)
 {
-  if (!s)
-    return;
+  ALO_GUARD(s);
   for (uint32_t i = 0; i < ALO_SLICE_INFO_MAX; ++i) {
-    s->slice_buffers[i].valid        = false;
-    s->slice_buffers[i].data         = NULL;
-    s->slice_buffers[i].length       = 0;
-    s->slice_buffers_shadow[i].valid = false;
-    s->slice_buffers_shadow[i].data  = NULL;
-    s->slice_buffers_shadow[i].length = 0;
+    alo_slice_buffers_reset(&s->slice_buffers[i]);
+    alo_slice_buffers_reset(&s->slice_buffers_shadow[i]);
   }
   s->clear_in_progress = false;
   s->clear_slice_idx   = 0;
@@ -59,7 +69,9 @@ void alo_slice_sampler_clear_buffers(AloSliceSampler* s)
 /* advance in-flight buffer clear job by up to max_samples zeros */
 void alo_slice_sampler_step_clear(AloSliceSampler* s, uint32_t max_samples)
 {
-  (void)s;
+  ALO_GUARD(s);
+  /* no-op placeholder; clearing is handled by the caller's buffer management
+     logic.  leaving the stub in place to preserve API. */
   (void)max_samples;
 }
 
@@ -68,7 +80,7 @@ bool alo_slice_sampler_is_busy(const AloSliceSampler* s)
   if (!s)
     return false;
   for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
-    if (alo_voice_is_active(&s->voices[i]))
+    if (s->voices[i].active && s->voices[i].remaining_samples > 0)
       return true;
   }
   for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_PENDING; ++i) {
@@ -94,18 +106,24 @@ void alo_slice_sampler_schedule(AloSliceSampler* s, const struct Alo* alo,
                                 uint32_t start_offset_samples, uint32_t phase_samples,
                                 uint32_t length_samples, uint32_t fade_samples, float gain)
 {
-  if (!s)
-    return;
+  ALO_GUARD(s);
   // Find free pending slot
   for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_PENDING; ++i) {
     if (!s->pending[i].active) {
-      s->pending[i].active         = true;
-      s->pending[i].key            = phase_samples; // Use phase as key for retrigger logic
-      s->pending[i].offset_samples = start_offset_samples;
-      s->pending[i].phase_samples  = phase_samples;
-      s->pending[i].length_samples = length_samples;
-      s->pending[i].fade_samples   = fade_samples;
-      s->pending[i].gain           = gain;
+      AloSlicePending* p = &s->pending[i];
+      p->active         = true;
+      p->key            = phase_samples; // Use phase as key for retrigger logic
+      p->offset_samples = start_offset_samples;
+      p->phase_samples  = phase_samples;
+      p->length_samples = length_samples;
+      p->fade_samples   = fade_samples;
+      p->gain           = gain;
+      /* precompute slice index if we know buffer length */
+      if (s->slice_buffer_len > 0) {
+        p->slice_idx = phase_samples / s->slice_buffer_len;
+      } else {
+        p->slice_idx = 0;
+      }
       break;
     }
   }
@@ -117,7 +135,8 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
                                      const uint32_t block_offset_samples, const uint32_t n_samples,
                                      float* out_l, float* out_r)
 {
-  if (!s || !alo || !out_l || !out_r || n_samples == 0 || alo->loop_samples == 0)
+  ALO_GUARD(s);
+  if (!alo || !out_l || !out_r || n_samples == 0 || alo->loop_samples == 0)
     return;
 
   /* Perform incremental buffer clearing if requested.  We budget one float per
@@ -135,6 +154,7 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
   if (!alo->sampler_src_valid || !alo->sampler_src_buf)
     return;
 
+  const float* env_port = (alo ? alo->ports.slice_env_frac : NULL);
   const float    global_gain = alo->sampler_src_norm_gain;
   const uint32_t loop_len    = alo->loop_samples;
 
@@ -142,45 +162,33 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
   const AloSliceBuffer* buffers_active =
       (s->slice_buffers_using_primary ? s->slice_buffers : s->slice_buffers_shadow);
 
+  const uint32_t max_pending = ALO_SLICE_SAMPLER_MAX_PENDING;
+
   for (uint32_t pos = 0; pos < n_samples; ++pos) {
     const uint32_t current_time = block_offset_samples + pos;
 
-    for (uint32_t p_i = 0; p_i < ALO_SLICE_SAMPLER_MAX_PENDING; ++p_i) {
+    for (uint32_t p_i = 0; p_i < max_pending; ++p_i) {
       AloSlicePending* p = &s->pending[p_i];
       if (p->active && p->offset_samples == current_time) {
         /* pass slice buffer pointers to voice for sample-accurate playback */
         const float* buf_l   = NULL;
         const float* buf_r   = NULL;
         uint32_t     buf_len = 0;
-        /* determine which slice index corresponds to this phase */
-        if (p->phase_samples < alo->loop_samples && s->slice_buffer_len > 0) {
-          uint32_t slice_idx = p->phase_samples / s->slice_buffer_len;
-          if (slice_idx < ALO_SLICE_INFO_MAX) {
-            const AloSliceBuffer* sb = &buffers_active[slice_idx];
-            if (sb->valid) {
-              buf_len = sb->length;
-              buf_l   = sb->data;
-              if (s->slice_buffer_channels == 2)
-                buf_r = sb->data + sb->length;
-            }
+        if (p->phase_samples < alo->loop_samples && p->slice_idx < ALO_SLICE_INFO_MAX) {
+          const AloSliceBuffer* sb = &buffers_active[p->slice_idx];
+          if (sb->valid) {
+            buf_len = sb->length;
+            buf_l   = sb->data;
+            if (s->slice_buffer_channels == 2)
+              buf_r = sb->data + sb->length;
           }
         }
-        alo_slice_sampler_start_voice(s, alo, p->key, 0u, p->phase_samples, p->length_samples,
+        AloSliceVoice* v = alo_slice_sampler_start_voice(s, alo, p->key, 0u, p->phase_samples, p->length_samples,
                                       p->fade_samples, p->gain);
-        if (buf_l) {
-          AloSliceVoice* v = NULL;
-          /* last-started voice; loop through voices to find matching key */
-          for (uint32_t vi = 0; vi < ALO_SLICE_SAMPLER_MAX_VOICES; ++vi) {
-            if (s->voices[vi].active && s->voices[vi].key == p->key) {
-              v = &s->voices[vi];
-              break;
-            }
-          }
-          if (v) {
-            v->slice_buf_l   = buf_l;
-            v->slice_buf_r   = buf_r;
-            v->slice_buf_len = buf_len;
-          }
+        if (v && buf_l) {
+          v->slice_buf_l   = buf_l;
+          v->slice_buf_r   = buf_r;
+          v->slice_buf_len = buf_len;
         }
         p->active = false;
       }
@@ -209,7 +217,7 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
 
       /* envelope tick replaces the ad-hoc fades */
       /* update release window on-the-fly if user changed decay slider */
-      if (alo && alo->ports.slice_env_frac) {
+      if (env_port) {
         uint32_t new_fade = alo_get_slice_fade_samples(alo, v->total_samples);
         if (new_fade != (uint32_t)v->env.c0) {
           v->env.c0    = (float)new_fade;
@@ -232,21 +240,35 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
   }
 }
 
-static void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* alo, uint32_t key,
+static AloSliceVoice* alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* alo, uint32_t key,
                                    uint32_t start_delay_samples, uint32_t phase_samples,
                                    uint32_t length_samples, uint32_t fade_samples, float gain)
 {
   if (!s)
-    return;
+    return NULL;
   AloSliceVoice* target = NULL;
-
-  for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
-    if (s->voices[i].active && s->voices[i].key == key) {
-      target = &s->voices[i];
-      break;
+  int mode = 0;
+  if (alo && alo->ports.slice_play_mode) {
+    mode = (int)lrintf(*(alo->ports.slice_play_mode));
+  }
+  if (mode == 2) {
+    /* round-robin: pick next voice index (wrapping) */
+    uint32_t idx = s->next_voice % ALO_SLICE_SAMPLER_MAX_VOICES;
+    s->next_voice = idx + 1;
+    target = &s->voices[idx];
+  } else {
+    /* polyphonic default behaviour */
+    /* polyphonic-default behaviour: allocate unused voice first */
+    for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
+      if (!s->voices[i].active) {
+        target = &s->voices[i];
+        break;
+      }
     }
-    if (!target && !s->voices[i].active) {
-      target = &s->voices[i];
+    if (!target) {
+      uint32_t idx = s->next_voice % ALO_SLICE_SAMPLER_MAX_VOICES;
+      s->next_voice = idx + 1;
+      target = &s->voices[idx];
     }
   }
 
@@ -265,20 +287,19 @@ static void alo_slice_sampler_start_voice(AloSliceSampler* s, const struct Alo* 
     target->slice_buf_l   = NULL;
     target->slice_buf_r   = NULL;
     target->slice_buf_len = 0;
-    /* initialise envelope state.  attack length is constant (~1ms) while
-       * release length is governed by fade_samples parameter passed in. */
+    /* initialise envelope state. */
     target->env.running = true;
     target->env.stage   = ENV_ATTACK;
     target->env.phase   = 0.0f;
     target->env.frames  = 0;
     target->env.value   = 0.0f;
-    /* compute fixed attack and variable release */
     uint32_t attack = alo_edge_fade_samples_u32(alo);
     target->env.c1           = (float)attack;
     target->env.c0           = (float)fade_samples;
     target->env.delta        = (fade_samples > 0) ? (1.0f / (float)fade_samples) : 0.0f;
     target->env.total_frames = length_samples;
   }
+  return target;
 }
 
 /* Envelope tick: attack-sustain-release window using a cosine curve for
@@ -373,12 +394,8 @@ bool alo_slice_sampler_alloc_buffers(AloSliceSampler* s, uint32_t max_len, uint3
   s->slice_buffer_channels = channels;
   s->slice_buffer_len      = max_len;
   for (uint32_t i = 0; i < ALO_SLICE_INFO_MAX; ++i) {
-    s->slice_buffers[i].data         = NULL;
-    s->slice_buffers[i].length       = 0;
-    s->slice_buffers[i].valid        = false;
-    s->slice_buffers_shadow[i].data  = NULL;
-    s->slice_buffers_shadow[i].length = 0;
-    s->slice_buffers_shadow[i].valid = false;
+    alo_slice_buffers_reset(&s->slice_buffers[i]);
+    alo_slice_buffers_reset(&s->slice_buffers_shadow[i]);
   }
   s->slice_buffers_using_primary = true;
   s->clear_in_progress           = false;

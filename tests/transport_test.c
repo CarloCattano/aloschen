@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "transport.h"
+#include "alo_util.h"  /* bring in shared constants such as ALO_BEAT_BOUNDARY_EPS */
+
+/* small tolerances used in assertions */
+#define TEST_EPS       1e-6
+#define TEST_EPS_SMALL 1e-9
 
 /* Expanded tests for compute_transport_phase_index and
  * compute_next_cycle_start_beats covering:
@@ -121,13 +126,13 @@ static void test_compute_next_cycle_start_beats_variety(void)
         /* But when on boundary we return cur; this is not boundary, so expect > cur */
         assert(compute_next_cycle_start_beats(&alo, cur) > cur);
         /* numeric tolerance */
-        assert(fabs(compute_next_cycle_start_beats(&alo, cur) - expected) < 1e-6);
+        assert(fabs(compute_next_cycle_start_beats(&alo, cur) - expected) < TEST_EPS);
     }
 
     {
         double cur = 7.5;
         /* Expect next cycle start at 8.0 */
-        assert(fabs(compute_next_cycle_start_beats(&alo, cur) - 8.0) < 1e-6);
+        assert(fabs(compute_next_cycle_start_beats(&alo, cur) - 8.0) < TEST_EPS);
     }
 
     /* Different beats-per-bar (bpb = 3, 5) and multiple bars (2,3,4) */
@@ -147,11 +152,11 @@ static void test_compute_next_cycle_start_beats_variety(void)
                     double phase = fmod(cur, cycle_len);
                     if (phase < 0.0)
                         phase += cycle_len;
-                    const double kCycleEpsBeats = 1e-3;
+                    const double kCycleEpsBeats = (double)ALO_BEAT_BOUNDARY_EPS;
                     if (phase <= kCycleEpsBeats || (cycle_len - phase) <= kCycleEpsBeats) {
-                        assert(fabs(next - cur) < 1e-6);
+                        assert(fabs(next - cur) < TEST_EPS);
                     } else {
-                        assert(fabs(next - (cur + (cycle_len - phase))) < 1e-6);
+                        assert(fabs(next - (cur + (cycle_len - phase))) < TEST_EPS);
                     }
                 }
             }
@@ -164,7 +169,7 @@ static void test_compute_next_cycle_start_beats_variety(void)
     alo.ports.bars = &bars_val;
     {
         double cur = 3.14;
-        assert(fabs(compute_next_cycle_start_beats(&alo, cur) - cur) < 1e-9);
+        assert(fabs(compute_next_cycle_start_beats(&alo, cur) - cur) < TEST_EPS_SMALL);
     }
 
     printf("transport_test: compute_next_cycle_start_beats - all checks passed\n");

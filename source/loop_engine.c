@@ -14,17 +14,17 @@
 static inline int get_slice_root_note(const Alo* self)
 {
   if (!self) {
-    return 36;
+    return ALO_DEFAULT_SLICE_ROOT_NOTE;
   }
   if (!self->ports.slice_root) {
-    return 36;
+    return ALO_DEFAULT_SLICE_ROOT_NOTE;
   }
   const int v = (int)floorf(*(self->ports.slice_root));
-  if (v < 0) {
-    return 0;
+  if (v < ALO_SLICE_ROOT_MIN) {
+    return ALO_SLICE_ROOT_MIN;
   }
-  if (v > 127) {
-    return 127;
+  if (v > ALO_SLICE_ROOT_MAX) {
+    return ALO_SLICE_ROOT_MAX;
   }
   return v;
 }
@@ -70,8 +70,8 @@ static void update_bar_step_out(Alo* self)
 
     if (self->ui_cycle_resync_pending && !self->ui_have_cycle_origin) {
       /* Set cycle origin on first downbeat. */
-      const float kDownbeatGraceBeats = 0.25f;
-      if (downbeat_edge || bar_beat <= kDownbeatGraceBeats) {
+      /* grace window for an early downbeat */
+      if (downbeat_edge || bar_beat <= ALO_DOWNBEAT_GRACE_BEATS) {
         self->ui_cycle_origin_beats   = self->last_transport_beats - (double)bar_beat;
         self->ui_have_cycle_origin    = true;
         self->ui_cycle_resync_pending = false;
@@ -178,7 +178,7 @@ static void handle_button_edges(Alo* self, int t, bool loop_btn, bool undo_btn)
     }
   } else {
     if (self->last_loop_input[t]) {
-      if (self->loop_btn_high_frames[t] >= 8) {
+      if (self->loop_btn_high_frames[t] >= ALO_LOOP_BTN_HOLD_FRAMES) {
         handle_loop_press(self, t);
       }
     }
@@ -203,23 +203,25 @@ static void click_mix(Alo* self, uint32_t begin, uint32_t end)
   float* const output_r = self->ports.output_r;
 
   const float amplitude = (uint32_t)floorf(*(self->ports.click));
+  /* click samples are scaled by a fixed constant */
+  const float amp_scale = ALO_CLICK_AMP_SCALE;
 
   for (uint32_t idx = begin; idx < end; idx++) {
     if (self->start_beat_offset < self->beat_len) {
-      output_l[idx] += 0.1f * amplitude * self->start_beat[self->start_beat_offset];
-      output_r[idx] += 0.1f * amplitude * self->start_beat[self->start_beat_offset];
+      output_l[idx] += amp_scale * amplitude * self->start_beat[self->start_beat_offset];
+      output_r[idx] += amp_scale * amplitude * self->start_beat[self->start_beat_offset];
       self->start_beat_offset++;
     }
 
     if (self->high_beat_offset < self->beat_len) {
-      output_l[idx] += 0.1f * amplitude * self->high_beat[self->high_beat_offset];
-      output_r[idx] += 0.1f * amplitude * self->high_beat[self->high_beat_offset];
+      output_l[idx] += amp_scale * amplitude * self->high_beat[self->high_beat_offset];
+      output_r[idx] += amp_scale * amplitude * self->high_beat[self->high_beat_offset];
       self->high_beat_offset++;
     }
 
     if (self->low_beat_offset < self->beat_len) {
-      output_l[idx] += 0.1f * amplitude * self->low_beat[self->low_beat_offset];
-      output_r[idx] += 0.1f * amplitude * self->low_beat[self->low_beat_offset];
+      output_l[idx] += amp_scale * amplitude * self->low_beat[self->low_beat_offset];
+      output_r[idx] += amp_scale * amplitude * self->low_beat[self->low_beat_offset];
       self->low_beat_offset++;
     }
   }
@@ -255,7 +257,7 @@ void run_clicks(Alo* self, uint32_t n_samples)
 
   const bool can_click = play_click && (*(self->ports.click) > 0.0f) && self->speed;
 
-  const double bpm              = (self->bpm > 1e-6f) ? (double)self->bpm : (double)DEFAULT_BPM;
+  const double bpm              = (self->bpm > ALO_MIN_BPM) ? (double)self->bpm : (double)DEFAULT_BPM;
   const double samples_per_beat = (double)self->rate * 60.0 / bpm;
 
   /* compute absolute beat positions at block start/end from host transport
@@ -263,7 +265,7 @@ void run_clicks(Alo* self, uint32_t n_samples)
    */
   const double beat_start = self->have_last_transport_beats ? self->last_transport_beats : 0.0;
   const double beat_end =
-      beat_start + ((samples_per_beat > 1e-9) ? ((double)n_samples / samples_per_beat) : 0.0);
+      beat_start + ((samples_per_beat > ALO_MIN_SAMPLES_PER_BEAT) ? ((double)n_samples / samples_per_beat) : 0.0);
 
   const float pos0 = (float)fmod(beat_start, (double)self->bpb);
   const float pos1 = (float)fmod(beat_end, (double)self->bpb);
@@ -280,7 +282,7 @@ void run_clicks(Alo* self, uint32_t n_samples)
    * to miss the START click when the downbeat aligns to block boundaries.
    */
   const float frac0                   = pos0 - floorf(pos0);
-  const float kBeatBoundaryEps        = 1e-3f; /* beats (~0.5ms at 120 BPM) */
+  const float kBeatBoundaryEps        = ALO_BEAT_BOUNDARY_EPS; /* beats (~0.5ms at 120 BPM) */
   const bool  boundary_at_block_start = (frac0 >= 0.0f && frac0 <= kBeatBoundaryEps);
 
   if (boundary_at_block_start || (new_beat_i != old_beat_i)) {
@@ -551,14 +553,13 @@ void run_events(Alo* self, const uint32_t n_samples)
     }
 
     const int      root           = get_slice_root_note(self);
-    /* choose slice count depending on mode */
+    /* choose slice count depending on mode.  in transient split mode we
+       still honor the user’s uniform grid size for note mapping; the actual
+       detected count is used later when converting a note index into an
+       offset. */
     uint32_t slice_count;
-    if (alo_get_use_transient_slices_b(self)) {
-      slice_count = self->detected_slices_count ? self->detected_slices_count : 1u;
-    } else {
-      const uint32_t bars_i         = alo_get_bars_i(self);
-      const uint32_t slices_per_bar = alo_get_slices_per_bar_u(self);
-      slice_count = bars_i * slices_per_bar;
+    {
+      slice_count = alo_get_slice_count_u(self);
     }
 
     LV2_ATOM_SEQUENCE_FOREACH(midiin, ev)
@@ -596,8 +597,14 @@ void run_events(Alo* self, const uint32_t n_samples)
       uint32_t phase_samples;
       uint32_t slice_len;
       if (alo_get_use_transient_slices_b(self) && self->detected_slices_count > 0) {
-        /* map note index to detected offsets list */
-        uint32_t idx = (uint32_t)slice_index;
+        /* map note index into the detected-offset list by scaling from the
+           uniform slice grid.  this spreads the available transients across
+           the full note range, preventing `slices_per_bar` from reducing the
+           number of playable slots. */
+        uint32_t idx = (uint32_t)((uint64_t)slice_index *
+                                  self->detected_slices_count / slice_count);
+        if (idx >= self->detected_slices_count)
+            idx = self->detected_slices_count - 1u;
         uint32_t start = self->detected_slice_offsets[idx];
         uint32_t end = (idx + 1 < self->detected_slices_count)
                           ? self->detected_slice_offsets[idx + 1]

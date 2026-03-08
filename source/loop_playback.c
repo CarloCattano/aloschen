@@ -17,9 +17,7 @@
 
 void run_loops(Alo* self, uint32_t n_samples)
 {
-  if (!self) {
-    return;
-  }
+  ALO_GUARD_VOID(self);
 
   // Discharge any queued arm now that we've recomputed transport state
   if (self->pending_arm_track >= 0) {
@@ -124,6 +122,10 @@ void run_loops(Alo* self, uint32_t n_samples)
 
   /* maintain incremental sampler cache with helper module */
   sampler_cache_process(self, n_samples, any_committed_audio);
+  /* ensure slice buffers are kept in sync with whatever the cache just
+     produced – this is what makes transient-split / threshold changes
+     actually have an audible effect. */
+  sampler_cache_update_slice_buffers(self);
 
   const bool sampler_busy = alo_slice_sampler_is_busy(&self->slice_sampler);
 

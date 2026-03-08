@@ -91,6 +91,7 @@ typedef struct
   uint32_t length_samples;
   uint32_t fade_samples;
   float    gain;
+  uint32_t slice_idx; /* precomputed index into slice_buffers to avoid div */
 } AloSlicePending;
 
 typedef struct
@@ -98,6 +99,7 @@ typedef struct
   AloSliceVoice   voices[ALO_SLICE_SAMPLER_MAX_VOICES];
   AloSlicePending pending[ALO_SLICE_SAMPLER_MAX_PENDING];
   float           rate; // Sample rate for envelope generator
+  uint32_t        next_voice; /* index for round‑robin voice selection */
 
   /* Active and shadow slice maps. Each entry borrows pointers into the current
    * stereo sampler source buffers instead of owning copied per-slice audio.

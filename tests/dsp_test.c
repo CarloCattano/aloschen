@@ -21,6 +21,11 @@
 #include "alo_util.h"
 #include "alo_engine.h"
 
+/* tolerances for floating-point assertions in DSP tests */
+#define DSP_TEST_EPS_SMALL 1e-9f
+#define DSP_TEST_EPS_MED   1e-6f
+#define DSP_TEST_EPS_LARGE 1e-7f
+
 /* new transient detector unit under test */
 #include "transient_detector.h"
 
@@ -36,10 +41,10 @@ static int feq(float a, float b, float eps)
 static void test_soft_clip_unit(void)
 {
     /* A few representative inputs */
-    assert(feq(alo_soft_clip_unit(0.0f), 0.0f, 1e-9f));
+    assert(feq(alo_soft_clip_unit(0.0f), 0.0f, DSP_TEST_EPS_SMALL));
 
     /* expected 0.5 / (1 + 0.5) = 1/3 */
-    assert(feq(alo_soft_clip_unit(0.5f), 0.33333334f, 1e-7f));
+    assert(feq(alo_soft_clip_unit(0.5f), 0.33333334f, DSP_TEST_EPS_LARGE));
 
     /* expected -2 / (1 + 2) = -2/3 */
     assert(feq(alo_soft_clip_unit(-2.0f), -0.6666667f, 1e-7f));
@@ -56,20 +61,20 @@ static void test_edge_fade_samples(void)
 {
     Alo alo = {0};
 
-    /* Null/invalid check -> default 64 */
-    assert(alo_edge_fade_samples_u32(NULL) == 64u);
+    /* Null/invalid check -> default value */
+    assert(alo_edge_fade_samples_u32(NULL) == ALO_EDGE_FADE_DEFAULT_SAMPLES);
 
-    /* Very low rate -> clamp to minimum 16 */
-    alo.rate = 1000.0; /* 1kHz -> 1 sample per ms rounded -> 1 -> clamped to 16 */
-    assert(alo_edge_fade_samples_u32(&alo) == 16u);
+    /* Very low rate -> clamp to minimum */
+    alo.rate = 1000.0; /* 1kHz -> 1 sample per ms rounded -> 1 -> clamped to min */
+    assert(alo_edge_fade_samples_u32(&alo) == ALO_EDGE_FADE_SAMPLES_MIN);
 
     /* Reasonable rate 48kHz -> ~48 samples */
     alo.rate = 48000.0;
-    assert(alo_edge_fade_samples_u32(&alo) == 48u);
+    assert(alo_edge_fade_samples_u32(&alo) == (uint32_t)lrintf((double)alo.rate * 0.001));
 
-    /* Very high rate -> saturate at 512 */
-    alo.rate = 1920000.0; /* 1.92MHz -> 1920 -> clamped to 512 */
-    assert(alo_edge_fade_samples_u32(&alo) == 512u);
+    /* Very high rate -> saturate at maximum */
+    alo.rate = 1920000.0; /* 1.92MHz -> 1920 -> clamped to max */
+    assert(alo_edge_fade_samples_u32(&alo) == ALO_EDGE_FADE_SAMPLES_MAX);
 }
 
 /* Test alo_get_bar_len_samples inline helper */
@@ -94,6 +99,21 @@ static void test_get_bar_len_samples(void)
     alo.ports.bars = &bars_f;
     /* 3/2 -> 1 (integer division), should be >=1 */
     assert(alo_get_bar_len_samples(&alo) == 1u);
+}
+
+/* Test sensitivity-to-threshold helper */
+static void test_sensitivity_mapping(void)
+{
+    Alo alo = {0};
+    float sens;
+    alo.ports.slice_sens = &sens;
+
+    sens = 0.0f;
+    assert(feq(alo_sensitivity_to_threshold(&alo), 1.0f, 1e-6f));
+    sens = 1.0f;
+    assert(feq(alo_sensitivity_to_threshold(&alo), 20.0f, 1e-6f));
+
+    printf("dsp_test: sensitivity mapping — PASSED\n");
 }
 
 /* Test alo_apply_edge_fade_stereo:
@@ -128,8 +148,8 @@ static void test_apply_edge_fade_stereo(void)
 
     /* Sanity: ensure preconditions are met */
     for (uint32_t i = 0; i < loop_samples; ++i) {
-        assert(feq(buf[loop_start + i], 1.0f, 1e-9f));
-        assert(feq(buf[loop_start + i + LOOP_SIZE], 1.0f, 1e-9f));
+        assert(feq(buf[loop_start + i], 1.0f, DSP_TEST_EPS_SMALL));
+        assert(feq(buf[loop_start + i + LOOP_SIZE], 1.0f, DSP_TEST_EPS_SMALL));
     }
 
     /* Apply fade */
@@ -208,6 +228,7 @@ int main(void)
     test_soft_clip_unit();
     test_edge_fade_samples();
     test_get_bar_len_samples();
+    test_sensitivity_mapping();
     test_apply_edge_fade_stereo();
 
     /* verify new cosine-shaped envelope tick behaves sensibly */

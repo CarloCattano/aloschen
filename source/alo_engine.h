@@ -112,10 +112,16 @@ typedef enum
   ALO_TRANSIENT_THRESH = 36,   /* control: detection threshold ratio */
   ALO_SLICE_ENV_FRAC = 37,     /* control: release percent 0..100 of slice */
   ALO_SLICE_ENV_ATTACK = 38,   /* control: attack length in milliseconds */
+  ALO_SLICE_SENS      = 39,   /* control: detection sensitivity 0..1 */
+  ALO_SLICE_PLAY_MODE = 40,   /* control: 0=poly,1=mono,2=round-robin */
+  /* additional output ports carry normalized slice offsets (0..1).  They
+     are written only when transient slicing is active. */
+  ALO_SLICE_OFFSET_0  = 41,
+  /* subsequent indices up to ALO_SLICE_OFFSET_0 + ALO_MAX_SLICES - 1 */
 } PortIndex;
 
 /* Keep in sync with the highest port index + 1. */
-#define ALO_PORT_COUNT 39
+#define ALO_PORT_COUNT (41 + ALO_SLICE_SAMPLER_MAX_VOICES)
 
 typedef struct
 {
@@ -168,7 +174,10 @@ typedef struct
   float* transient_threshold; /* threshold multiplier for transient detection (now 1..20 maximum) */
   float* slice_env_frac;       /* release length percent: 0..100 of slice length */
   float* slice_env_attack;     /* attack length in ms (hidden, not exposed via UI) */
+  float* slice_sens;           /* normalized sensitivity 0..1 */
+  float* slice_play_mode;      /* integer mode selector as described above */
   float* detected_slices_out; /* output count for UI */
+  float* slice_offset[ALO_SLICE_SAMPLER_MAX_VOICES]; /* normalized offsets 0..1 for UI drawing */
   float* slice_root;
   float* click;
   float* mix;
@@ -324,10 +333,12 @@ typedef struct Alo
    * sqrtf work.
    */
   uint32_t cached_slices_per_bar;
-  float    cached_trans_thresh; /* last-used threshold for dirty detection */
+  float    cached_sens; /* last-used slice sensitivity for dirty detection */
+  float    cached_threshold;  /* last-used transient threshold control (detection level) */
   bool     cached_split_mode;  /* previous state of split_by_transient */
   uint32_t detected_slices_count; /* current number of slices after detection */
-  uint32_t detected_slice_offsets[ALO_MAX_SLICES]; /* start offsets of each slice in samples */
+  uint32_t detected_slice_offsets[ALO_SLICE_SAMPLER_MAX_VOICES]; /* start offsets of each slice in samples */
+  float    detected_slice_strength[ALO_SLICE_SAMPLER_MAX_VOICES]; /* strength for ranked selection */
 
   /* state used by the incremental transient detector so that scanning the
    * loop buffer can be spread across many audio blocks and avoid large

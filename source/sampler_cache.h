@@ -15,4 +15,13 @@
  */
 void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_audio);
 
+/* Update slice-sampler buffers so that playback voices will read from the
+ * correct regions of the loop according to the current slicing mode and
+ * transient-detection results.  This may be called on either the audio
+ * thread or from unit tests; the cache must be valid (sampler_src_valid true)
+ * otherwise the call is a no-op.  Both the primary and shadow buffer sets are
+ * populated so the sampler can swap safely during a cache rebuild.
+ */
+void sampler_cache_update_slice_buffers(Alo* self);
+
 #endif // SAMPLER_CACHE_H

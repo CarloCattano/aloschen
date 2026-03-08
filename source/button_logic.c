@@ -17,8 +17,9 @@ static inline bool any_other_track_busy(const Alo* self, int exclude)
 /* handle loop button press for track t; arms/records/overdubs/cancels */
 void handle_loop_press(Alo* self, int t)
 {
+  ALO_GUARD_VOID(self);
   /* Cancel queued arm if pressing same track */
-  if (self && self->pending_arm_track == t) {
+  if (self->pending_arm_track == t) {
     self->pending_arm_track = -1;
     update_loop_state_ports(self);
     return;
@@ -69,7 +70,8 @@ void handle_loop_press(Alo* self, int t)
 /* process undo button press for track t */
 void handle_undo_press(Alo* self, int t)
 {
-  if (!self || !track_is_active(self, t))
+  ALO_GUARD_VOID(self);
+  if (!track_is_active(self, t))
     return;
 
   /* Stop any pending action/recording immediately (quantized audio change later). */

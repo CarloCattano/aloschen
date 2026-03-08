@@ -20,6 +20,8 @@ function (event, funcs) {
             data['ring_' + name.replace('-', '_')] = icon.find('.alo-ring-' + name);
         });
         data.step_dots = icon.find('.alo-step-dots');
+        data.slice_dots = icon.find('.alo-slice-dots');
+        data.slice_offsets = [];
 
         // Radii must match icon-alo.html
         data.ring_cycle_c = 2 * Math.PI * 26;
@@ -53,6 +55,23 @@ function (event, funcs) {
         }
         data.step_dots.empty().append(html);
         data.stepDotsCount = steps;
+    }
+
+    // slice dot rendering
+    function updateSliceDots(icon, data) {
+        if (!data || !data.slice_dots || !data.slice_dots.length || !data.slice_offsets) return;
+        var html = '';
+        for (var i = 0; i < data.slice_offsets.length; ++i) {
+            var v = data.slice_offsets[i];
+            if (typeof v === 'number' && v > 0 && v <= 1) {
+                var a = (v * 2 * Math.PI) - (Math.PI / 2);
+                var r = 24; // radius inside cycle ring
+                var x = 50 + r * Math.cos(a);
+                var y = 50 + r * Math.sin(a);
+                html += '<circle class="alo-slice-dot" cx="' + x.toFixed(3) + '" cy="' + y.toFixed(3) + '" r="1.0"></circle>';
+            }
+        }
+        data.slice_dots.empty().append(html);
     }
 
     function setActiveStepDot(icon, data) {
@@ -211,6 +230,8 @@ function (event, funcs) {
         updateCycleRing(icon, data);
         setActiveStep(icon, (data.bar_step >= 0 && data.bar_step < data.steps) ? data.bar_step : -1);
         setActiveStepDot(icon, data);
+        // refresh slice dots in case offsets or steps changed
+        updateSliceDots(icon, data);
     }
 
     function handle(symbol, value, icon, data) {
@@ -244,6 +265,26 @@ function (event, funcs) {
             setUndoEnabled(icon, 'undo' + match[1] + '_state', value >= 0.5);
         } else if ((match = symbol.match(/^undo(\d)_state$/))) {
             setUndoLight(icon, symbol, value);
+        } else if (symbol === 'split_by_transient') {
+            /* remember split mode so other handlers can act on it */
+            data.split_by_transient = value;
+            /* when enabling split mode immediately reflect the current detection
+               count on the slices-per-bar control so the knob jumps to match. */
+            if (value > 0.5 && typeof data.detected_slices === 'number') {
+                setPortValue(icon, 'slices_per_bar', data.detected_slices);
+                data.slices_per_bar = data.detected_slices;
+            }
+        } else if (symbol === 'detected_slices') {
+            data.detected_slices = value;
+            if (data.split_by_transient > 0.5) {
+                setPortValue(icon, 'slices_per_bar', value);
+                data.slices_per_bar = value;
+            }
+        } else if ((match = symbol.match(/^slice_offset_(\d+)$/))) {
+            data.slice_offsets = data.slice_offsets || [];
+            var idx = parseInt(match[1], 10);
+            data.slice_offsets[idx] = value;
+            updateSliceDots(icon, data);
         }
     }
 

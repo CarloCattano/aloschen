@@ -2,8 +2,11 @@
 #include <math.h>
 
 /* Typical time constants as described in the agentic instructions. */
-static const float FAST_ATTACK_MS  = 1.0f;   /* ~1ms for onset detection */
-static const float SLOW_DECAY_MS   = 50.0f;  /* ~50ms to follow background */
+#define TD_FAST_ATTACK_MS 1.0f   /* ~1ms for onset detection */
+#define TD_SLOW_DECAY_MS 50.0f   /* ~50ms to follow background */
+
+/* 5ms debounce default is used in multiple places. */
+#define TD_DEFAULT_DEBOUNCE_MS 5.0f
 
 void td_init(TransientDetector *td,
              float sample_rate,
@@ -18,8 +21,8 @@ void td_init(TransientDetector *td,
     td->slow_env = 0.0f;
 
     /* compute coefficients using standard one-pole formula: alpha = exp(-1/(T*fs)) */
-    float fast_time_s = FAST_ATTACK_MS * 0.001f;
-    float slow_time_s = SLOW_DECAY_MS  * 0.001f;
+    float fast_time_s = TD_FAST_ATTACK_MS * 0.001f;
+    float slow_time_s = TD_SLOW_DECAY_MS  * 0.001f;
 
     td->fast_coeff = expf(-1.0f / (fast_time_s * sample_rate));
     td->slow_coeff = expf(-1.0f / (slow_time_s * sample_rate));

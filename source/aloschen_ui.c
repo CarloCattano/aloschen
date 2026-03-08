@@ -28,6 +28,7 @@
 /* Reuse the DSP's canonical port indices + plugin URI. */
 #include "alo_engine.h"
 #include "alo_ui_util.h"
+#include "alo_util.h"  /* bring in shared constants like slider limits and text */
 
 /*
  * UI scaling (integer geometry only).
@@ -171,13 +172,16 @@ static const Control kControls[] = {
     CTL_SLIDER_FLOAT_(ALO_LOOP3_VOL, "Loop3 Vol", 0.0f, 1.0f),
     CTL_SLIDER_FLOAT_(ALO_SAMPLER_VOL, "Sampler Vol", 0.0f, 2.5f),
 
-    CTL_SLIDER_INT_(ALO_BARS, "Bars", 1.0f, 16.0f),
+    CTL_SLIDER_INT_(ALO_BARS, "Bars", ALO_BARS_MIN_F, ALO_BARS_MAX_F),
     CTL_SLIDER_INT_(ALO_CLICK, "Click", 0.0f, 10.0f),
     CTL_SLIDER_INT_(ALO_MIX, "Mix", 0.0f, 100.0f),
     CTL_SLIDER_INT_(ALO_SLICE_ROOT, "Root", 0.0f, 127.0f),
     CTL_TOGGLE_(ALO_SPLIT_TRANSIENTS, "Split"),
-    CTL_SLIDER_INT_(ALO_SLICES_PER_BAR, "Slices", 2.0f, 8.0f),
-    CTL_SLIDER_INT_(ALO_TRANSIENT_THRESH, "MaxS", 1.0f, 8.0f),    CTL_SLIDER_FLOAT_(ALO_SLICE_ENV_FRAC, "Decay%", 0.0f, 100.0f),};
+    CTL_SLIDER_INT_(ALO_SLICES_PER_BAR, "Slices", (float)ALO_SLICES_PER_BAR_MIN_U, (float)ALO_SLICES_PER_BAR_MAX_U),
+    CTL_SLIDER_FLOAT_(ALO_SLICE_SENS, "Sens", 0.0f, 1.0f),
+    CTL_SLIDER_INT_(ALO_SLICE_PLAY_MODE, "Mode", 0.0f, 1.0f),
+    CTL_SLIDER_INT_(ALO_TRANSIENT_THRESH, "Thresh", 1.0f, 20.0f),
+    CTL_SLIDER_FLOAT_(ALO_SLICE_ENV_FRAC, "Decay%", 0.0f, 100.0f),};
 
 typedef enum
 {
@@ -428,6 +432,7 @@ static float round_int_value(const float v)
 }
 
 static void draw_string(AloUI* ui, int x, int y, const char* text);
+static void ui_draw_slice_markers(AloUI* ui);
 
 static float clamp01f(const float v)
 {
@@ -794,14 +799,17 @@ static void ui_redraw(AloUI* ui)
 
   XClearWindow(ui->dpy, ui->win);
 
+  /* show slice positions before other elements */
+  ui_draw_slice_markers(ui);
+
   const UILayout l = ui_layout(ui);
 
   /* start at padded origin for header text */
   /* x/y variables not needed for header drawing */
 
   /* Header */
-  draw_string(ui, l.pad, UI_SI(18), "ALOSCHEN");
-  draw_string(ui, (int)ui->width - UI_SI(180), UI_SI(18), "LOOPER");
+  draw_string(ui, l.pad, UI_SI(18), ALO_UI_TITLE_TEXT);
+  draw_string(ui, (int)ui->width - UI_SI(180), UI_SI(18), ALO_UI_SUBTITLE_TEXT);
 
   /* Circular timing UI (transport rings). */
   ui_draw_transport_rings(ui, &l);
@@ -929,6 +937,7 @@ static void ui_redraw(AloUI* ui)
         c->port_index == ALO_MIX ||
         c->port_index == ALO_SLICE_ROOT || c->port_index == ALO_SLICES_PER_BAR ||
         c->port_index == ALO_TRANSIENT_THRESH || c->port_index == ALO_SLICE_ENV_FRAC) {
+            /* threshold slider has integer steps; we clamp to valid range here */
       /* shorter sliders for bars/click/mix/rotation/slices/threshold – quarter width */
       slider_w = (int)((float)ui->width * 0.25f);
     }
@@ -960,7 +969,25 @@ static void ui_redraw(AloUI* ui)
       display_val = det_val;
     }
 
-    if (c->port_index == ALO_SLICES_PER_BAR && !split_on) {
+    /* special case for the play-mode control: show a human‑readable enum
+       rather than a raw number so users can tell "poly", "mono" or
+       "round‑robin" at a glance. */
+    if (c->port_index == ALO_SLICE_PLAY_MODE) {
+      const int mode = (int)roundf(display_val);
+      const char* name = "?";
+      switch (mode) {
+      case 1:
+        name = "mono";
+        break;
+      case 2:
+        name = "round‑robin";
+        break;
+      default:
+        name = "poly";
+        break;
+      }
+      snprintf(label, sizeof(label), "%s: %s", c->label, name);
+    } else if (c->port_index == ALO_SLICES_PER_BAR && !split_on) {
       /* also append the detector output for reference */
       if (c->type == CTL_SLIDER_FLOAT) {
         snprintf(label, sizeof(label), "%s: %.2f (det %.0f)", c->label,
@@ -1289,6 +1316,26 @@ static void handle_configure(AloUI* ui, const XConfigureEvent* e)
   }
 }
 
+/* draw vertical slice markers across the UI window.  Marker positions are
+   normalized floats 0..1 written by the DSP to output ports.  We draw them in
+   the cycle colour so they stand out against the background. */
+static void ui_draw_slice_markers(AloUI* ui)
+{
+    if (!ui || !ui->dpy)
+        return;
+    ui_set_fg(ui, ui->col_cycle);
+    for (int i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
+        uint32_t port = ALO_SLICE_OFFSET_0 + i;
+        if (port >= ALO_PORT_COUNT)
+            break;
+        float v = ui->port_values[port];
+        if (v > 0.0f && v <= 1.0f) {
+            int x = (int)(v * (float)ui->width);
+            XDrawLine(ui->dpy, ui->win, ui->gc, x, 0, x, ui->height);
+        }
+    }
+}
+
 static bool ui_any_armed_waiting(const AloUI* ui)
 {
   if (!ui) {
@@ -1545,16 +1592,22 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->port_values[ALO_BARS]           = 2.0f;
   ui->port_values[ALO_CLICK]          = 1.0f;
   ui->port_values[ALO_SLICE_ENV_FRAC]  = 0.0f;
-  ui->port_values[ALO_SLICE_ENV_ATTACK] = 5.0f; /* hidden parameter default */
+  ui->port_values[ALO_SLICE_ENV_ATTACK] = ALO_SLICE_ENV_ATTACK_DEFAULT_MS; /* hidden parameter default */
+  ui->port_values[ALO_SLICE_SENS]       = 0.5f;
+  ui->port_values[ALO_SLICE_PLAY_MODE]  = 0.0f;
   ui->port_values[ALO_MIX]            = 50.0f;
   ui->port_values[ALO_SLICE_ROOT]     = 36.0f;
   ui->port_values[ALO_SPLIT_TRANSIENTS] = 0.0f;
   ui->port_values[ALO_SLICES_PER_BAR] = 4.0f;
-  ui->port_values[ALO_TRANSIENT_THRESH] = 2.0f;
+  ui->port_values[ALO_TRANSIENT_THRESH] = 2.0f; /* default detection threshold */
   ui->port_values[ALO_DETECTED_SLICES] = 0.0f;
   ui->port_values[ALO_BAR_STEP]       = 0.0f;
   ui->port_values[ALO_CYCLE_PHASE]    = 0.0f;
   ui->port_values[ALO_HOST_BAR_PHASE] = 0.0f;
+  /* initialise offset outputs to zero */
+  for (int i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
+      ui->port_values[ALO_SLICE_OFFSET_0 + i] = 0.0f;
+  }
 
   ui->needs_redraw = true;
 

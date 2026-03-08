@@ -45,31 +45,63 @@ clamping behaviour (`tests/dsp_test.c`, `tests/engine_test.c`).  In addition,
  the transient‑threshold slider now extends up to 20 (was 10) to allow larger
 values when loops sound too short.
 
-> **TODO (investigation)**: the sampler slicer trigger logic and slice count
-> reporting are still flaky.  In particular:
->
-> * the `detected_slices` output frequently stays at 0, even though transient
->   detection runs and the X11 UI slider is reused to display the count. both
->   the X11 ui label and the ModGUI knob remain unchanged.
-> * The sampler should be capable of generating anywhere from the default 4
->   slices up to the maximum number of voices whenever `split_by_transient` is
->   enabled; triggers must fire on the transient positions and play for the
->   duration of the incoming MIDI note using the envelope system.  Right now
->   the engine only scans once on commit, making the UI stale and missing
->   transitions when the loop changes.
-> * Compare with existing mechanisms that update the UI for steps/bars (e.g.
->   bar‑step output, `alo_port_write` usage) to understand why slice count
->   updates are ignored.
-> * Establish exactly when the loop is converted to slice regions (the
->   commit moment?) and ensure the detection state is reset accordingly.
->
-> This ticket should cover tracing the code paths that write to
-> `detected_slices_out`, verifying host notifications, and adding tests that
-> exercise mid‑run threshold changes.  Improve the slice‑voice triggering so
-> that a note triggers the slice whose boundaries contain the current phase,
-> then play that slice’s audio for the note length with a proper envelope.
-> Essentially, make transient slicing behave like the uniform slicing mode but
-> with variable region boundaries and accurate count reporting.
+> **STATUS (resolved)**: most issues have been addressed and the remaining
+> items are now routine maintenance.
+> 
+> * previously the `detected_slices` output could appear to hang at zero. two
+>   separate fixes were applied:
+>   * the DSP helper stopped capping the slice count to the threshold control
+>     (threshold now only affects the detector level). the port now reflects
+>     the true number of offsets found, bounded only by the sampler voice
+>     limit.
+>   * the ModGUI script was not listening for `detected_slices` notifications,
+>     so the knob never updated. the handler now updates the visible
+>     `slices_per_bar` control when split mode is active.
+>   testing exercises all of the above, including mid‑run threshold/split
+>     adjustments.
+> * transient slicing now restarts whenever the threshold, sensitivity or
+>   split toggle changes, or when a new loop buffer is committed.  helper
+>   code ensures the detector state is seeded with offset zero and that the
+>   port is written immediately so the UI can stay in sync.
+> * the sampler voice triggering has been improved: polyphonic mode allocates
+>   unused voices first (avoiding unwanted reuse) and mono/round‑robin modes
+>   behave correctly with the new play‑mode enum knob.  All modes are covered
+>   by unit tests.
+> * slice buffers are refreshed every block via `sampler_cache_update_slice_buffers`,
+>   so changing UI controls now immediately affects audio playback.
+> 
+> Remaining TODOs are now minor (e.g. add diagnostic logging, tidy UI
+> behaviour) and no longer block normal operation.
+## Internal refactor notes
+
+* slice_sampler.c received a heavyweight cleanup per recent bug report
+  (‘one-note trigger’).  Key changes:
+  * introduced `ALO_GUARD` macro and consolidated null checks.
+  * factored repeated buffer reset logic into `alo_slice_buffers_reset()` and
+    removed duplication across `clear_buffers`, `alloc_buffers` and
+    `free_buffers`.
+  * added `slice_idx` field to pending events so the expensive per‑sample
+    division is computed once during scheduling.
+  * `alo_slice_sampler_start_voice()` now returns the allocated voice and
+    caller attaches slice buffer pointers directly, eliminating the O(N)
+    search previously done on every trigger.  voice selection logic was also
+    simplified and made poly‑friendly.
+  * obsolete helpers removed (`alo_voice_is_active`), useless parameters
+    dropped, and envelope pointer cached outside the sample loop.
+  * minor cleanups: improved wrap logic, removed dead `step_clear` stub, and
+    reduced per‑sample branching.
+  * unit tests expanded to exercise the new play‑mode enum and ensure
+    behaviour conforms.
+
+  These changes shave dozens of lines, lower RTT complexity, and fix the
+  “only first note” behaviour while also making the module easier to audit.
+
+* **Wider DRY efforts**: added `ALO_GUARD_*` macros and a shared
+  `alo_get_slice_count_u()` helper.  Several modules (loop_engine,
+  sampler_cache, transport, loop_playback, button_logic) now use these
+  abstractions, reducing repetitive null checks and arithmetic.  Additional
+  macros (`ALO_GUARD_BOOL`, `ALO_GUARD_NULL`) make intent explicit and keep
+  runtime logic minimal.
 
 ---
 

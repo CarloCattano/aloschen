@@ -408,6 +408,13 @@
     opacity: 1.0;
 }
 
+/* slice position markers, rendered on cycle ring */
+.alo{{{cns}}} .alo-transport .alo-slice-dot {
+    fill: #00ccff;
+    stroke: none;
+    opacity: 0.8;
+}
+
 /* When any slot is recording, emphasize the Bars-cycle ring. */
 .alo{{{cns}}}.alo-recording .alo-transport-row {
     opacity: 0.55;

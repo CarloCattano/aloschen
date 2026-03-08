@@ -3,7 +3,22 @@
 #include "transient_detector.h"
 #include <math.h>
 #include <stddef.h>
+#include <stdlib.h> /* qsort */
 #include <stdio.h>  /* for debug logging */
+
+/* comparator for qsort when sorting 32-bit unsigned integers */
+static int cmp_u32(const void *a, const void *b)
+{
+    uint32_t va = *(const uint32_t*)a;
+    uint32_t vb = *(const uint32_t*)b;
+    if (va < vb) return -1;
+    if (va > vb) return 1;
+    return 0;
+}
+
+/* local constants */
+#define SC_MAX_PER_RUN 4096u          /* throttle amount for rebuild work */
+#define SC_SCALE_FACTOR 8u            /* multiplier used when scaling cap_max */
 
 /* tests are built without the main plugin code; provide a simple stub so
    references to alo_log resolve.  The real implementation lives in
@@ -13,6 +28,86 @@ void alo_log(const char* message, ...) __attribute__((weak));
 void alo_log(const char* message, ...) { (void)message; }
 
 /* update full-loop stereo mix cache for current block */
+
+/* Forward declare helper used by public wrapper. */
+static void update_slice_buffers_internal(Alo* self);
+
+/* Public wrapper exposed in sampler_cache.h.  See header comment for details. */
+void sampler_cache_update_slice_buffers(Alo* self)
+{
+    if (!self)
+        return;
+    /* Only update when we have valid audio to borrow from. */
+    if (!self->sampler_src_valid || self->loop_samples == 0u)
+        return;
+    update_slice_buffers_internal(self);
+}
+
+/* Internal implementation that actually walks the current slice definition
+ * and writes borrowed pointers/lengths into both the primary and shadow
+ * slice-buffer arrays.  Populating both sets makes it safe to call the
+ * helper regardless of which buffer set is currently active; the sampler
+ * will always read from the active set chosen in process_chunk.
+ */
+static void update_slice_buffers_internal(Alo* self)
+{
+    /* compute number of slices under the current mode */
+    uint32_t slice_count = alo_get_slice_count_u(self);
+    if (slice_count > ALO_SLICE_INFO_MAX)
+        slice_count = ALO_SLICE_INFO_MAX;
+
+    /* helper to clear both sets */
+    for (uint32_t i = 0; i < ALO_SLICE_INFO_MAX; ++i) {
+        AloSliceBuffer *p = &self->slice_sampler.slice_buffers[i];
+        AloSliceBuffer *s = &self->slice_sampler.slice_buffers_shadow[i];
+        p->valid = s->valid = false;
+        p->data  = s->data  = NULL;
+        p->length = s->length = 0u;
+        p->borrowed = s->borrowed = true;
+    }
+
+    /* populate according to mode */
+    if (alo_get_use_transient_slices_b(self)) {
+        for (uint32_t i = 0; i < slice_count; ++i) {
+            uint32_t start = self->detected_slice_offsets[i];
+            uint32_t end = (i + 1 < slice_count)
+                               ? self->detected_slice_offsets[i + 1]
+                               : self->loop_samples;
+            if (end <= start)
+                continue;
+            uint32_t len = end - start;
+            AloSliceBuffer buf = {
+                .valid = true,
+                .data = &self->sampler_src_buf[start],
+                .length = len,
+                .borrowed = true
+            };
+            self->slice_sampler.slice_buffers[i] = buf;
+            self->slice_sampler.slice_buffers_shadow[i] = buf;
+        }
+    } else {
+        uint64_t loop_s = (uint64_t)self->loop_samples;
+        for (uint32_t i = 0; i < slice_count; ++i) {
+            uint64_t s0 = ((uint64_t)i * loop_s) / slice_count;
+            uint64_t s1 = ((uint64_t)(i + 1) * loop_s) / slice_count;
+            if (s1 <= s0)
+                continue;
+            uint32_t len = (uint32_t)(s1 - s0);
+            AloSliceBuffer buf = {
+                .valid = true,
+                .data = &self->sampler_src_buf[(uint32_t)s0],
+                .length = len,
+                .borrowed = true
+            };
+            self->slice_sampler.slice_buffers[i] = buf;
+            self->slice_sampler.slice_buffers_shadow[i] = buf;
+        }
+    }
+
+    /* make sure the primary set is marked active so that immediately
+       scheduled voices see the new mapping */
+    self->slice_sampler.slice_buffers_using_primary = true;
+}
 
 /* Helper to update the slice count port, applying any user-specified cap.
    The DSP writes to the port via alo_port_write so that hosts which
@@ -24,26 +119,36 @@ static void update_detected_slices_port(Alo* self, uint32_t count)
     if (self->ports.transient_threshold) {
         thr = *(self->ports.transient_threshold);
     }
-    /* debug unconditional print to stdout for tests */
-#ifdef UNIT_TESTS
-    printf("DBG> count=%u thr=%f\n", count, thr);
-#endif
     alo_log("DEBUG: update_detected_slices_port called with count=%u thr=%f", count, thr);
-    /* apply user cap if present */
-    if (self->ports.transient_threshold) {
-        int max_slices = (int)floorf(thr);
-        if (max_slices < 1) {
-            max_slices = 1;
-        } else if (max_slices > (int)ALO_SLICE_SAMPLER_MAX_VOICES) {
-            max_slices = (int)ALO_SLICE_SAMPLER_MAX_VOICES;
-        }
-        if ((uint32_t)max_slices < count) {
-            alo_log("DEBUG: cap %d applied, incoming count %u -> %u", max_slices, count, (uint32_t)max_slices);
-            count = (uint32_t)max_slices;
+    /* enforce minimum 4 slices per bar when transient mode is active */
+    if (alo_get_use_transient_slices_b(self)) {
+        uint32_t bars = alo_get_bars_i(self);
+        uint32_t minreq = bars * ALO_MIN_SLICES_PER_BAR;
+        if (minreq < ALO_MIN_SLICES_PER_BAR) minreq = ALO_MIN_SLICES_PER_BAR; /* always at least floor */
+        if (count < minreq) {
+            /* override offsets with uniform grid of size minreq */
+            for (uint32_t i = 0; i < minreq && i < ALO_SLICE_INFO_MAX; ++i) {
+                self->detected_slice_offsets[i] =
+                    (uint32_t)(((uint64_t)i * self->loop_samples) / minreq);
+            }
+            count = minreq;
         }
     }
     self->detected_slices_count = count;
     alo_port_write(self->ports.detected_slices_out, (float)count);
+    /* also emit normalized offsets for UI drawing */
+    if (self->loop_samples > 0) {
+        for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
+            float v = 0.0f;
+            if (i < count) {
+                v = (float)self->detected_slice_offsets[i] /
+                    (float)self->loop_samples;
+            }
+            if (self->ports.slice_offset[i]) {
+                alo_port_write(self->ports.slice_offset[i], v);
+            }
+        }
+    }
 }
 
 void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_audio)
@@ -65,12 +170,22 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
      but do not mark the sampler dirty – the audio output itself does not
      depend on these controls.  A rebuild is only required when the committed
      loop content changes. */
+  bool sensitivity_changed = false;
+  if (self->ports.slice_sens) {
+    float cur = *(self->ports.slice_sens);
+    if (cur != self->cached_sens) {
+      self->cached_sens = cur;
+      sensitivity_changed = true;
+    }
+  }
   bool threshold_changed = false;
   if (self->ports.transient_threshold) {
     float cur = *(self->ports.transient_threshold);
-    if (cur != self->cached_trans_thresh) {
-      self->cached_trans_thresh = cur;
+    if (cur != self->cached_threshold) {
+      self->cached_threshold = cur;
       threshold_changed = true;
+      /* report current count immediately so the UI doesn't lag */
+      update_detected_slices_port(self, self->detected_slices_count);
     }
   }
   bool split_changed = false;
@@ -104,7 +219,7 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
     uint32_t slice_count = alo_get_slice_count(self);
     update_detected_slices_port(self, slice_count);
     self->detect_active = false;
-  } else if (threshold_changed || split_changed ||
+  } else if (sensitivity_changed || threshold_changed || split_changed ||
              (self->sampler_src_rebuild_active && self->sampler_src_pos == 0u)) {
     /* restart the scan when in split mode (threshold or mode change or new
        loop data).  Reset the detection state but keep any existing offset
@@ -114,6 +229,7 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
     /* start with offset 0 always present */
     self->detected_slices_count = 1u;
     self->detected_slice_offsets[0] = 0u;
+    self->detected_slice_strength[0] = 0.0f;
     /* report the current count immediately (this may be 1 until detection
        completes) */
     update_detected_slices_port(self, self->detected_slices_count);
@@ -139,6 +255,7 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
         /* ensure offset zero exists */
         self->detected_slices_count = 1u;
         self->detected_slice_offsets[0] = 0u;
+        self->detected_slice_strength[0] = 0.0f;
       }
     } else {
       uint32_t slice_count = alo_get_slice_count(self);
@@ -168,8 +285,8 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
     const uint32_t cap_end = self->loop_samples;
     uint32_t       cap_max = n_samples;
     {
-      const uint32_t kMaxPerRun = 4096u; /* cap work per call */
-      uint64_t       scaled     = (uint64_t)n_samples * 8u;
+      const uint32_t kMaxPerRun = SC_MAX_PER_RUN; /* cap work per call */
+      uint64_t       scaled     = (uint64_t)n_samples * SC_SCALE_FACTOR;
       if (scaled < (uint64_t)cap_max)
         scaled = (uint64_t)cap_max;
       if (scaled > (uint64_t)kMaxPerRun)
@@ -219,11 +336,16 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
          huge scan that used to run when the rebuild completed. */
       if (self->detect_active) {
         if (self->detect_pos == 0u) {
-          /* initialise detector with current threshold */
-          float thresh = (self->ports.transient_threshold && *(self->ports.transient_threshold) > 0.0f)
-                            ? *(self->ports.transient_threshold)
-                            : 2.0f;
-          td_init(&self->detect_td, (float)self->rate, thresh, 5.0f);
+          /* initialise detector: if user provided an explicit threshold use
+             that value directly, otherwise fall back to the legacy
+             sensitivity mapping helper. */
+          float thr;
+          if (self->ports.transient_threshold) {
+            thr = *(self->ports.transient_threshold);
+          } else {
+            thr = alo_sensitivity_to_threshold(self);
+          }
+          td_init(&self->detect_td, (float)self->rate, thr, TD_DEFAULT_DEBOUNCE_MS);
           /* first offset already set to zero during restart */
         }
         if (td_process_sample(&self->detect_td, ml)) {
@@ -233,17 +355,40 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
             if (self->detect_pos - last_off < min_len) {
               /* too short, ignore this transient; restart detector to avoid
                  repeated firing on the same event. */
-              float thresh2 = (self->ports.transient_threshold && *(self->ports.transient_threshold) > 0.0f)
-                                ? *(self->ports.transient_threshold)
-                                : 2.0f;
-              td_init(&self->detect_td, (float)self->rate, thresh2, 5.0f);
-            } else if (self->detected_slices_count < ALO_SLICE_SAMPLER_MAX_VOICES) {
-              self->detected_slice_offsets[self->detected_slices_count] = self->detect_pos;
-              self->detected_slices_count++;
-              update_detected_slices_port(self, self->detected_slices_count);
+              float thr2 = alo_sensitivity_to_threshold(self);
+              td_init(&self->detect_td, (float)self->rate, thr2, TD_DEFAULT_DEBOUNCE_MS);
             } else {
-              /* reached voice limit; stop detection early to save cycles */
-              self->detect_active = false;
+              /* candidate qualifies; apply cap and ranking logic */
+              float strength = (ml < 0.0f) ? -ml : ml;
+              /* no explicit cap any more; we only limit to the maximum
+                 number of voices enforced by the sampler.  stronger transients
+                 can bump weaker ones when we run out of slots. */
+              if ((int)self->detected_slices_count < (int)ALO_SLICE_SAMPLER_MAX_VOICES) {
+                uint32_t idx = self->detected_slices_count;
+                self->detected_slice_offsets[idx] = self->detect_pos;
+                self->detected_slice_strength[idx] = strength;
+                self->detected_slices_count++;
+                qsort(self->detected_slice_offsets, self->detected_slices_count,
+                      sizeof(uint32_t), cmp_u32);
+                update_detected_slices_port(self, self->detected_slices_count);
+              } else {
+                /* replace weakest if stronger */
+                int weakest = 0;
+                float weakest_strength = self->detected_slice_strength[0];
+                for (int wi = 1; wi < (int)self->detected_slices_count; ++wi) {
+                  if (self->detected_slice_strength[wi] < weakest_strength) {
+                    weakest_strength = self->detected_slice_strength[wi];
+                    weakest = wi;
+                  }
+                }
+                if (strength > weakest_strength) {
+                  self->detected_slice_offsets[weakest] = self->detect_pos;
+                  self->detected_slice_strength[weakest] = strength;
+                  qsort(self->detected_slice_offsets, self->detected_slices_count,
+                        sizeof(uint32_t), cmp_u32);
+                  update_detected_slices_port(self, self->detected_slices_count);
+                }
+              }
             }
           }
         }
@@ -324,27 +469,51 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
     const float* buf = self->sampler_src_buf;
     while (cap_pos < cap_end && cap_max--) {
       if (cap_pos == 0u) {
-        float thresh = (self->ports.transient_threshold &&
-                        *(self->ports.transient_threshold) > 0.0f)
-                           ? *(self->ports.transient_threshold)
-                           : 2.0f;
-        td_init(&self->detect_td, (float)self->rate, thresh, 5.0f);
+        /* initialise detector with explicit threshold if available, else
+           fall back to legacy sensitivity mapping. */
+        float thr;
+        if (self->ports.transient_threshold) {
+          thr = *(self->ports.transient_threshold);
+        } else {
+          thr = alo_sensitivity_to_threshold(self);
+        }
+        td_init(&self->detect_td, (float)self->rate, thr, 5.0f);
         self->detected_slices_count = 0u;
       }
       float s = buf[cap_pos];
       if (td_process_sample(&self->detect_td, s)) {
-        if (cap_pos > 0u && self->detected_slices_count < ALO_MAX_SLICES) {
-          /* enforce user max-slices cap */
-          int max_slices = (self->ports.transient_threshold)
-                               ? (int)floorf(*(self->ports.transient_threshold))
-                               : (int)ALO_SLICE_SAMPLER_MAX_VOICES;
-          if (max_slices < 1) max_slices = 1;
-          if (max_slices > (int)ALO_SLICE_SAMPLER_MAX_VOICES)
-            max_slices = (int)ALO_SLICE_SAMPLER_MAX_VOICES;
-          if ((int)self->detected_slices_count < max_slices) {
-            self->detected_slice_offsets[self->detected_slices_count] = cap_pos;
+        if (cap_pos > 0u) {
+          /* compute strength as absolute sample amplitude */
+          float strength = s < 0.0f ? -s : s;
+          /* regular insertion with a hard voice limit; no cap port any
+             more. */
+          if ((int)self->detected_slices_count < (int)ALO_SLICE_SAMPLER_MAX_VOICES) {
+            uint32_t idx = self->detected_slices_count;
+            self->detected_slice_offsets[idx] = cap_pos;
+            self->detected_slice_strength[idx] = strength;
             self->detected_slices_count++;
+            /* sort by offset so playback order remains increasing */
+            qsort(self->detected_slice_offsets, self->detected_slices_count,
+                  sizeof(uint32_t), cmp_u32);
             update_detected_slices_port(self, self->detected_slices_count);
+          } else {
+            /* already at maximum voices: replace weakest if this one is stronger */
+            int weakest = 0;
+            float weakest_strength = self->detected_slice_strength[0];
+            for (int wi = 1; wi < (int)self->detected_slices_count; ++wi) {
+              if (self->detected_slice_strength[wi] < weakest_strength) {
+                weakest_strength = self->detected_slice_strength[wi];
+                weakest = wi;
+              }
+            }
+            if (strength > weakest_strength) {
+              self->detected_slice_offsets[weakest] = cap_pos;
+              self->detected_slice_strength[weakest] = strength;
+              /* maintain sorted order after replacement */
+              qsort(self->detected_slice_offsets, self->detected_slices_count,
+                    sizeof(uint32_t), cmp_u32);
+              update_detected_slices_port(self, self->detected_slices_count);
+            }
           }
         }
       }

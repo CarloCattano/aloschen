@@ -17,6 +17,9 @@
  * debounce_counter : prevents retriggering for a short period.
  */
 
+/* default debounce interval used by callers who don't specify one */
+#define TD_DEFAULT_DEBOUNCE_MS 5.0f
+
 typedef struct {
     float fast_env;
     float slow_env;
