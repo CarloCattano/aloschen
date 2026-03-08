@@ -1,7 +1,0 @@
-<map id="alo_apply_edge_fade_stereo" name="alo_apply_edge_fade_stereo">
-<area shape="rect" id="Node000001" title=" " alt="" coords="228,5,387,50"/>
-<area shape="rect" id="Node000002" href="$loop__engine_8c.html#a784d869cdc5c390ca0cfb2d222712309" title=" " alt="" coords="96,14,180,42"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="210,28,181,30,180,25,215,27"/>
-<area shape="rect" id="Node000003" href="$aloschen_8c.html#a6c677c1af04569f433452541d8ec70f8" title=" " alt="" coords="5,14,48,42"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="78,29,49,30,48,25,83,26"/>
-</map>

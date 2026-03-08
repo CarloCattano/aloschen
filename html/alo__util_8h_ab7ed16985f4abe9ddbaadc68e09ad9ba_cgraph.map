@@ -1,5 +1,0 @@
-<map id="track_is_busy" name="track_is_busy">
-<area shape="rect" id="Node000001" title="Return true if a track is busy recording or armed." alt="" coords="5,5,116,33"/>
-<area shape="rect" id="Node000002" href="$alo__util_8c.html#a6b55f8a7396a29164300ea5a0c39447d" title="Return true if track index is valid." alt="" coords="164,5,283,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,17,151,19,146,19,116,22"/>
-</map>

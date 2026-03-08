@@ -1,7 +1,0 @@
-<map id="ui_instantiate" name="ui_instantiate">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,32,116,60"/>
-<area shape="rect" id="Node000002" href="$aloschen__ui_8c.html#af1b456153f4a8108ee9f76adf845ca65" title=" " alt="" coords="164,5,326,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="115,35,151,32,146,34,116,41"/>
-<area shape="rect" id="Node000003" href="$aloschen__ui_8c.html#aafec46a2f45066b3dee5aacf914757be" title=" " alt="" coords="174,57,316,85"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="116,51,161,59,156,60,116,56"/>
-</map>

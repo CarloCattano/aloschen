@@ -1,9 +1,0 @@
-<map id="ui_draw_bar_steps" name="ui_draw_bar_steps">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,32,148,60"/>
-<area shape="rect" id="Node000002" href="$aloschen__ui_8c.html#a0f905669b639ee343bf55800ca55dfce" title=" " alt="" coords="197,5,302,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="147,32,184,29,179,30,149,37"/>
-<area shape="rect" id="Node000003" href="$aloschen__ui_8c.html#af44f891b149b65b3ab9beddb743d0449" title=" " alt="" coords="196,57,303,85"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="148,54,183,61,177,61,148,59"/>
-<area shape="rect" id="Node000004" href="$alo__ui__util_8h.html#ac15938c3ea96f1bb1fadc05fd97ac8a1" title=" " alt="" coords="351,57,485,85"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="303,69,338,71,333,71,303,74"/>
-</map>

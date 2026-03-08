@@ -1,7 +1,0 @@
-<map id="compute_loop_beats" name="compute_loop_beats">
-<area shape="rect" id="Node000001" title="Total number of beats in the current loop (bars * beats&#45;per&#45;bar)." alt="" coords="5,32,162,60"/>
-<area shape="rect" id="Node000002" href="$alo__util_8c.html#a492a5688d6c4e2337d1b5663f7b3dc7a" title=" " alt="" coords="210,5,325,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="162,32,197,29,192,30,163,37"/>
-<area shape="rect" id="Node000003" href="$alo__util_8h.html#ad8b98483fb288b101d5f876d865f8734" title=" " alt="" coords="212,57,323,85"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="162,54,199,61,194,62,162,59"/>
-</map>

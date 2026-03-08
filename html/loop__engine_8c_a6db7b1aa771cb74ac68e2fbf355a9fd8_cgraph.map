@@ -1,9 +1,0 @@
-<map id="run_clicks" name="run_clicks">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,57,92,85"/>
-<area shape="rect" id="Node000002" href="$alo__util_8c.html#a492a5688d6c4e2337d1b5663f7b3dc7a" title=" " alt="" coords="140,5,255,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="89,54,143,37,139,40,92,59"/>
-<area shape="rect" id="Node000003" href="$alo__util_8h.html#ad8b98483fb288b101d5f876d865f8734" title=" " alt="" coords="142,57,253,85"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="92,69,129,70,124,72,93,74"/>
-<area shape="rect" id="Node000004" href="$loop__engine_8c.html#a4d7d3b71dff0125af838f2c36288986a" title=" " alt="" coords="156,109,239,137"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="91,83,144,103,139,105,90,88"/>
-</map>

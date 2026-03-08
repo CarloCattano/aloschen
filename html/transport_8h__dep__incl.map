@@ -1,9 +1,0 @@
-<map id="source/transport.h" name="source/transport.h">
-<area shape="rect" id="Node000001" title="Declarations for transport&#45;derived timing helpers." alt="" coords="198,5,337,33"/>
-<area shape="rect" id="Node000002" href="$button__logic_8c.html" title=" " alt="" coords="5,81,165,109"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="223,40,118,83,116,78,218,38"/>
-<area shape="rect" id="Node000003" href="$loop__engine_8c.html" title=" " alt="" coords="188,81,347,109"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="270,47,270,82,265,79,266,51"/>
-<area shape="rect" id="Node000004" href="$transport_8c.html" title=" " alt="" coords="370,81,509,109"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="313,37,412,80,407,81,312,42"/>
-</map>
