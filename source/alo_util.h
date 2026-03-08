@@ -117,6 +117,30 @@ static inline uint32_t alo_get_bar_len_samples(const Alo* self)
 void alo_apply_edge_fade_stereo(float* buf, uint32_t loop_start, uint32_t loop_samples,
                                 uint32_t fade_samples);
 
+/**
+ * Write @p value to output port @p port only when the port is connected.
+ * Eliminates the recurring null-guard pattern at every port write site.
+ */
+static inline void alo_port_write(float* port, float value)
+{
+  if (port) {
+    *port = value;
+  }
+}
+
+/**
+ * fmod that always returns a non-negative result in [0, m).
+ * Equivalent to the three-line pattern used across transport.c and
+ * loop_engine.c:
+ *   double r = fmod(x, m);
+ *   if (r < 0.0) r += m;
+ */
+static inline double alo_fmod_positive(double x, double m)
+{
+  double r = fmod(x, m);
+  return (r < 0.0) ? r + m : r;
+}
+
 #ifdef __cplusplus
 }
 #endif

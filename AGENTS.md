@@ -57,11 +57,45 @@ Use `git --no-pager log/diff/show` freely to understand history and context.
 ## Test Workflow
 
 Tests live in `tests/` and are compiled into separate binaries (one `main` per file).
+### Build-and-load verification
 
+A useful manual workflow to confirm the plugin runs in a real host:
+
+1. `make` in project root to build the bundle.
+2. Copy the bundle to `~/.lv2` (e.g., `cp -r aloschen.lv2 ~/.lv2/`).
+3. Run `lv2lint -E -M -I ~/.lv2/aloschen.lv2 http://ktano-studio.com/aloschen`
+   to validate the bundle.
+4. launch with `jalv` using the URI.
+   Run it with `ALO_LOG=1` to enable the internal debug logger.  While the
+   plugin is running you can tail `/tmp/alo.log` to watch initialization and
+   runtime messages.  Quit the host when done.
+
+This sequence provides additional end‑to‑end assurance beyond unit tests.
 | Binary                       | Source                      | Tests                                    |
 |------------------------------|-----------------------------|------------------------------------------|
 | `tests/run_transport_tests`  | `tests/transport_test.c`    | `compute_transport_phase_index`, `compute_next_cycle_start_beats` |
 | `tests/run_dsp_tests`        | `tests/dsp_test.c`          | `alo_soft_clip_unit`, edge fade, bar-len helpers |
+
+### Build and run tests
+
+### Live Host Verification Skill
+
+When needing extra confidence that the plugin can be loaded by a host:
+
+1. Build the bundle with `make`.
+2. Install it locally with `cp -r aloschen.lv2 ~/.lv2/`.
+3. Run `lv2lint -E -M -I ~/.lv2/aloschen.lv2 <plugin_uri>` as a fast
+   static/runtime sanity check.
+4. If a GUI host such as **jalv** is available, launch it with
+   `jalv http://ktano-studio.com/aloschen` or `jalv.gtk`.
+5. Enable debug logging by setting `ALO_LOG=1` or otherwise tail
+   `/tmp/alo.log` in another shell to watch real‑time messages.
+6. Quit the host when the plugin is running; the log tail confirms the
+   plugin was instantiated and any initialization messages appeared.
+
+This “jalv + tail log” routine can be run from a child process in the
+agent and serves as a lightweight end‑to‑end check when GUI access is
+available.  It has been formally added to the agent’s toolset.
 
 ### Build and run tests
 

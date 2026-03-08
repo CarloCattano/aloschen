@@ -22,9 +22,7 @@ bool compute_transport_phase_index(const Alo* self, double global_beats,
     return false;
 
   const double origin      = self->have_loop_origin ? self->loop_origin_beats : 0.0;
-  double       phase_beats = fmod(global_beats - origin, (double)loop_beats);
-  if (phase_beats < 0.0)
-    phase_beats += (double)loop_beats;
+  double       phase_beats = alo_fmod_positive(global_beats - origin, (double)loop_beats);
 
   double phase_samples_d = phase_beats * (double)loop_samples / (double)loop_beats;
   if (phase_samples_d < 0.0)
@@ -59,10 +57,15 @@ double compute_next_cycle_start_beats(const Alo* self, double global_beats0)
     return global_beats0;
   }
 
-  const double bpb = (self->bpb > 1e-6f) ? (double)self->bpb : (double)DEFAULT_BEATS_PER_BAR;
-  if (!(bpb > 0.0)) {
+  /* If bpb is zero or negative there is no valid cycle to quantize to; return
+   * the input unchanged so callers get a safe no-op. Do NOT substitute a
+   * default here — that would silently impose cycle quantization with a value
+   * the caller never set.
+   */
+  if (!(self->bpb > 1e-6f)) {
     return global_beats0;
   }
+  const double bpb = (double)self->bpb;
 
   const uint32_t bars_i          = alo_get_bars_i(self);
   const double   cycle_len_beats = (double)(bars_i ? bars_i : 1u) * bpb;
@@ -71,10 +74,7 @@ double compute_next_cycle_start_beats(const Alo* self, double global_beats0)
   }
 
   /* Phase within the Bars-length cycle: [0, cycle_len_beats). */
-  double phase = fmod(global_beats0, cycle_len_beats);
-  if (phase < 0.0) {
-    phase += cycle_len_beats;
-  }
+  double phase = alo_fmod_positive(global_beats0, cycle_len_beats);
 
   /* If we're effectively on the boundary, start now (avoid drifting a cycle). */
   const double kCycleEpsBeats = 1e-3; /* ~0.5ms at 120 BPM */

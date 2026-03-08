@@ -17,12 +17,25 @@
 
 #define ALO_URI "http://ktano-studio.com/aloschen"
 
-#define LOOP_SIZE 2880000
+#ifndef LOOP_SIZE_MAX_SECONDS
+/* Target-dependent maximum loop length. The default 32 s covers the documented
+ * maximum of 16 bars at 120 BPM while reducing per-instance memory use.
+ */
+#define LOOP_SIZE_MAX_SECONDS 32u
+#endif
+
+/* Worst-case loop buffer size in samples, derived from the configured time
+ * horizon at 48 kHz. All long-lived loop and sampler source buffers use this
+ * upper bound.
+ */
+#define LOOP_SIZE (48000u * LOOP_SIZE_MAX_SECONDS)
 #define NUM_TRACKS 3
 
 #ifndef ALO_MAX_UNDO_LAYERS
-// Number of overdub layers per track (base layer is separate).
-#define ALO_MAX_UNDO_LAYERS 7
+/* Number of overdub layers per track (base layer is separate). Kept
+ * overridable for lower-memory targets.
+ */
+#define ALO_MAX_UNDO_LAYERS 4
 #endif
 
 #define DEFAULT_BEATS_PER_BAR 4
@@ -287,6 +300,13 @@ typedef struct Alo
   bool  ui_have_prev_bar_beat;
   float inmix;
   float loopmix;
+
+  /* Cached sampler gain normalisation derived from slices-per-bar. Recomputed
+   * only when the control value changes so the audio thread avoids repeated
+   * sqrtf work.
+   */
+  uint32_t cached_slices_per_bar;
+  float    cached_slice_gain_scale;
 
   /** Track lv2:enabled state to avoid per-block resets when disabled. */
   bool have_last_enabled;

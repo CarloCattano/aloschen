@@ -1,6 +1,7 @@
 #include "sampler_cache.h"
 #include "alo_util.h"
 #include <math.h>
+#include <stddef.h>
 
 /* update full-loop stereo mix cache for current block */
 void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_audio)
@@ -27,11 +28,15 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
     self->sampler_src_norm_gain      = 1.0f;
     self->sampler_src_loop_samples   = self->loop_samples;
 
-    /* invalidate shadow slice buffers */
+    /* invalidate shadow slice descriptors; they will be rebound to borrowed
+     * regions inside sampler_src_buf_shadow once the rebuild completes.
+     */
     const uint32_t slice_count = alo_get_slice_count(self);
     for (uint32_t si = 0; si < slice_count && si < ALO_SLICE_INFO_MAX; ++si) {
-      self->slice_sampler.slice_buffers_shadow[si].valid  = false;
-      self->slice_sampler.slice_buffers_shadow[si].length = 0;
+      self->slice_sampler.slice_buffers_shadow[si].valid    = false;
+      self->slice_sampler.slice_buffers_shadow[si].data     = NULL;
+      self->slice_sampler.slice_buffers_shadow[si].length   = 0u;
+      self->slice_sampler.slice_buffers_shadow[si].borrowed = true;
     }
     self->sampler_src_dirty = false;
   }
@@ -84,18 +89,6 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
 
       self->sampler_src_buf_shadow[cap_pos]             = ml;
       self->sampler_src_buf_shadow[cap_pos + LOOP_SIZE] = mr;
-      if (slice_len > 0 && slice_count > 0) {
-        uint32_t si = cap_pos / slice_len;
-        if (si < slice_count) {
-          AloSliceBuffer* sb = &self->slice_sampler.slice_buffers_shadow[si];
-          if (sb->data && sb->length >= slice_len) {
-            uint32_t off  = cap_pos - si * slice_len;
-            sb->data[off] = ml;
-            if (self->slice_sampler.slice_buffer_channels == 2)
-              sb->data[off + sb->length] = mr;
-          }
-        }
-      }
       const float a_l = fabsf(ml);
       const float a_r = fabsf(mr);
       const float a   = (a_l > a_r) ? a_l : a_r;
@@ -121,16 +114,25 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
 
       if (slice_count > 0 && slice_len > 0) {
         for (uint32_t si = 0; si < slice_count && si < ALO_SLICE_INFO_MAX; ++si) {
-          AloSliceBuffer* sb                        = &self->slice_sampler.slice_buffers_shadow[si];
-          sb->valid                                 = true;
-          self->slice_sampler.slice_buffers[si]     = *sb;
-          self->slice_sampler.slice_audio_len[si]   = slice_len;
-          self->slice_sampler.slice_audio_valid[si] = true;
+          const uint32_t s0 = si * slice_len;
+          uint32_t       s1 = s0 + slice_len;
+          if (si + 1u == slice_count || s1 > self->loop_samples) {
+            s1 = self->loop_samples;
+          }
+
+          AloSliceBuffer* sb = &self->slice_sampler.slice_buffers[si];
+          sb->data           = self->sampler_src_buf + s0;
+          sb->length         = (s1 > s0) ? (s1 - s0) : 0u;
+          sb->valid          = (sb->length > 0u);
+          sb->borrowed       = true;
         }
-        for (uint32_t si = slice_count; si < ALO_SLICE_INFO_MAX; ++si)
-          self->slice_sampler.slice_audio_valid[si] = false;
-        self->slice_sampler.slice_buffers_using_primary =
-            !self->slice_sampler.slice_buffers_using_primary;
+        for (uint32_t si = slice_count; si < ALO_SLICE_INFO_MAX; ++si) {
+          self->slice_sampler.slice_buffers[si].data     = NULL;
+          self->slice_sampler.slice_buffers[si].length   = 0u;
+          self->slice_sampler.slice_buffers[si].valid    = false;
+          self->slice_sampler.slice_buffers[si].borrowed = true;
+        }
+        self->slice_sampler.slice_buffers_using_primary = true;
       }
     }
   }

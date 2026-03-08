@@ -8,7 +8,7 @@ via your package manager.
 
 ```sh
 # run the Clang static analyzer once using the Makefile target
-cd source && make scan
+make scan
 # or manually:
 scan-build make
 
@@ -19,8 +19,8 @@ clang-tidy source/*.c source/*.cpp -- -Isource
 The Makefile also provides convenient wrappers:
 
 ```sh
-cd source && make scan      # run scan-build
-cd source && make tidy      # run clang-tidy on all C files
+make scan      # run scan-build
+make tidy      # run clang-tidy on all C files
 ```
 
 
@@ -69,7 +69,7 @@ Changing `Bars` is treated as a **blocking resync** (similar to disable/enable):
 
 Main controls:
 
-- `Bars` (1..32, integer): loop length in bars.
+- `Bars` (1..16, integer): loop length in bars.
 - `Click` (0..10, integer): click volume (only when no loops are playing).
 - `Mix` (0..100, integer): dry/wet blend.
 - `ENABLED` (0/1): resets engine state on disable.

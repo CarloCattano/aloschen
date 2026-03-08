@@ -2,9 +2,7 @@
 
 #include "slice_sampler.h"
 #include "alo_engine.h"
-#include "alo_util.h"
 #include <string.h>
-#include <math.h>
 #include <stdlib.h>
 
 /* Internal helpers (optimized for realtime) */
@@ -44,17 +42,15 @@ void alo_slice_sampler_clear_buffers(AloSliceSampler* s)
 {
   if (!s)
     return;
-  /* mark everything invalid immediately; actual zeroing will happen over
-   * subsequent audio callbacks via alo_slice_sampler_step_clear().
-   */
   for (uint32_t i = 0; i < ALO_SLICE_INFO_MAX; ++i) {
     s->slice_buffers[i].valid        = false;
+    s->slice_buffers[i].data         = NULL;
+    s->slice_buffers[i].length       = 0;
     s->slice_buffers_shadow[i].valid = false;
-    s->slice_audio_valid[i]          = false;
-    s->slice_audio_valid_shadow[i]   = false;
+    s->slice_buffers_shadow[i].data  = NULL;
+    s->slice_buffers_shadow[i].length = 0;
   }
-  /* kick off incremental clearing state */
-  s->clear_in_progress = true;
+  s->clear_in_progress = false;
   s->clear_slice_idx   = 0;
   s->clear_offset      = 0;
 }
@@ -62,34 +58,8 @@ void alo_slice_sampler_clear_buffers(AloSliceSampler* s)
 /* advance in-flight buffer clear job by up to max_samples zeros */
 void alo_slice_sampler_step_clear(AloSliceSampler* s, uint32_t max_samples)
 {
-  if (!s || !s->clear_in_progress || max_samples == 0)
-    return;
-
-  const uint32_t channels = s->slice_buffer_channels ? s->slice_buffer_channels : 1;
-  while (max_samples > 0 && s->clear_slice_idx < ALO_SLICE_INFO_MAX) {
-    AloSliceBuffer* sb =
-        (s->slice_buffers_using_primary ? &s->slice_buffers[s->clear_slice_idx]
-                                        : &s->slice_buffers_shadow[s->clear_slice_idx]);
-    if (sb->data && sb->length > 0) {
-      uint32_t total   = sb->length * channels;
-      uint32_t remain  = total - s->clear_offset;
-      uint32_t toclear = (remain < max_samples) ? remain : max_samples;
-      memset(&sb->data[s->clear_offset], 0, sizeof(float) * toclear);
-      s->clear_offset += toclear;
-      max_samples -= toclear;
-      if (s->clear_offset >= total) {
-        s->clear_slice_idx++;
-        s->clear_offset = 0;
-      }
-    } else {
-      /* nothing to clear, skip ahead */
-      s->clear_slice_idx++;
-      s->clear_offset = 0;
-    }
-  }
-  if (s->clear_slice_idx >= ALO_SLICE_INFO_MAX) {
-    s->clear_in_progress = false;
-  }
+  (void)s;
+  (void)max_samples;
 }
 
 bool alo_slice_sampler_is_busy(const AloSliceSampler* s)
@@ -168,7 +138,7 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
   const uint32_t loop_len    = alo->loop_samples;
 
   /* choose active slice buffer set for voice assignment */
-  AloSliceBuffer* buffers_active =
+  const AloSliceBuffer* buffers_active =
       (s->slice_buffers_using_primary ? s->slice_buffers : s->slice_buffers_shadow);
 
   for (uint32_t pos = 0; pos < n_samples; ++pos) {
@@ -362,18 +332,12 @@ void alo_slice_sampler_free_buffers(AloSliceSampler* s)
   if (!s)
     return;
   for (uint32_t i = 0; i < ALO_SLICE_INFO_MAX; ++i) {
-    if (s->slice_buffers[i].data) {
-      free(s->slice_buffers[i].data);
-      s->slice_buffers[i].data = NULL;
-    }
-    s->slice_buffers[i].length = 0;
-    s->slice_buffers[i].valid  = false;
-    if (s->slice_buffers_shadow[i].data) {
-      free(s->slice_buffers_shadow[i].data);
-      s->slice_buffers_shadow[i].data = NULL;
-    }
+    s->slice_buffers[i].data         = NULL;
+    s->slice_buffers[i].length       = 0;
+    s->slice_buffers[i].valid        = false;
+    s->slice_buffers_shadow[i].data  = NULL;
     s->slice_buffers_shadow[i].length = 0;
-    s->slice_buffers_shadow[i].valid  = false;
+    s->slice_buffers_shadow[i].valid = false;
   }
   s->slice_buffers_using_primary = true;
   s->clear_in_progress           = false;
@@ -388,19 +352,13 @@ bool alo_slice_sampler_alloc_buffers(AloSliceSampler* s, uint32_t max_len, uint3
   alo_slice_sampler_free_buffers(s);
   s->slice_buffer_channels = channels;
   s->slice_buffer_len      = max_len;
-  /* allocate both primary and shadow sets */
   for (uint32_t i = 0; i < ALO_SLICE_INFO_MAX; ++i) {
-    s->slice_buffers[i].data = (float*)calloc(max_len * channels, sizeof(float));
-    if (!s->slice_buffers[i].data)
-      return false;
-    s->slice_buffers[i].length = max_len;
-    s->slice_buffers[i].valid  = false;
-
-    s->slice_buffers_shadow[i].data = (float*)calloc(max_len * channels, sizeof(float));
-    if (!s->slice_buffers_shadow[i].data)
-      return false;
-    s->slice_buffers_shadow[i].length = max_len;
-    s->slice_buffers_shadow[i].valid  = false;
+    s->slice_buffers[i].data         = NULL;
+    s->slice_buffers[i].length       = 0;
+    s->slice_buffers[i].valid        = false;
+    s->slice_buffers_shadow[i].data  = NULL;
+    s->slice_buffers_shadow[i].length = 0;
+    s->slice_buffers_shadow[i].valid = false;
   }
   s->slice_buffers_using_primary = true;
   s->clear_in_progress           = false;

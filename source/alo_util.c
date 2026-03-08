@@ -1,6 +1,5 @@
 #include "alo_util.h"
 #include <math.h>
-#include <stdlib.h>
 
 /* convert Bars control value to integer within [1..16] */
 uint32_t alo_get_bars_i(const Alo* self)
@@ -47,6 +46,9 @@ bool track_is_active(const Alo* self, int t)
 /* return true if track is busy (recording/armed) */
 bool track_is_busy(const Alo* self, int t)
 {
+  if (!self) {
+    return false;
+  }
   return track_is_active(self, t) && self->track_state[t] != TRACK_IDLE;
 }
 

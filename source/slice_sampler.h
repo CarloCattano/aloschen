@@ -17,18 +17,14 @@
 #endif
 
 #define ALO_SLICE_MAX_CHANNELS 2
-#define ALO_SLICE_MAX_SLICES ALO_SLICE_INFO_MAX
-#define ALO_SLICE_MAX_SLICE_SAMPLES LOOP_SIZE
 
 typedef struct
 {
-  uint32_t duration_samples;
-  float    beat_position;
-  uint32_t start_offset_samples;
-  float*   audio_buf[ALO_SLICE_MAX_CHANNELS]; // [ch][sample]
-  uint32_t audio_len;                         // samples per channel
-  bool     audio_valid;
-} AloSliceInfo;
+  const float* data;     // Borrowed pointer into sampler source storage
+  uint32_t     length;   // Samples per channel
+  bool         valid;    // True if this slice currently maps to valid audio
+  bool         borrowed; // True when data must not be freed
+} AloSliceBuffer;
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,7 +38,6 @@ typedef enum
 {
   ENV_IDLE = 0,
   ENV_ATTACK,
-  ENV_DECAY,
   ENV_SUSTAIN,
   ENV_RELEASE,
   ENV_END
@@ -93,36 +88,24 @@ typedef struct
 
 typedef struct
 {
-  float*   data;   // Pointer to buffer (allocated at init)
-  uint32_t length; // Length in samples (stereo: L/R interleaved or separate)
-  bool     valid;  // True if buffer contains valid audio
-} AloSliceBuffer;
-
-typedef struct
-{
   AloSliceVoice   voices[ALO_SLICE_SAMPLER_MAX_VOICES];
   AloSlicePending pending[ALO_SLICE_SAMPLER_MAX_PENDING];
-  AloSliceInfo    slice_info[ALO_SLICE_INFO_MAX];
-  uint32_t        slice_info_count;
   float           rate; // Sample rate for envelope generator
 
-  /* Primary per-slice audio buffers that voices read from. */
-  AloSliceBuffer slice_buffers[ALO_SLICE_INFO_MAX]; // Per-slice audio buffers
-  /* Shadow copy used during a mix rebuild.  We write the new slice data here
-   * and only swap it in when the rebuild finishes.  This keeps the active set
-   * intact for playing voices.
+  /* Active and shadow slice maps. Each entry borrows pointers into the current
+   * stereo sampler source buffers instead of owning copied per-slice audio.
+   * Channel 0 starts at `data`; channel 1 starts at `data + length`.
    */
+  AloSliceBuffer slice_buffers[ALO_SLICE_INFO_MAX];
   AloSliceBuffer slice_buffers_shadow[ALO_SLICE_INFO_MAX];
   bool           slice_buffers_using_primary; /* true = slice_buffers active */
 
+  /* In zero-copy mode this stores slice metadata only: channel count and the
+   * nominal max slice span used for phase-to-slice lookup.
+   */
   uint32_t slice_buffer_channels; // 2 for stereo
   uint32_t slice_buffer_len;      // Max length per slice (samples)
-  float*   slice_audio[ALO_SLICE_MAX_SLICES][ALO_SLICE_MAX_CHANNELS]; // [slice][ch][sample]
-  float*   slice_audio_shadow[ALO_SLICE_MAX_SLICES][ALO_SLICE_MAX_CHANNELS];
-  uint32_t slice_audio_len[ALO_SLICE_MAX_SLICES];
-  uint32_t slice_audio_len_shadow[ALO_SLICE_MAX_SLICES];
-  bool     slice_audio_valid[ALO_SLICE_MAX_SLICES];
-  bool     slice_audio_valid_shadow[ALO_SLICE_MAX_SLICES];
+
   /* incremental-clear state used by clear_buffers() */
   bool     clear_in_progress;
   uint32_t clear_slice_idx;
@@ -172,8 +155,7 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
                                      const uint32_t block_offset_samples, const uint32_t n_samples,
                                      float* out_l, float* out_r);
 
-void alo_slice_sampler_process_sample(AloSliceSampler* s, const struct Alo* alo,
-                                      const float track_gain_3[3], float* out_l, float* out_r);
+
 
 
 #ifdef __cplusplus

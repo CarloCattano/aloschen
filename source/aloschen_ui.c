@@ -1129,9 +1129,9 @@ static void update_slider_from_x(AloUI* ui, const int control_index, const int p
   /* apply the same quarter‑width rule for bars/click/mix sliders that
      was added in ui_redraw(), keeping the coordinate system consistent. */
   {
-    const Control* c = &kControls[control_index];
-    if (c->port_index == ALO_BARS || c->port_index == ALO_CLICK ||
-        c->port_index == ALO_MIX) {
+    const Control* ctrl = &kControls[control_index];
+    if (ctrl->port_index == ALO_BARS || ctrl->port_index == ALO_CLICK ||
+        ctrl->port_index == ALO_MIX) {
       slider_w = (int)((float)ui->width * 0.25f);
     }
   }

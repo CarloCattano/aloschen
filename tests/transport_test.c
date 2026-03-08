@@ -62,11 +62,9 @@ static void test_compute_transport_phase_index_variety(void)
     for (size_t i = 0; i < n; ++i) {
         double b = test_beats[i];
         uint32_t idx = 0u;
-        int ok = compute_transport_phase_index(&alo, b, &idx);
-        assert(ok);
-        uint32_t expect = expected_phase_index(&alo, b);
+        assert(compute_transport_phase_index(&alo, b, &idx));
         /* Check equality */
-        assert(idx == expect);
+        assert(idx == expected_phase_index(&alo, b));
     }
 
     /* Single-beat loop: loop_beats = 1 */
@@ -77,10 +75,8 @@ static void test_compute_transport_phase_index_variety(void)
         const size_t m = sizeof(bvals) / sizeof(bvals[0]);
         for (size_t i = 0; i < m; ++i) {
             uint32_t idx = 0u;
-            int ok = compute_transport_phase_index(&alo, bvals[i], &idx);
-            assert(ok);
-            uint32_t expect = expected_phase_index(&alo, bvals[i]);
-            assert(idx == expect);
+            assert(compute_transport_phase_index(&alo, bvals[i], &idx));
+            assert(idx == expected_phase_index(&alo, bvals[i]));
         }
     }
 
@@ -90,10 +86,8 @@ static void test_compute_transport_phase_index_variety(void)
     {
         double b = 5.5; /* phase_beats = 1.5 -> expect approx (1.5/4)*UINT32_MAX */
         uint32_t idx = 0u;
-        int ok = compute_transport_phase_index(&alo, b, &idx);
-        assert(ok);
-        uint32_t expect = expected_phase_index(&alo, b);
-        assert(idx == expect);
+        assert(compute_transport_phase_index(&alo, b, &idx));
+        assert(idx == expected_phase_index(&alo, b));
         assert(idx < alo.loop_samples);
     }
 
@@ -116,27 +110,24 @@ static void test_compute_next_cycle_start_beats_variety(void)
     alo.ports.bars = &bars_val;
     {
         double cur = 8.0;
-        double next = compute_next_cycle_start_beats(&alo, cur);
-        assert(fabs(next - cur) < 1e-9);
+        assert(fabs(compute_next_cycle_start_beats(&alo, cur) - cur) < 1e-9);
     }
 
     /* Fractional beat positions */
     {
         double cur = 0.1;
-        double next = compute_next_cycle_start_beats(&alo, cur);
         /* cycle_len = bars * bpb = 2*4 = 8, phase = 0.1 -> next = cur + (8 - 0.1) */
-        double expected = cur + (8.0 - fmod(cur, 8.0));
+        const double expected = cur + (8.0 - fmod(cur, 8.0));
         /* But when on boundary we return cur; this is not boundary, so expect > cur */
-        assert(next > cur);
+        assert(compute_next_cycle_start_beats(&alo, cur) > cur);
         /* numeric tolerance */
-        assert(fabs(next - expected) < 1e-6);
+        assert(fabs(compute_next_cycle_start_beats(&alo, cur) - expected) < 1e-6);
     }
 
     {
         double cur = 7.5;
-        double next = compute_next_cycle_start_beats(&alo, cur);
         /* Expect next cycle start at 8.0 */
-        assert(fabs(next - 8.0) < 1e-6);
+        assert(fabs(compute_next_cycle_start_beats(&alo, cur) - 8.0) < 1e-6);
     }
 
     /* Different beats-per-bar (bpb = 3, 5) and multiple bars (2,3,4) */
@@ -151,7 +142,7 @@ static void test_compute_next_cycle_start_beats_variety(void)
                 double cycle_len = (double)bv * (double)alo.bpb;
                 /* test multiple current beats across a couple cycles */
                 for (double cur = 0.0; cur < cycle_len * 2.0; cur += (cycle_len / 4.0)) {
-                    double next = compute_next_cycle_start_beats(&alo, cur);
+                    const double next = compute_next_cycle_start_beats(&alo, cur);
                     /* if we're effectively on the boundary, next==cur */
                     double phase = fmod(cur, cycle_len);
                     if (phase < 0.0)
@@ -160,8 +151,7 @@ static void test_compute_next_cycle_start_beats_variety(void)
                     if (phase <= kCycleEpsBeats || (cycle_len - phase) <= kCycleEpsBeats) {
                         assert(fabs(next - cur) < 1e-6);
                     } else {
-                        double expected = cur + (cycle_len - phase);
-                        assert(fabs(next - expected) < 1e-6);
+                        assert(fabs(next - (cur + (cycle_len - phase))) < 1e-6);
                     }
                 }
             }
@@ -174,8 +164,7 @@ static void test_compute_next_cycle_start_beats_variety(void)
     alo.ports.bars = &bars_val;
     {
         double cur = 3.14;
-        double next = compute_next_cycle_start_beats(&alo, cur);
-        assert(fabs(next - cur) < 1e-9);
+        assert(fabs(compute_next_cycle_start_beats(&alo, cur) - cur) < 1e-9);
     }
 
     printf("transport_test: compute_next_cycle_start_beats - all checks passed\n");
