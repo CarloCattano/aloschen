@@ -642,13 +642,20 @@ void run_events(Alo* self, const uint32_t n_samples)
         start_offset_samples = n_samples - 1u;
       }
 
-      /* Short fade-in/out to avoid clicks at slice edges (RT-safe).
-       * Clamp to a sensible range so very high sample rates don't over-fade. */
-      uint32_t fade_samples = alo_get_slice_fade_samples(self, slice_len);
+      /* Use the musical Decay control to set how long the slice actually plays,
+       * then apply a short end fade within that shortened duration to avoid
+       * clicks when the one-shot stops. */
+      uint32_t play_len = alo_get_slice_release_samples(self, slice_len);
+      if (play_len == 0u) {
+        play_len = 1u;
+      } else if (play_len > slice_len) {
+        play_len = slice_len;
+      }
 
-      /* Always schedule the full slice length as a one-shot. */
-      uint32_t play_len = slice_len;
-      if (play_len == 0u) play_len = 1u;
+      /* Short fade-in/out to avoid clicks at slice edges (RT-safe).
+       * Clamp to the scheduled one-shot length so high sample rates and short
+       * decays do not over-fade the slice. */
+      uint32_t fade_samples = alo_get_slice_fade_samples(self, play_len);
 
       alo_slice_sampler_schedule(&self->slice_sampler, self, start_offset_samples, phase_samples,
                                  play_len, fade_samples, 1.0f, (uint8_t)note);

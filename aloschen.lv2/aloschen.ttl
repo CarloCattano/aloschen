@@ -285,17 +285,17 @@ lv2:port
 	a lv2:ControlPort, lv2:InputPort;
 	lv2:index 34;
 	lv2:symbol "split_by_transient";
-	lv2:name "Split by Transient";
+	lv2:name "Transients";
 	lv2:default 0;
 	lv2:minimum 0;
 	lv2:maximum 1;
-	lv2:portProperty lv2:integer;
+	lv2:portProperty lv2:integer, lv2:toggled;
 ],
 [
 	a lv2:ControlPort, lv2:OutputPort;
 	lv2:index 35;
 	lv2:symbol "detected_slices";
-	lv2:name "Detected Slices";
+	lv2:name "Slices";
 	lv2:default 0;
 	lv2:minimum 0;
 	lv2:maximum 32;
@@ -319,7 +319,7 @@ lv2:port
 	a lv2:ControlPort, lv2:InputPort;
 	lv2:index 37;
 	lv2:symbol "slice_env_frac";
-	lv2:name "Slice Decay %";
+	lv2:name "Decay";
 	lv2:default 0.0;
 	lv2:minimum 0.0;
 	lv2:maximum 100.0;
@@ -328,11 +328,10 @@ lv2:port
 	a lv2:ControlPort, lv2:InputPort;
 	lv2:index 38;
 	lv2:symbol "slice_env_attack";
-	lv2:name "Slice Attack";
+	lv2:name "Attack";
 	lv2:default 5.0;
 	lv2:minimum 0.0;
 	lv2:maximum 100.0;
-	# hidden from GUI; host may expose if desired
 ],
 [
 	a lv2:ControlPort, lv2:InputPort;

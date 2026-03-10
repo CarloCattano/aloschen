@@ -230,41 +230,21 @@
     </div>
 
     <div class="alo-global-right" aria-label="Global Controls">
-      <!-- split toggle -->
-      <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
-        <div class="mod-knob-image-wrapper">
+      <!-- transient mode switch -->
+      <div class="alo-footer-switch alo-footer-switch-transients">
+        <div class="alo-footer-switch-label">TRANSIENTS</div>
+        <div class="mod-switch" title="Split by transient">
           <div
-            class="mod-knob-image"
+            class="mod-switch-image"
             mod-role="input-control-port"
             mod-port-symbol="split_by_transient"
+            mod-widget="switch"
           ></div>
         </div>
       </div>
-      <div class="mod-knob">
-        <div class="mod-knob-title">Split</div>
-        <div
-          class="mod-knob-value"
-          mod-role="input-control-value"
-          mod-port-symbol="split_by_transient"
-        >
-          0
-        </div>
-      </div>
 
-      <div class="mod-separator"></div>
-
-      <!-- detected count indicator -->
-      <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
-        <div class="mod-knob-image-wrapper">
-          <div
-            class="mod-knob-image"
-            mod-role="output-control-port"
-            mod-port-symbol="detected_slices"
-          ></div>
-        </div>
-      </div>
-      <div class="mod-knob">
-        <div class="mod-knob-title">Detected</div>
+      <div class="mod-knob alo-readout">
+        <div class="mod-knob-title">Slices</div>
         <div
           class="mod-knob-value"
           mod-role="output-control-value"
@@ -273,6 +253,7 @@
           0
         </div>
       </div>
+
       <!-- transient sensitivity slider -->
       <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
         <div class="mod-knob-image-wrapper">
@@ -289,6 +270,27 @@
           0.5
         </div>
       </div>
+
+      <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
+        <div class="mod-knob-image-wrapper">
+          <div
+            class="mod-knob-image"
+            mod-role="input-control-port"
+            mod-port-symbol="slice_env_attack"
+          ></div>
+        </div>
+      </div>
+      <div class="mod-knob">
+        <div class="mod-knob-title">Attack</div>
+        <div
+          class="mod-knob-value"
+          mod-role="input-control-value"
+          mod-port-symbol="slice_env_attack"
+        >
+          5.0
+        </div>
+      </div>
+
       <!-- slice decay percentage slider -->
       <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
         <div class="mod-knob-image-wrapper">
@@ -300,7 +302,7 @@
         </div>
       </div>
       <div class="mod-knob">
-        <div class="mod-knob-title">Decay%</div>
+        <div class="mod-knob-title">Decay</div>
         <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="slice_env_frac">
           0
         </div>
@@ -336,6 +338,7 @@
     <div mod-role="output-control-value" mod-port-symbol="detected_slices">0</div>
     <div mod-role="input-control-value" mod-port-symbol="slice_sens">0.5</div>
     <div mod-role="input-control-value" mod-port-symbol="split_by_transient">0</div>
+    <div mod-role="input-control-value" mod-port-symbol="slice_env_attack">5.0</div>
     <div mod-role="input-control-value" mod-port-symbol="slice_env_frac">0</div>
     <div mod-role="output-control-value" mod-port-symbol="bar_step">0</div>
 

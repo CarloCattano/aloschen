@@ -245,11 +245,23 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
         r = alo->sampler_src_buf[ph + LOOP_SIZE];
       }
 
-      /* Simple one-shot playback with only an end fade.
-       * The slice always plays for its scheduled duration.
-       * fade_samples is only used to taper the final part of the slice to
-       * avoid an abrupt discontinuity at the end.
+      /* Apply a simple per-voice attack ramp plus the existing end fade so
+       * both user-facing Attack and Decay controls shape the audible slice.
+       * Attack ramps from 0 -> 1 over the configured attack window.
+       * Decay shortens the voice duration upstream; fade_samples still tapers
+       * the final part of the shortened voice to avoid clicks.
        */
+      float attack_gain = 1.0f;
+      const uint32_t attack_samples = alo_get_slice_env_attack_samples(alo);
+      if (attack_samples > 1u && v->elapsed_samples < attack_samples) {
+        attack_gain = (float)v->elapsed_samples / (float)(attack_samples - 1u);
+        if (attack_gain < 0.0f) {
+          attack_gain = 0.0f;
+        } else if (attack_gain > 1.0f) {
+          attack_gain = 1.0f;
+        }
+      }
+
       float fade_gain = 1.0f;
       if (v->fade_samples > 0u && v->remaining_samples <= v->fade_samples) {
         fade_gain = (float)v->remaining_samples * v->fade_inv;
@@ -260,7 +272,7 @@ void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
         }
       }
 
-      const float total_gain = v->gain * fade_gain * global_gain;
+      const float total_gain = v->gain * attack_gain * fade_gain * global_gain;
       out_l[pos] += l * total_gain;
       out_r[pos] += r * total_gain;
 

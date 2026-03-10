@@ -52,6 +52,11 @@ typedef struct
   uint32_t    fade_samples;
   float       fade_inv;
   float       gain;
+  uint32_t    attack_samples;
+  float       attack_inv;
+  uint32_t    release_samples;
+  uint32_t    sustain_samples;
+  float       release_inv;
   AloEnvState env;
 
   /* MIDI identity is retained only for trigger provenance/debugging.

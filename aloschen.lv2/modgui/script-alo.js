@@ -269,6 +269,13 @@ function (event, funcs) {
         } else if (symbol === 'split_by_transient') {
             /* remember split mode so other handlers can act on it */
             data.split_by_transient = value;
+        } else if (symbol === 'slice_env_attack' || symbol === 'slice_env_frac') {
+            data[symbol] = value;
+
+            var inputNodes = icon.find('[mod-role="input-control-value"][mod-port-symbol="' + symbol + '"]');
+            if (inputNodes && inputNodes.length) {
+                inputNodes.text(String(value));
+            }
         } else if (symbol === 'detected_slices') {
             data.detected_slices = value;
 
@@ -313,6 +320,15 @@ function (event, funcs) {
                     detNodesInit.text(String(Math.round(data.detected_slices)));
                 }
             }
+
+            ['slice_env_attack', 'slice_env_frac'].forEach(function(symbol) {
+                if (typeof data[symbol] === 'number') {
+                    var inputNodesInit = icon.find('[mod-role="input-control-value"][mod-port-symbol="' + symbol + '"]');
+                    if (inputNodesInit && inputNodesInit.length) {
+                        inputNodesInit.text(String(data[symbol]));
+                    }
+                }
+            });
         }
 
         var mute = icon.find('.alo-mute-all');

@@ -301,12 +301,15 @@ static inline float alo_get_transient_pre_ms(const Alo* self)
 /** Compute a short anti-click fade length at slice boundaries / slice end. */
 uint32_t alo_get_slice_fade_samples(const Alo* self, uint32_t slice_len);
 
-/** Read the user-facing slice tail percentage as a fade-out length.
- * For now slice playback is KISS one-shot playback with only an end fade. */
+/** Read the user-facing slice decay parameter as the effective playback
+ * duration in samples.  The value is interpreted as 0..100% of the slice
+ * length, where lower values create shorter chops and higher values allow
+ * more of the slice to ring out. */
 uint32_t alo_get_slice_release_samples(const Alo* self, uint32_t slice_len);
 
-/** Legacy helper retained for compatibility. Slice playback no longer uses a
- * separate attack envelope in the sampler path. */
+/** Compute the user-facing slice attack ramp length in samples.  This value is
+ * used by the sampler playback path to fade each triggered slice in from zero,
+ * softening the front edge and reducing clicks. */
 uint32_t alo_get_slice_env_attack_samples(const Alo* self);
 
 static inline float alo_get_slice_sensitivity(const Alo* self)
