@@ -18,9 +18,10 @@ all: build
 # --------------------------------------------------------------
 # unit test harness
 
-TEST_BIN := tests/run_transport_tests tests/run_dsp_tests tests/run_engine_tests
+TEST_BIN := tests/run_transport_tests tests/run_dsp_tests tests/run_engine_tests tests/run_transient_wav_tests
 TEST_SRCS_TRANSPORT := tests/transport_test.c
 TEST_SRCS_DSP := tests/dsp_test.c
+TEST_SRCS_TRANSIENT_WAV := tests/transient_wav_test.c
 
 .PHONY: tests check
 # build separate test executables for transport and DSP helpers
@@ -38,6 +39,10 @@ tests: $(TEST_BIN)
 	@./tests/run_engine_tests; rc3=$$?; \
 	if [ $$rc3 -ne 0 ]; then echo "ERROR: engine tests FAILED (rc=$$rc3)"; exit $$rc3; fi; \
 	echo "engine tests PASSED"
+	@echo "Running transient WAV tests..."
+	@./tests/run_transient_wav_tests; rc4=$$?; \
+	if [ $$rc4 -ne 0 ]; then echo "ERROR: transient WAV tests FAILED (rc=$$rc4)"; exit $$rc4; fi; \
+	echo "transient WAV tests PASSED"
 	@echo "All tests completed successfully."
 
 tests/run_transport_tests: $(TEST_SRCS_TRANSPORT) source/transport.c source/transport.h source/alo_util.c
@@ -50,6 +55,10 @@ tests/run_dsp_tests: $(TEST_SRCS_DSP) source/alo_util.c source/sampler_cache.c s
 
 tests/run_engine_tests: tests/engine_test.c source/button_logic.c source/alo_util.c source/loop_state.c source/transport.c source/slice_sampler.c source/sampler_cache.c source/transient_detector.c
 	$(CC) -Isource $^ $(BUILD_C_FLAGS) -DUNIT_TESTS -UNDEBUG $(LINK_FLAGS) -lm -o $@
+	chmod +x $@
+
+tests/run_transient_wav_tests: $(TEST_SRCS_TRANSIENT_WAV) tests/helpers/test_wav_loader.c source/alo_util.c source/sampler_cache.c source/slice_sampler.c source/transient_detector.c
+	$(CC) -Isource -Itests $^ $(BUILD_C_FLAGS) -DUNIT_TESTS -UNDEBUG $(LINK_FLAGS) -lm -o $@
 	chmod +x $@
 
 check: tests scan
@@ -76,7 +85,7 @@ aloschen.lv2/manifest.ttl: aloschen.lv2/manifest.ttl.in
 # --------------------------------------------------------------
 
 clean:
-	rm -f aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/aloschen_ui$(LIB_EXT) aloschen.lv2/manifest.ttl tests/run_transport_tests tests/run_dsp_tests tests/run_engine_tests
+	rm -f aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/aloschen_ui$(LIB_EXT) aloschen.lv2/manifest.ttl tests/run_transport_tests tests/run_dsp_tests tests/run_engine_tests tests/run_transient_wav_tests
 
 # --------------------------------------------------------------
 

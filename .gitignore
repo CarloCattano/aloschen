@@ -7,6 +7,6 @@ Doxyfile
 .cache
 plan.md
 examples/
-
+x42-plugins/
 # test binaries
 /tests/run_tests

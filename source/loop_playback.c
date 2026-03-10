@@ -56,27 +56,11 @@ void run_loops(Alo* self, uint32_t n_samples)
 
   float track_gain[NUM_TRACKS];
   for (int t = 0; t < NUM_TRACKS; ++t) {
-    float v = 1.0f;
-    if (self->ports.loop_vol[t]) {
-      v = *(self->ports.loop_vol[t]);
-    }
-    if (v < 0.0f) {
-      v = 0.0f;
-    } else if (v > 1.0f) {
-      v = 1.0f;
-    }
-    track_gain[t] = v;
+    track_gain[t] = alo_read_gain_01(self->ports.loop_vol[t]);
   }
 
-  float sampler_gain = 1.0f;
-  if (self->ports.sampler_vol) {
-    sampler_gain = *(self->ports.sampler_vol);
-  }
-  // Allow full range -2.5..2.5 for sampler gain
-  if (sampler_gain < -2.5f)
-    sampler_gain = -2.5f;
-  if (sampler_gain > 2.5f)
-    sampler_gain = 2.5f;
+  /* Allow full range -2.5..2.5 for sampler gain. */
+  const float sampler_gain = alo_read_gain_clamped(self->ports.sampler_vol, -2.5f, 2.5f);
 
   const bool transport_running =
       self->have_transport && self->have_last_transport_beats &&
@@ -290,16 +274,12 @@ void run_loops(Alo* self, uint32_t n_samples)
           const float g  = track_gain[t];
           const float l0 = self->loop_buf[t][idx];
           const float r0 = self->loop_buf[t][idx_r];
-          float       il, ir;
-          if (frac < 1e-9 && frac > -1e-9) {
-            il = l0;
-            ir = r0;
-          } else {
-            const float l1 = self->loop_buf[t][idx_next];
-            const float r1 = self->loop_buf[t][idx_next_r];
-            il = (float)((1.0 - frac) * (double)l0 + frac * (double)l1);
-            ir = (float)((1.0 - frac) * (double)r0 + frac * (double)r1);
-          }
+          const float l1 = self->loop_buf[t][idx_next];
+          const float r1 = self->loop_buf[t][idx_next_r];
+
+          const float il = alo_lerp_sample(frac, l0, l1);
+          const float ir = alo_lerp_sample(frac, r0, r1);
+
           play_l += g * il;
           play_r += g * ir;
 
@@ -311,16 +291,12 @@ void run_loops(Alo* self, uint32_t n_samples)
             }
             const float bl0 = buf[idx];
             const float br0 = buf[idx_r];
-            float       ibl, ibr;
-            if (frac < 1e-9 && frac > -1e-9) {
-              ibl = bl0;
-              ibr = br0;
-            } else {
-              const float bl1 = buf[idx_next];
-              const float br1 = buf[idx_next_r];
-              ibl = (float)((1.0 - frac) * (double)bl0 + frac * (double)bl1);
-              ibr = (float)((1.0 - frac) * (double)br0 + frac * (double)br1);
-            }
+            const float bl1 = buf[idx_next];
+            const float br1 = buf[idx_next_r];
+
+            const float ibl = alo_lerp_sample(frac, bl0, bl1);
+            const float ibr = alo_lerp_sample(frac, br0, br1);
+
             play_l += g * ibl;
             play_r += g * ibr;
           }

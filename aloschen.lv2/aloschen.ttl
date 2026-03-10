@@ -312,7 +312,8 @@ lv2:port
 	# this control now sets the amplitude threshold for transient detection
 	# (higher values make splits rarer).  range kept modest to keep CPU
 	# consumption reasonable.
-	lv2:portProperty lv2:integer;
+	# NOTE: this is intentionally *not* integer. Small changes should affect
+	# detection immediately, so hosts/UIs must be able to send fractional values.
 ],
 [
 	a lv2:ControlPort, lv2:InputPort;
@@ -338,90 +339,55 @@ lv2:port
 	lv2:index 39;
 	lv2:symbol "slice_sens";
 	lv2:name "Sensitivity";
-	lv2:default 0.5;
+	lv2:default 5.0;
 	lv2:minimum 0.0;
-	lv2:maximum 1.0;
+	lv2:maximum 10.0;
 ],
 [
 	a lv2:ControlPort, lv2:InputPort;
 	lv2:index 40;
-	lv2:symbol "slice_play_mode";
-	lv2:name "Slice Mode";
-	lv2:default 0.0;
+	lv2:symbol "transient_debounce";
+	lv2:name "Transient Debounce";
+	lv2:default 2.0;
 	lv2:minimum 0.0;
-	lv2:maximum 1.0;
-	lv2:portProperty lv2:integer ;
-	# enumeration for host/user interfaces
-	lv2:enumeration (
-		[ a lv2:EnumEntry ; lv2:value 0.0 ; lv2:name "poly" ]
-		[ a lv2:EnumEntry ; lv2:value 1.0 ; lv2:name "round‑robin" ]
-	) ;
+	lv2:maximum 40.0;
+	pprops:notOnGUI true;
+	units:unit units:ms ;
 ],
-# output ports for normalized slice offsets (one per voice)
 [
-	a lv2:ControlPort, lv2:OutputPort;
+	a lv2:ControlPort, lv2:InputPort;
 	lv2:index 41;
-	lv2:symbol "slice_offset_0";
-	lv2:name "Slice Offset 0";
+	lv2:symbol "transient_burst";
+	lv2:name "Transient Burst";
+	lv2:default 3.0;
 	lv2:minimum 0.0;
-	lv2:maximum 1.0;
+	lv2:maximum 40.0;
+	pprops:notOnGUI true;
+	units:unit units:ms ;
 ],
 [
-	a lv2:ControlPort, lv2:OutputPort;
+	a lv2:ControlPort, lv2:InputPort;
 	lv2:index 42;
-	lv2:symbol "slice_offset_1";
-	lv2:name "Slice Offset 1";
-	lv2:minimum 0.0;
-	lv2:maximum 1.0;
+	lv2:symbol "transient_end_ratio";
+	lv2:name "Transient End Ratio";
+	lv2:default 1.02;
+	lv2:minimum 1.001;
+	lv2:maximum 1.50;
+	pprops:notOnGUI true;
 ],
 [
-	a lv2:ControlPort, lv2:OutputPort;
+	a lv2:ControlPort, lv2:InputPort;
 	lv2:index 43;
-	lv2:symbol "slice_offset_2";
-	lv2:name "Slice Offset 2";
+	lv2:symbol "transient_pre_ms";
+	lv2:name "Transient Pre-ms";
+	lv2:default 2.0;
 	lv2:minimum 0.0;
-	lv2:maximum 1.0;
+	lv2:maximum 20.0;
+	pprops:notOnGUI true;
+	units:unit units:ms ;
 ],
-[
-	a lv2:ControlPort, lv2:OutputPort;
-	lv2:index 44;
-	lv2:symbol "slice_offset_3";
-	lv2:name "Slice Offset 3";
-	lv2:minimum 0.0;
-	lv2:maximum 1.0;
-],
-[
-	a lv2:ControlPort, lv2:OutputPort;
-	lv2:index 45;
-	lv2:symbol "slice_offset_4";
-	lv2:name "Slice Offset 4";
-	lv2:minimum 0.0;
-	lv2:maximum 1.0;
-],
-[
-	a lv2:ControlPort, lv2:OutputPort;
-	lv2:index 46;
-	lv2:symbol "slice_offset_5";
-	lv2:name "Slice Offset 5";
-	lv2:minimum 0.0;
-	lv2:maximum 1.0;
-],
-[
-	a lv2:ControlPort, lv2:OutputPort;
-	lv2:index 47;
-	lv2:symbol "slice_offset_6";
-	lv2:name "Slice Offset 6";
-	lv2:minimum 0.0;
-	lv2:maximum 1.0;
-],
-[
-	a lv2:ControlPort, lv2:OutputPort;
-	lv2:index 48;
-	lv2:symbol "slice_offset_7";
-	lv2:name "Slice Offset 7";
-	lv2:minimum 0.0;
-	lv2:maximum 1.0;
-],
+
+
 [
 	a lv2:ControlPort, lv2:OutputPort;
 	lv2:index 24;
@@ -584,4 +550,34 @@ lv2:port
 	] , [
 		ui:plugin <http://ktano-studio.com/aloschen> ;
 		ui:portIndex 33
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 34
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 35
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 36
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 37
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 38
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 39
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 40
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 41
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 42
+	] , [
+		ui:plugin <http://ktano-studio.com/aloschen> ;
+		ui:portIndex 43
 	] .

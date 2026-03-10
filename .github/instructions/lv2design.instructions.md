@@ -8,25 +8,11 @@ The architecture of modern digital audio workstations depends heavily on the rob
 
 For an **agentic system** to achieve expertise in LV2 development, it must master the duality of the standard: the **static discovery layer** via Turtle syntax and the **dynamic execution layer** in C/C++.
 
----
-
-## Philosophical Foundations of the LV2 Standard
-
-- **Extensible without breaking hosts:** LV2 uses **URIs** to identify every feature, port type, and data structure.
-- **Separation of data from code:** Plugins are bundles containing binaries and Turtle (.ttl) files describing capabilities.
-- **Lazy loading:** Hosts inspect metadata without executing binaries, enhancing stability and scalability.
-
----
-
 ## The Static Discovery Layer: Turtle Syntax and RDF
 
 Expertise in LV2 begins with mastering **Turtle**, representing **RDF triples**:
 
-```
-
 subject, predicate, object
-
-````
 
 - Allows multilingual names, licensing, and complex port groupings.
 - Uses URI prefixes to maintain readability.

@@ -84,30 +84,107 @@ uint32_t alo_edge_fade_samples_u32(const Alo* self)
   return (uint32_t)fs;
 }
 
+float alo_sensitivity_to_threshold(const Alo* self)
+{
+    float s = 0.0f;
+    if (self && self->ports.slice_sens) {
+        s = *(self->ports.slice_sens);
+        if (s < 0.0f) {
+            s = 0.0f;
+        } else if (s > 10.0f) {
+            s = 10.0f;
+        }
+    }
+
+    /* The UI now exposes a wider 0..10 sensitivity range.
+     * Map it back to the dense trigger behavior that previously felt good:
+     *
+     *   0.0  -> strictest useful trigger threshold
+     *   10.0 -> most permissive trigger threshold
+     *
+     * Lower returned values produce more transient triggers.
+     */
+    return 20.0f + (s * -1.9f);
+}
+
+float alo_get_transient_threshold_ratio(const Alo* self)
+{
+    float ratio = alo_sensitivity_to_threshold(self);
+
+    if (self && self->ports.transient_threshold) {
+        float thr = *(self->ports.transient_threshold);
+        if (thr < 1.0f) {
+            thr = 1.0f;
+        } else if (thr > 20.0f) {
+            thr = 20.0f;
+        }
+
+        /* Preserve the legacy behavior where the threshold control directly
+         * acts as detector strictness when hosts expose it. */
+        ratio = thr;
+    }
+
+    if (ratio < 1.0f) {
+        ratio = 1.0f;
+    } else if (ratio > 20.0f) {
+        ratio = 20.0f;
+    }
+
+    return ratio;
+}
+
 uint32_t alo_get_slice_fade_samples(const Alo* self, uint32_t slice_len)
 {
-    /* return a release length controlled by the UI slider.  The port value is
-       * interpreted as a percentage (0..100) of the slice length; zero gives a
-       * minimal fade (1 sample) and 100 uses the entire slice.  Attack side is
-       * governed by an (optional) port; default is 5 ms. */
-    if (self && self->ports.slice_env_frac && slice_len > 0u) {
+    (void)self;
+
+    if (slice_len == 0u) {
+        return 1u;
+    }
+
+    uint32_t fs = alo_edge_fade_samples_u32(self);
+    const uint32_t max_fade = (slice_len > 1u) ? (slice_len / 8u) : 1u;
+
+    if (fs > max_fade) {
+        fs = max_fade;
+    }
+    if (fs < 1u) {
+        fs = 1u;
+    }
+    if (fs > slice_len) {
+        fs = slice_len;
+    }
+
+    return fs;
+}
+
+uint32_t alo_get_slice_release_samples(const Alo* self, uint32_t slice_len)
+{
+    if (slice_len == 0u) {
+        return 1u;
+    }
+
+    if (self && self->ports.slice_env_frac) {
         float pct = *(self->ports.slice_env_frac);
         if (pct < 0.0f) {
             pct = 0.0f;
         } else if (pct > 100.0f) {
             pct = 100.0f;
         }
-        float frac = pct * 0.01f;
-        uint32_t fs = (uint32_t)((float)slice_len * frac);
-        if (fs < 1u) {
-            fs = 1u;
+
+        if (pct >= 100.0f) {
+            return slice_len;
         }
-        if (fs > slice_len) {
-            fs = slice_len;
+
+        uint32_t rs = (uint32_t)((float)slice_len * (pct * 0.01f));
+        if (rs < 1u) {
+            rs = 1u;
         }
-        return fs;
+        if (rs > slice_len) {
+            rs = slice_len;
+        }
+        return rs;
     }
-    /* fallback to default edge fade (≈1 ms) */
+
     return alo_edge_fade_samples_u32(self);
 }
 
@@ -136,19 +213,6 @@ uint32_t alo_get_slice_env_attack_samples(const Alo* self)
         fs = 1u;
     }
     return (uint32_t)fs;
-}
-
-/* the sensitivity-to-threshold mapping is simple arithmetic but we provide a
-   helper for tests and possible reuse elsewhere */
-float alo_sensitivity_to_threshold(const Alo* self)
-{
-    float s = 0.0f;
-    if (self && self->ports.slice_sens) {
-        s = *(self->ports.slice_sens);
-        if (s < 0.0f) s = 0.0f;
-        if (s > 1.0f) s = 1.0f;
-    }
-    return ALO_SENS_THRESH_BASE + s * ALO_SENS_THRESH_RANGE;
 }
 
 /* apply linear cross-fade to edges of a stereo loop buffer */

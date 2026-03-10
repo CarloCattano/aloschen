@@ -1,4 +1,5 @@
 function (event, funcs) {
+    'use strict';
     var RINGS_LS_KEY = 'aloschen.show_rings';
 
     function clamp01(v) { return (v > -Infinity) ? Math.max(0, Math.min(1, v)) : 0; }
@@ -85,7 +86,7 @@ function (event, funcs) {
     function setRingsVisible(icon, data, visible) {
         data.showRings = !!visible;
         var root = icon.closest('.mod-pedal').length ? icon.closest('.mod-pedal') : icon;
-        
+
         root.toggleClass('alo-rings-off', !data.showRings);
         if (icon !== root) icon.toggleClass('alo-rings-off', !data.showRings);
 
@@ -268,23 +269,16 @@ function (event, funcs) {
         } else if (symbol === 'split_by_transient') {
             /* remember split mode so other handlers can act on it */
             data.split_by_transient = value;
-            /* when enabling split mode immediately reflect the current detection
-               count on the slices-per-bar control so the knob jumps to match. */
-            if (value > 0.5 && typeof data.detected_slices === 'number') {
-                setPortValue(icon, 'slices_per_bar', data.detected_slices);
-                data.slices_per_bar = data.detected_slices;
-            }
         } else if (symbol === 'detected_slices') {
             data.detected_slices = value;
-            if (data.split_by_transient > 0.5) {
-                setPortValue(icon, 'slices_per_bar', value);
-                data.slices_per_bar = value;
+
+            /* Always update the Detected readout immediately when the monitored
+               output port changes. Some MOD hosts only push monitored outputs,
+               so this is the authoritative UI source of truth. */
+            var detNodes = icon.find('[mod-role="output-control-value"][mod-port-symbol="detected_slices"]');
+            if (detNodes && detNodes.length) {
+                detNodes.text(String(Math.round(value)));
             }
-        } else if ((match = symbol.match(/^slice_offset_(\d+)$/))) {
-            data.slice_offsets = data.slice_offsets || [];
-            var idx = parseInt(match[1], 10);
-            data.slice_offsets[idx] = value;
-            updateSliceDots(icon, data);
         }
     }
 
@@ -308,6 +302,15 @@ function (event, funcs) {
             for (var p in event.ports) {
                 if (event.ports.hasOwnProperty(p) && event.ports[p]) {
                     handle(event.ports[p].symbol, event.ports[p].value, icon, data);
+                }
+            }
+
+            /* Ensure Detected readout is initialized from the cached data even
+               if the host doesn't immediately emit a dedicated change event. */
+            if (typeof data.detected_slices === 'number') {
+                var detNodesInit = icon.find('[mod-role="output-control-value"][mod-port-symbol="detected_slices"]');
+                if (detNodesInit && detNodesInit.length) {
+                    detNodesInit.text(String(Math.round(data.detected_slices)));
                 }
             }
         }

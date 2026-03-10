@@ -178,9 +178,7 @@ static const Control kControls[] = {
     CTL_SLIDER_INT_(ALO_SLICE_ROOT, "Root", 0.0f, 127.0f),
     CTL_TOGGLE_(ALO_SPLIT_TRANSIENTS, "Split"),
     CTL_SLIDER_INT_(ALO_SLICES_PER_BAR, "Slices", (float)ALO_SLICES_PER_BAR_MIN_U, (float)ALO_SLICES_PER_BAR_MAX_U),
-    CTL_SLIDER_FLOAT_(ALO_SLICE_SENS, "Sens", 0.0f, 1.0f),
-    CTL_SLIDER_INT_(ALO_SLICE_PLAY_MODE, "Mode", 0.0f, 1.0f),
-    CTL_SLIDER_INT_(ALO_TRANSIENT_THRESH, "Thresh", 1.0f, 20.0f),
+    CTL_SLIDER_FLOAT_(ALO_SLICE_SENS, "Sens", 0.0f, 10.0f),
     CTL_SLIDER_FLOAT_(ALO_SLICE_ENV_FRAC, "Decay%", 0.0f, 100.0f),};
 
 typedef enum
@@ -936,9 +934,8 @@ static void ui_redraw(AloUI* ui)
     if (c->port_index == ALO_BARS || c->port_index == ALO_CLICK ||
         c->port_index == ALO_MIX ||
         c->port_index == ALO_SLICE_ROOT || c->port_index == ALO_SLICES_PER_BAR ||
-        c->port_index == ALO_TRANSIENT_THRESH || c->port_index == ALO_SLICE_ENV_FRAC) {
-            /* threshold slider has integer steps; we clamp to valid range here */
-      /* shorter sliders for bars/click/mix/rotation/slices/threshold – quarter width */
+        c->port_index == ALO_SLICE_ENV_FRAC) {
+            /* compact sliders for simpler slice controls */
       slider_w = (int)((float)ui->width * 0.25f);
     }
     if (c->port_index == ALO_LOOP1_VOL || c->port_index == ALO_LOOP2_VOL ||
@@ -972,23 +969,7 @@ static void ui_redraw(AloUI* ui)
     /* special case for the play-mode control: show a human‑readable enum
        rather than a raw number so users can tell "poly", "mono" or
        "round‑robin" at a glance. */
-    if (c->port_index == ALO_SLICE_PLAY_MODE) {
-      const int mode = (int)roundf(display_val);
-      const char* name = "?";
-      switch (mode) {
-      case 1:
-        name = "mono";
-        break;
-      case 2:
-        name = "round‑robin";
-        break;
-      default:
-        name = "poly";
-        break;
-      }
-      snprintf(label, sizeof(label), "%s: %s", c->label, name);
-    } else if (c->port_index == ALO_SLICES_PER_BAR && !split_on) {
-      /* also append the detector output for reference */
+    if (c->port_index == ALO_SLICES_PER_BAR && !split_on) {
       if (c->type == CTL_SLIDER_FLOAT) {
         snprintf(label, sizeof(label), "%s: %.2f (det %.0f)", c->label,
                  display_val, det_val);
@@ -1321,19 +1302,7 @@ static void handle_configure(AloUI* ui, const XConfigureEvent* e)
    the cycle colour so they stand out against the background. */
 static void ui_draw_slice_markers(AloUI* ui)
 {
-    if (!ui || !ui->dpy)
-        return;
-    ui_set_fg(ui, ui->col_cycle);
-    for (int i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
-        uint32_t port = ALO_SLICE_OFFSET_0 + i;
-        if (port >= ALO_PORT_COUNT)
-            break;
-        float v = ui->port_values[port];
-        if (v > 0.0f && v <= 1.0f) {
-            int x = (int)(v * (float)ui->width);
-            XDrawLine(ui->dpy, ui->win, ui->gc, x, 0, x, ui->height);
-        }
-    }
+    (void)ui;
 }
 
 static bool ui_any_armed_waiting(const AloUI* ui)
@@ -1589,13 +1558,16 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->port_values[ALO_LOOP2_VOL]      = 1.0f;
   ui->port_values[ALO_LOOP3_VOL]      = 1.0f;
   ui->port_values[ALO_SAMPLER_VOL]    = 1.0f;
-  ui->port_values[ALO_BARS]           = 2.0f;
-  ui->port_values[ALO_CLICK]          = 1.0f;
-  ui->port_values[ALO_SLICE_ENV_FRAC]  = 0.0f;
-  ui->port_values[ALO_SLICE_ENV_ATTACK] = ALO_SLICE_ENV_ATTACK_DEFAULT_MS; /* hidden parameter default */
-  ui->port_values[ALO_SLICE_SENS]       = 0.5f;
-  ui->port_values[ALO_SLICE_PLAY_MODE]  = 0.0f;
-  ui->port_values[ALO_MIX]            = 50.0f;
+  ui->port_values[ALO_BARS]                = 2.0f;
+  ui->port_values[ALO_CLICK]               = 1.0f;
+  ui->port_values[ALO_SLICE_ENV_FRAC]      = 0.0f;
+  ui->port_values[ALO_SLICE_ENV_ATTACK]    = ALO_SLICE_ENV_ATTACK_DEFAULT_MS; /* hidden parameter default */
+  ui->port_values[ALO_SLICE_SENS]          = 5.0f;
+  ui->port_values[ALO_TRANSIENT_DEBOUNCE]  = ALO_TRANSIENT_DEBOUNCE_DEFAULT_MS;
+  ui->port_values[ALO_TRANSIENT_BURST]     = ALO_TRANSIENT_BURST_DEFAULT_MS;
+  ui->port_values[ALO_TRANSIENT_END]       = ALO_TRANSIENT_END_RATIO_DEFAULT;
+  ui->port_values[ALO_TRANSIENT_PRE_MS]    = ALO_TRANSIENT_PRE_DEFAULT_MS;
+  ui->port_values[ALO_MIX]                 = 50.0f;
   ui->port_values[ALO_SLICE_ROOT]     = 36.0f;
   ui->port_values[ALO_SPLIT_TRANSIENTS] = 0.0f;
   ui->port_values[ALO_SLICES_PER_BAR] = 4.0f;
@@ -1604,10 +1576,6 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->port_values[ALO_BAR_STEP]       = 0.0f;
   ui->port_values[ALO_CYCLE_PHASE]    = 0.0f;
   ui->port_values[ALO_HOST_BAR_PHASE] = 0.0f;
-  /* initialise offset outputs to zero */
-  for (int i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
-      ui->port_values[ALO_SLICE_OFFSET_0 + i] = 0.0f;
-  }
 
   ui->needs_redraw = true;
 

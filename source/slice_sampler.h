@@ -4,7 +4,7 @@
  */
 
 #ifndef ALO_SLICE_SAMPLER_MAX_PENDING
-#define ALO_SLICE_SAMPLER_MAX_PENDING 8
+#define ALO_SLICE_SAMPLER_MAX_PENDING 32
 #endif
 #ifndef ALO_SLICE_SAMPLER_H
 #define ALO_SLICE_SAMPLER_H
@@ -31,36 +31,14 @@ extern "C" {
 #endif
 
 #ifndef ALO_SLICE_SAMPLER_MAX_VOICES
-#define ALO_SLICE_SAMPLER_MAX_VOICES 8
+#define ALO_SLICE_SAMPLER_MAX_VOICES 32
 #endif
-
-typedef enum
-{
-  ENV_IDLE = 0,
-  ENV_ATTACK,
-  ENV_SUSTAIN,
-  ENV_RELEASE,
-  ENV_END
-} AloEnvStage;
 
 typedef struct
 {
-  bool        running;
-  AloEnvStage stage;
-  float       phase;
-  float       delta;
-  float       value;
-  float       c1, c0; /* attack / release length in frames */
-  uint32_t    frames;
-  uint32_t    total_frames; /* total duration of the voice (samples) */
+  bool     running;
+  uint32_t total_frames; /* retained only for compatibility with existing code/tests */
 } AloEnvState;
-
-/*
- * Internal envelope helper; defined in slice_sampler.c.  A public prototype is
- * exposed here primarily so unit tests can exercise it directly.  Hosts should
- * treat this as a private API.
- */
-float alo_env_tick(AloEnvState* e);
 
 typedef struct
 {
@@ -75,6 +53,11 @@ typedef struct
   float       fade_inv;
   float       gain;
   AloEnvState env;
+
+  /* MIDI identity is retained only for trigger provenance/debugging.
+   * Slice playback is intentionally one-shot and does not depend on note-off.
+   */
+  uint8_t     midi_note;
 
   // Per-slice buffer assignment
   const float* slice_buf_l;   // Pointer to left channel buffer
@@ -92,6 +75,11 @@ typedef struct
   uint32_t fade_samples;
   float    gain;
   uint32_t slice_idx; /* precomputed index into slice_buffers to avoid div */
+
+  /* MIDI identity is carried through pending triggers only so the eventual
+   * voice can retain information about which note created it.
+   */
+  uint8_t  midi_note;
 } AloSlicePending;
 
 typedef struct
@@ -150,7 +138,8 @@ void alo_slice_sampler_reset(AloSliceSampler* s);
 // schedule from Alo context (allows buffer lookup)
 void alo_slice_sampler_schedule(AloSliceSampler* s, const struct Alo* alo,
                                 uint32_t start_offset_samples, uint32_t phase_samples,
-                                uint32_t length_samples, uint32_t fade_samples, float gain);
+                                uint32_t length_samples, uint32_t fade_samples, float gain,
+                                uint8_t midi_note);
 
 void alo_slice_sampler_begin_block(AloSliceSampler* s, uint32_t n_samples);
 

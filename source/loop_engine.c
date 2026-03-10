@@ -553,12 +553,19 @@ void run_events(Alo* self, const uint32_t n_samples)
     }
 
     const int      root           = get_slice_root_note(self);
-    /* choose slice count depending on mode.  in transient split mode we
-       still honor the user’s uniform grid size for note mapping; the actual
-       detected count is used later when converting a note index into an
-       offset. */
+
+    /* Choose the number of playable slices for MIDI triggering.
+       In transient split mode, we must *not* let slices_per_bar affect the
+       mapping/range. Instead, limit to the detected slice count so the scheme
+       remains "root note + N" with N in [0..detected_slices_count). */
     uint32_t slice_count;
-    {
+    if (alo_get_use_transient_slices_b(self)) {
+      slice_count = self->detected_slices_count;
+      if (slice_count == 0u) {
+        /* no detected offsets yet; nothing to trigger */
+        slice_count = 0u;
+      }
+    } else {
       slice_count = alo_get_slice_count_u(self);
     }
 
@@ -575,12 +582,16 @@ void run_events(Alo* self, const uint32_t n_samples)
 
       const uint8_t* const msg = (const uint8_t*)(ev + 1);
       const uint8_t        typ = lv2_midi_message_type(msg);
+
+      /* NOTE: LV2 commonly encodes note-off as NOTE_ON with velocity 0. */
+      const int note = (int)msg[1];
+      const int vel  = (int)msg[2];
+
+      /* KISS sampler behavior: ignore note-off and only trigger on note-on
+         with positive velocity. */
       if (typ != LV2_MIDI_MSG_NOTE_ON) {
         continue;
       }
-
-      const int note = (int)msg[1];
-      const int vel  = (int)msg[2];
       if (vel <= 0) {
         continue;
       }
@@ -597,17 +608,16 @@ void run_events(Alo* self, const uint32_t n_samples)
       uint32_t phase_samples;
       uint32_t slice_len;
       if (alo_get_use_transient_slices_b(self) && self->detected_slices_count > 0) {
-        /* map note index into the detected-offset list by scaling from the
-           uniform slice grid.  this spreads the available transients across
-           the full note range, preventing `slices_per_bar` from reducing the
-           number of playable slots. */
-        uint32_t idx = (uint32_t)((uint64_t)slice_index *
-                                  self->detected_slices_count / slice_count);
-        if (idx >= self->detected_slices_count)
-            idx = self->detected_slices_count - 1u;
+        /* Direct mapping in transient mode:
+           note N triggers detected offset N (root note + N), so slices_per_bar
+           no longer affects triggering/mapping. */
+        const uint32_t idx = (uint32_t)slice_index;
+        if (idx >= self->detected_slices_count) {
+          continue;
+        }
         uint32_t start = self->detected_slice_offsets[idx];
-        uint32_t end = (idx + 1 < self->detected_slices_count)
-                          ? self->detected_slice_offsets[idx + 1]
+        uint32_t end = (idx + 1u < self->detected_slices_count)
+                          ? self->detected_slice_offsets[idx + 1u]
                           : self->loop_samples;
         if (end <= start) continue;
         phase_samples = start;
@@ -633,25 +643,15 @@ void run_events(Alo* self, const uint32_t n_samples)
       }
 
       /* Short fade-in/out to avoid clicks at slice edges (RT-safe).
-       * Clamp to a sensible range so very high sample rates don't over-fade.
-       *
-       * fade_samples now comes from a percent-of-slice parameter.  A value of
-       * 100 gives a release equal to the full slice length; an empty control
-       * means we use the default edge fade (~1 ms).  Attack is handled
-       * separately in the sampler.
-       *
-       * When the user supplies a percent less than 100, shorten the actual
-       * playback length to match the fade duration so the slice behaves like a
-       * one-shot whose duration is controlled by decay. */
+       * Clamp to a sensible range so very high sample rates don't over-fade. */
       uint32_t fade_samples = alo_get_slice_fade_samples(self, slice_len);
+
+      /* Always schedule the full slice length as a one-shot. */
       uint32_t play_len = slice_len;
-      if (fade_samples < slice_len) {
-        play_len = fade_samples;
-        if (play_len == 0u) play_len = 1u;
-      }
+      if (play_len == 0u) play_len = 1u;
 
       alo_slice_sampler_schedule(&self->slice_sampler, self, start_offset_samples, phase_samples,
-                                 play_len, fade_samples, 1.0f);
+                                 play_len, fade_samples, 1.0f, (uint8_t)note);
     }
   }
 

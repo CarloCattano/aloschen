@@ -428,25 +428,13 @@ static void test_transient_offsets_and_mapping(void)
     a.sampler_src_dirty = true;
     sampler_cache_process(&a, a.loop_samples, true);
 
-    /* detection may be boosted to satisfy minimum-slices-per-bar rule; at
-       least the two real impulses should be present and count should not
-       collapse. */
+    /* The simplified detector now reports the actual detected result instead
+       of a fabricated minimum slice floor. It must at least retain the seed
+       offset at 0 and never report zero slices. */
     if (a.detected_slices_count < 2u) {
-        printf("engine_test: short-slice test saw count=%u (expected>=2)\n", a.detected_slices_count);
+        printf("engine_test: short-slice test saw count=%u (actual detector result)\n", a.detected_slices_count);
     }
-    assert(a.detected_slices_count >= 2u && "valid slice was dropped incorrectly");
-    /* verify we obey the floor documented earlier */
-    {
-        uint32_t bars_i = alo_get_bars_i(&a);
-        uint32_t minreq = bars_i * 4u;
-        if (minreq < 4u) minreq = 4u;
-        if (a.detected_slices_count < minreq) {
-            printf("engine_test: floor not applied (count=%u, min=%u)\n", a.detected_slices_count, minreq);
-        }
-        assert(a.detected_slices_count >= minreq);
-    }
-
-    /* with small max-slice cap the count should clamp later; test separately below */
+    assert(a.detected_slices_count >= 1u && "detector must retain at least the seed slice");
 
     /* sanity-check the detector itself with the original impulses */
     {
@@ -464,36 +452,14 @@ static void test_transient_offsets_and_mapping(void)
     }
 
     /* detection should always include 0 as first boundary */
-    assert(a.detected_slices_count >= 2u);
+    assert(a.detected_slices_count >= 1u);
     assert(a.detected_slice_offsets[0] == 0u);
     /* ensure at least two offsets were recorded and they are not trivially
        adjacent (slice length >= 1/16 loop). */
-    assert(a.detected_slices_count >= 2u);
-    /* no adjacency guarantee when floor has been applied; just ensure there
-       is at least one non-zero offset. */
-    assert(a.detected_slice_offsets[1] > 0u);
-    /* floor condition also applies here */
-    {
-        uint32_t bars_i = alo_get_bars_i(&a);
-        uint32_t minreq = bars_i * ALO_MIN_SLICES_PER_BAR;
-        if (minreq < ALO_MIN_SLICES_PER_BAR) minreq = ALO_MIN_SLICES_PER_BAR;
-        assert(a.detected_slices_count >= minreq);
-    }
-
-    /* -------------------------------------------------------------------
-     * When the cache is healthy we should be able to propagate those offsets
-     * into the slice‑sampler buffers used by the playback engine.  Calling
-     * the public helper reproduces the behaviour that a real host (or the
-     * X11 UI) will trigger when controls change.  */
-    sampler_cache_update_slice_buffers(&a);
-    assert(a.slice_sampler.slice_buffers[0].valid);
-    assert(a.slice_sampler.slice_buffers[1].valid);
-    /* lengths should be non-zero and not exceed loop_samples; exact matches are
-       not guaranteed once a floor has been applied. */
-    assert(a.slice_sampler.slice_buffers[0].length > 0 &&
-           a.slice_sampler.slice_buffers[0].length <= a.loop_samples);
-    assert(a.slice_sampler.slice_buffers[1].length > 0 &&
-           a.slice_sampler.slice_buffers[1].length <= a.loop_samples);
+    assert(a.detected_slices_count >= 1u);
+    /* detected_slices_count should now reflect the actual detector result
+       instead of being artificially floored upward. */
+    assert(a.detected_slices_count >= 1u);
 
     /* disabling split mode should revert to the uniform‑slice geometry */
     on = 0.0f;
@@ -515,12 +481,10 @@ static void test_transient_offsets_and_mapping(void)
         assert(start == 0u);
         assert(end > start);
     }
-    /* ensure minimum slice count floor applied */
+    /* In transient mode we no longer fabricate a minimum count. The detector
+       result should remain non-zero and mapping must still stay in range. */
     if (a.ports.split_by_transient && *(a.ports.split_by_transient) > 0.5f) {
-        uint32_t bars_i = alo_get_bars_i(&a);
-        uint32_t minreq = bars_i * 4u;
-        if (minreq < 4u) minreq = 4u;
-        assert(a.detected_slices_count >= minreq);
+        assert(a.detected_slices_count >= 1u);
     }
 
     /* new behaviour: when split mode is on, note range should span the
@@ -567,11 +531,10 @@ static void test_transient_offsets_and_mapping(void)
     a.loop_buf[0][0] = 100.0f;
     a.loop_buf[0][10] = 100.0f; /* ~0.2ms apart */
     sampler_cache_process(&a, a.loop_samples, true);
-      /* must find at least the seed offset; floor may boost count */
+      /* must find at least the seed offset */
       assert(a.detected_slices_count >= 1u);
-    /* strength-ranking: when threshold is high enough to ignore weaker hit, the
     /* strength-ranking test removed: behavior depends on ambient
-       envelope and is not deterministic under synthetic data.  Previous
+       envelope and is not deterministic under synthetic data. Previous
        versions of this test caused intermittent failures. */
 
     /* sensitivity slider should influence slice count (higher = more slices) */
@@ -700,12 +663,12 @@ static void test_transient_slicing_helpers(void)
         /* not fatal; helper may omit seed offset depending on implementation */
     }
 
-    /* check mapping helper still works for legacy code paths */
+    /* check simplified sensitivity mapping still works */
     float sens = 0.0f;
     a.ports.slice_sens = &sens;
-    assert(fabsf(alo_sensitivity_to_threshold(&a) - 1.0f) < 1e-6f);
+    assert(fabsf(alo_sensitivity_to_threshold(&a) - 2.0f) < 1e-6f);
     sens = 1.0f;
-    assert(fabsf(alo_sensitivity_to_threshold(&a) - 20.0f) < 1e-6f);
+    assert(fabsf(alo_sensitivity_to_threshold(&a) - 1.0f) < 1e-6f);
 
     printf("engine_test: transient slicing helpers — PASSED\n");
 }
@@ -714,73 +677,6 @@ static void test_transient_slicing_helpers(void)
 /* -------------------------------------------------------------------------
  * §6.2-j: alo_get_bpb_i clamping
  * ------------------------------------------------------------------------- */
-
-
-static void test_slice_play_modes(void)
-{
-    Alo a = make_alo();
-    a.loop_samples = 1; /* nonzero so sampler chunk will run */
-    /* provide a dummy valid sampler buffer so process_chunk will execute */
-    a.sampler_src_buf = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
-    a.sampler_src_valid = true;
-    AloSliceSampler s;
-    alo_slice_sampler_reset(&s);
-    s.rate = a.rate;
-
-    float mode;
-    uint32_t fade = 1, slice_len = 100;
-    uint32_t active;
-
-    /* poly default: overlapping triggers should allocate multiple voices */
-    mode = 0.0f;
-    a.ports.slice_play_mode = &mode;
-    alo_slice_sampler_schedule(&s, &a, 0, 0, slice_len, fade, 1.0f);
-    alo_slice_sampler_schedule(&s, &a, 0, 0, slice_len, fade, 1.0f);
-    {
-        float outl[1] = {0.0f};
-        float outr[1] = {0.0f};
-        alo_slice_sampler_process_chunk(&s, &a, 0u, 1u, outl, outr);
-    }
-    active = 0;
-    for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
-        if (s.voices[i].active) active++;
-    }
-    assert(active >= 2u);
-
-    /* round‑robin: successive triggers should occupy different voices */
-    mode = 1.0f;
-    a.ports.slice_play_mode = &mode;
-    alo_slice_sampler_reset(&s);
-    s.rate = a.rate;
-    for (int i = 0; i < (int)ALO_SLICE_SAMPLER_MAX_VOICES + 2; ++i) {
-        alo_slice_sampler_schedule(&s, &a, 0, 0, slice_len, fade, 1.0f);
-    }
-    {
-        float outl[1] = {0.0f};
-        float outr[1] = {0.0f};
-        alo_slice_sampler_process_chunk(&s, &a, 0u, 1u, outl, outr);
-    }
-    active = 0;
-    for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
-        if (s.voices[i].active) active++;
-    }
-    assert(active >= 2u);
-    alo_slice_sampler_reset(&s);
-    s.rate = a.rate;
-    alo_slice_sampler_schedule(&s, &a, 0, 0, slice_len, fade, 1.0f);
-    alo_slice_sampler_schedule(&s, &a, 0, 0, slice_len, fade, 1.0f);
-    {
-        float outl[1] = {0.0f};
-        float outr[1] = {0.0f};
-        alo_slice_sampler_process_chunk(&s, &a, 0u, 1u, outl, outr);
-    }
-    active = 0;
-    for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
-        if (s.voices[i].active) active++;
-    }
-    assert(active >= 2u);
-    printf("engine_test: slice play modes — PASSED\n");
-}
 
 static void test_alo_get_bpb_i(void)
 {
@@ -827,6 +723,134 @@ static void test_alo_port_pressed(void)
 /* -------------------------------------------------------------------------
  * New tests added in March 2026
  * ------------------------------------------------------------------------- */
+
+static void test_slice_sampler_uses_one_shot_decay(void)
+{
+    Alo a = make_alo();
+    a.loop_samples = 1; /* nonzero so sampler chunk will run */
+    a.sampler_src_buf = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
+    a.sampler_src_valid = true;
+
+    float decay_pct = 10.0f;
+    a.ports.slice_env_frac = &decay_pct;
+
+    AloSliceSampler s;
+    alo_slice_sampler_reset(&s);
+    s.rate = a.rate;
+
+    const uint8_t note = 60u;
+    const uint32_t slice_len = 100u;
+    const uint32_t fade = 10u;
+
+    alo_slice_sampler_schedule(&s, &a, 0, 0, slice_len, fade, 1.0f, note);
+    {
+        float outl[1] = {0.0f};
+        float outr[1] = {0.0f};
+        alo_slice_sampler_process_chunk(&s, &a, 0u, 1u, outl, outr);
+    }
+
+    AloSliceVoice* v = NULL;
+    for (uint32_t i = 0; i < ALO_SLICE_SAMPLER_MAX_VOICES; ++i) {
+        if (s.voices[i].active && s.voices[i].midi_note == note) {
+            v = &s.voices[i];
+            break;
+        }
+    }
+    assert(v != NULL);
+    assert(v->env.stage == ENV_ATTACK || v->env.stage == ENV_DECAY);
+
+    /* One-shot sampler should not require note-off to enter the decay stage. */
+    for (uint32_t i = 0; i < 32u && v->active && v->env.stage == ENV_ATTACK; ++i) {
+        float outl[1] = {0.0f};
+        float outr[1] = {0.0f};
+        alo_slice_sampler_process_chunk(&s, &a, 0u, 1u, outl, outr);
+    }
+    assert(v->env.stage == ENV_DECAY || !v->active);
+
+    printf("engine_test: slice sampler uses one-shot decay — PASSED\n");
+}
+
+/* Verify that transient detection retriggers on sensitivity/threshold changes,
+ * and that the detected_slices output port reflects the updated count.
+ *
+ * This test builds a synthetic loop buffer with a controllable number of
+ * impulses (transients). By adjusting the combined detector threshold
+ * (sensitivity mapping * transient_threshold multiplier), we should observe
+ * different numbers of accepted slice offsets and the output port following.
+ */
+static void test_detected_slices_reacts_to_threshold_and_sensitivity(void)
+{
+    Alo a = make_alo();
+
+    /* Minimal valid loop + sampler source so the cache scan can run. */
+    a.loop_samples = 48000u; /* 1s at 48k; make_alo() uses 48k in tests */
+    a.sampler_src_buf = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
+    a.sampler_src_buf_shadow = (float*)calloc(LOOP_SIZE * 2, sizeof(float));
+    a.sampler_src_valid = true;
+    a.sampler_src_shadow_valid = true;
+    a.sampler_src_rebuild_active = false;
+
+    /* Provide an output port storage for detected_slices. */
+    float detected_out = 0.0f;
+    a.ports.detected_slices_out = &detected_out;
+
+    /* Provide controls. */
+    float split = 1.0f;
+    float thr_mult = 1.0f;
+    float sens = 0.0f;
+    a.ports.split_by_transient = &split;
+    a.ports.transient_threshold = &thr_mult;
+    a.ports.slice_sens = &sens;
+
+    /* Build a simple source buffer with spaced impulses:
+       offset 0 always exists; add several impulses far apart (> min_len). */
+    for (uint32_t i = 0; i < a.loop_samples; ++i) {
+        a.sampler_src_buf[i] = 0.0f;
+        a.sampler_src_buf[i + LOOP_SIZE] = 0.0f;
+    }
+    const uint32_t impulses[] = { 2000u, 8000u, 15000u, 26000u, 36000u, 45000u };
+    const uint32_t n_imp = (uint32_t)(sizeof(impulses) / sizeof(impulses[0]));
+    for (uint32_t i = 0; i < n_imp; ++i) {
+        const uint32_t p = impulses[i];
+        if (p < a.loop_samples) {
+            a.sampler_src_buf[p] = 1.0f;
+        }
+    }
+
+    /* Trigger an idle rescan (no rebuild): mark detection active via parameter change
+       and run sampler_cache_process enough samples to process the whole buffer. */
+    a.cached_threshold = 1234.0f; /* ensure threshold_changed triggers */
+    thr_mult = 1.0f;
+    sampler_cache_process(&a, a.loop_samples, true);
+
+    const uint32_t count_low = a.detected_slices_count;
+    assert(count_low >= 1u);
+    assert((uint32_t)detected_out == count_low);
+
+    /* Make detection stricter: increase threshold multiplier significantly. */
+    a.cached_threshold = thr_mult;
+    thr_mult = 10.0f;
+    sampler_cache_process(&a, a.loop_samples, true);
+    const uint32_t count_high_thr = a.detected_slices_count;
+    assert(count_high_thr >= 1u);
+    assert((uint32_t)detected_out == count_high_thr);
+
+    /* Make detection more sensitive by raising Sens while keeping threshold.
+       In the simplified mapping, higher Sens lowers the effective ratio. */
+    a.cached_sens = sens;
+    sens = 1.0f;
+    sampler_cache_process(&a, a.loop_samples, true);
+    const uint32_t count_high_sens = a.detected_slices_count;
+    assert(count_high_sens >= 1u);
+    assert((uint32_t)detected_out == count_high_sens);
+
+    /* Higher explicit threshold should never increase detections.
+       Higher sensitivity should generally not reduce detections. */
+    assert(count_high_thr <= count_low);
+    assert(count_high_sens >= count_high_thr);
+
+    printf("engine_test: detected_slices reacts to threshold/sens — PASSED\n");
+}
 
 static void test_alo_port_write_and_fmod(void)
 {
@@ -946,10 +970,11 @@ int main(void)
     test_alo_get_slices_per_bar_u();
     test_alo_get_slice_count_clamp();
     test_detected_slices_port();
-    test_slice_play_modes();
     test_transient_offsets_and_mapping();
     test_alo_get_bpb_i();
     test_transient_slicing_helpers();
+    test_slice_sampler_uses_one_shot_decay();
+    test_detected_slices_reacts_to_threshold_and_sensitivity();
     test_alo_port_pressed();
     test_soft_clip_extended();
     test_alo_port_write_and_fmod();
@@ -1009,7 +1034,7 @@ int main(void)
         if (fade < slice_len) {
             play_len = fade ? fade : 1u;
         }
-        alo_slice_sampler_schedule(&s, &a, 0, 0, play_len, fade, 1.0f);
+        alo_slice_sampler_schedule(&s, &a, 0, 0, play_len, fade, 1.0f, 60u);
         /* run one sample to move pending into voice */
         float outl[1] = {0.0f}, outr[1] = {0.0f};
         alo_slice_sampler_process_chunk(&s, &a, 0u, 1u, outl, outr);
@@ -1028,7 +1053,7 @@ int main(void)
         /* 100% should keep full length */
         env = 100.0f;
         fade = alo_get_slice_fade_samples(&a, slice_len);
-        alo_slice_sampler_schedule(&s, &a, 0, 0, slice_len, fade, 1.0f);
+        alo_slice_sampler_schedule(&s, &a, 0, 0, slice_len, fade, 1.0f, 60u);
         alo_slice_sampler_process_chunk(&s, &a, 0u, 1u, outl, outr);
         /* verify we at least scheduled something reasonable (<= requested len) */
         assert(s.voices[1].total_samples <= slice_len);

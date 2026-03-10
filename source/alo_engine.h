@@ -107,21 +107,20 @@ typedef enum
   ALO_HOST_BAR_PHASE = 31,
   ALO_SAMPLER_VOL    = 32,
   ALO_SLICES_PER_BAR = 33,
-  ALO_SPLIT_TRANSIENTS = 34,   /* boolean toggle: split slices at detected transients */
-  ALO_DETECTED_SLICES = 35,    /* output: number of slices currently active/detected */
-  ALO_TRANSIENT_THRESH = 36,   /* control: detection threshold ratio */
-  ALO_SLICE_ENV_FRAC = 37,     /* control: release percent 0..100 of slice */
-  ALO_SLICE_ENV_ATTACK = 38,   /* control: attack length in milliseconds */
-  ALO_SLICE_SENS      = 39,   /* control: detection sensitivity 0..1 */
-  ALO_SLICE_PLAY_MODE = 40,   /* control: 0=poly,1=mono,2=round-robin */
-  /* additional output ports carry normalized slice offsets (0..1).  They
-     are written only when transient slicing is active. */
-  ALO_SLICE_OFFSET_0  = 41,
-  /* subsequent indices up to ALO_SLICE_OFFSET_0 + ALO_MAX_SLICES - 1 */
+  ALO_SPLIT_TRANSIENTS   = 34, /* boolean toggle: split slices at detected transients */
+  ALO_DETECTED_SLICES    = 35, /* output: number of slices currently active/detected */
+  ALO_TRANSIENT_THRESH   = 36, /* control: detection threshold ratio */
+  ALO_SLICE_ENV_FRAC     = 37, /* control: release percent 0..100 of slice */
+  ALO_SLICE_ENV_ATTACK   = 38, /* control: attack length in milliseconds */
+  ALO_SLICE_SENS         = 39, /* control: detection sensitivity 0..1 */
+  ALO_TRANSIENT_DEBOUNCE = 40, /* control: detector retrigger gap in ms */
+  ALO_TRANSIENT_BURST    = 41, /* control: minimum onset burst length in ms */
+  ALO_TRANSIENT_END      = 42, /* control: ratio below which a transient ends */
+  ALO_TRANSIENT_PRE_MS   = 43, /* control: pre-roll before transient peak in ms */
 } PortIndex;
 
 /* Keep in sync with the highest port index + 1. */
-#define ALO_PORT_COUNT (41 + ALO_SLICE_SAMPLER_MAX_VOICES)
+#define ALO_PORT_COUNT 44
 
 typedef struct
 {
@@ -170,14 +169,16 @@ typedef struct
   float* bars;
   /** Number of slices per bar for MIDI one-shots (integer 2..8). */
   float* slices_per_bar;
-  float* split_by_transient; /* new control: 0 = uniform slices, >0 = transient-based */
-  float* transient_threshold; /* threshold multiplier for transient detection (now 1..20 maximum) */
+  float* split_by_transient;   /* 0 = uniform slices, >0 = transient-based */
+  float* transient_threshold;  /* threshold multiplier for transient detection */
   float* slice_env_frac;       /* release length percent: 0..100 of slice length */
   float* slice_env_attack;     /* attack length in ms (hidden, not exposed via UI) */
   float* slice_sens;           /* normalized sensitivity 0..1 */
-  float* slice_play_mode;      /* integer mode selector as described above */
-  float* detected_slices_out; /* output count for UI */
-  float* slice_offset[ALO_SLICE_SAMPLER_MAX_VOICES]; /* normalized offsets 0..1 for UI drawing */
+  float* transient_debounce;   /* detector retrigger gap in milliseconds */
+  float* transient_burst;      /* minimum burst duration in milliseconds */
+  float* transient_end_ratio;  /* candidate completion ratio */
+  float* transient_pre_ms;     /* move slice start before peak by this many ms */
+  float* detected_slices_out;  /* output count for UI */
   float* slice_root;
   float* click;
   float* mix;
@@ -333,8 +334,12 @@ typedef struct Alo
    * sqrtf work.
    */
   uint32_t cached_slices_per_bar;
-  float    cached_sens; /* last-used slice sensitivity for dirty detection */
-  float    cached_threshold;  /* last-used transient threshold control (detection level) */
+  float    cached_sens;        /* last-used slice sensitivity for dirty detection */
+  float    cached_threshold;   /* last-used transient threshold control */
+  float    cached_debounce_ms; /* last-used detector debounce in ms */
+  float    cached_burst_ms;    /* last-used minimum burst time in ms */
+  float    cached_end_ratio;   /* last-used candidate end ratio */
+  float    cached_pre_ms;      /* last-used transient pre-roll in ms */
   bool     cached_split_mode;  /* previous state of split_by_transient */
   uint32_t detected_slices_count; /* current number of slices after detection */
   uint32_t detected_slice_offsets[ALO_SLICE_SAMPLER_MAX_VOICES]; /* start offsets of each slice in samples */

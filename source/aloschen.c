@@ -432,8 +432,17 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
   case ALO_SLICE_SENS:
     self->ports.slice_sens = (float*)data;
     break;
-  case ALO_SLICE_PLAY_MODE:
-    self->ports.slice_play_mode = (float*)data;
+  case ALO_TRANSIENT_DEBOUNCE:
+    self->ports.transient_debounce = (float*)data;
+    break;
+  case ALO_TRANSIENT_BURST:
+    self->ports.transient_burst = (float*)data;
+    break;
+  case ALO_TRANSIENT_END:
+    self->ports.transient_end_ratio = (float*)data;
+    break;
+  case ALO_TRANSIENT_PRE_MS:
+    self->ports.transient_pre_ms = (float*)data;
     break;
   /* slice_offset ports follow; they are output so plugin does not assign them */
   /* the port index values are contiguous so we can handle them generically */

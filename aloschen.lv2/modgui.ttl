@@ -37,5 +37,7 @@
         lv2:symbol "cycle_phase" ;
     ] , [
         lv2:symbol "host_bar_phase" ;
+    ] , [
+        lv2:symbol "detected_slices" ;
     ] ;
 ] .
