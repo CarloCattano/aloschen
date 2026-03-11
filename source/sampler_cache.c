@@ -2,7 +2,7 @@
 #include "alo_util.h"
 #include "transient_detector.h"
 
-#include <math.h>
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -13,6 +13,9 @@
 
 #define SC_MAX_PER_RUN 4096u
 #define SC_SCALE_FACTOR 8u
+#define SC_MIN_SLICE_MS 80.0
+#define SC_MIN_SLICE_PEAK_RATIO 0.035f
+#define SC_MIN_SLICE_AVG_RATIO 0.012f
 
 /* tests are built without the main plugin code; provide a simple stub so
    references to alo_log resolve. The real implementation lives in
@@ -27,13 +30,19 @@ void alo_log(const char* message, ...)
 /* Helpers                                                                    */
 /* ------------------------------------------------------------------------- */
 
-static int cmp_u32(const void* a, const void* b)
+typedef struct
 {
-  const uint32_t va = *(const uint32_t*)a;
-  const uint32_t vb = *(const uint32_t*)b;
-  if (va < vb)
+  uint32_t offset;
+  float    strength;
+} ScSliceMarker;
+
+static int cmp_marker_offset(const void* a, const void* b)
+{
+  const ScSliceMarker* const ma = (const ScSliceMarker*)a;
+  const ScSliceMarker* const mb = (const ScSliceMarker*)b;
+  if (ma->offset < mb->offset)
     return -1;
-  if (va > vb)
+  if (ma->offset > mb->offset)
     return 1;
   return 0;
 }
@@ -45,28 +54,28 @@ static float sc_absf(float x)
 
 static uint32_t sc_compute_min_slice_len(const Alo* self)
 {
-  uint32_t min_len30 = UINT32_MAX;
-  uint32_t frac_len  = UINT32_MAX;
+  uint32_t min_len_ms = UINT32_MAX;
+  uint32_t frac_len   = UINT32_MAX;
 
   if (self && self->rate > 1e-6) {
-    min_len30 = (uint32_t)((double)self->rate * 0.030);
+    min_len_ms = (uint32_t)((double)self->rate * (SC_MIN_SLICE_MS * 0.001));
   }
   if (self && self->loop_samples > 0u) {
     frac_len = (self->loop_samples + 15u) / 16u;
   }
 
-  if (min_len30 == UINT32_MAX && frac_len == UINT32_MAX) {
+  if (min_len_ms == UINT32_MAX && frac_len == UINT32_MAX) {
     return 1u;
   }
-  if (min_len30 == UINT32_MAX) {
+  if (min_len_ms == UINT32_MAX) {
     return frac_len ? frac_len : 1u;
   }
   if (frac_len == UINT32_MAX) {
-    return min_len30 ? min_len30 : 1u;
+    return min_len_ms ? min_len_ms : 1u;
   }
 
-  return (min_len30 < frac_len ? min_len30 : frac_len)
-             ? (min_len30 < frac_len ? min_len30 : frac_len)
+  return (min_len_ms < frac_len ? min_len_ms : frac_len)
+             ? (min_len_ms < frac_len ? min_len_ms : frac_len)
              : 1u;
 }
 
@@ -89,34 +98,157 @@ static uint32_t sc_last_detected_offset(const Alo* self)
   return self->detected_slice_offsets[self->detected_slices_count - 1u];
 }
 
+static void update_detected_slices_port(Alo* self, uint32_t count);
+
+static void sc_sort_detected_markers(Alo* self)
+{
+  if (!self || self->detected_slices_count < 2u) {
+    return;
+  }
+
+  ScSliceMarker markers[ALO_SLICE_SAMPLER_MAX_VOICES];
+  uint32_t      count = self->detected_slices_count;
+  if (count > ALO_SLICE_SAMPLER_MAX_VOICES) {
+    count = ALO_SLICE_SAMPLER_MAX_VOICES;
+  }
+
+  for (uint32_t i = 0u; i < count; ++i) {
+    markers[i].offset   = self->detected_slice_offsets[i];
+    markers[i].strength = self->detected_slice_strength[i];
+  }
+
+  qsort(markers, count, sizeof(markers[0]), cmp_marker_offset);
+
+  for (uint32_t i = 0u; i < count; ++i) {
+    self->detected_slice_offsets[i]  = markers[i].offset;
+    self->detected_slice_strength[i] = markers[i].strength;
+  }
+}
+
+static bool sc_slice_region_has_content(const Alo* self, const float* buf_l, const float* buf_r,
+                                        uint32_t start, uint32_t end)
+{
+  if (!self || !buf_l || start >= end || end > self->loop_samples) {
+    return false;
+  }
+
+  const uint32_t len = end - start;
+  if (len == 0u) {
+    return false;
+  }
+
+  float peak_abs = 0.0f;
+  float sum_abs  = 0.0f;
+
+  for (uint32_t i = start; i < end; ++i) {
+    const float l = sc_absf(buf_l[i]);
+    const float r = buf_r ? sc_absf(buf_r[i]) : l;
+    const float a = (l > r) ? l : r;
+    if (a > peak_abs) {
+      peak_abs = a;
+    }
+    sum_abs += a;
+  }
+
+  const float avg_abs   = sum_abs / (float)len;
+  const float loop_peak = (self->sampler_src_peak_abs > 1.0e-9f) ? self->sampler_src_peak_abs : 1.0f;
+
+  if (peak_abs < (loop_peak * SC_MIN_SLICE_PEAK_RATIO)) {
+    return false;
+  }
+  if (avg_abs < (loop_peak * SC_MIN_SLICE_AVG_RATIO)) {
+    return false;
+  }
+
+  return true;
+}
+
+static bool sc_try_accept_detected_offset(Alo* self, uint32_t candidate_offset, float strength,
+                                          const float* buf_l, const float* buf_r)
+{
+  if (!self) {
+    return false;
+  }
+
+  const uint32_t min_len  = sc_compute_min_slice_len(self);
+  const uint32_t last_off = sc_last_detected_offset(self);
+
+  if (candidate_offset <= last_off) {
+    return false;
+  }
+  if ((candidate_offset - last_off) < min_len) {
+    return false;
+  }
+  if (!sc_slice_region_has_content(self, buf_l, buf_r, last_off, candidate_offset)) {
+    return false;
+  }
+
+  if (self->detected_slices_count < ALO_SLICE_SAMPLER_MAX_VOICES) {
+    const uint32_t ins                 = self->detected_slices_count;
+    self->detected_slice_offsets[ins]  = candidate_offset;
+    self->detected_slice_strength[ins] = strength;
+    self->detected_slices_count++;
+    sc_sort_detected_markers(self);
+    update_detected_slices_port(self, self->detected_slices_count);
+    return true;
+  }
+
+  {
+    int   weakest          = 0;
+    float weakest_strength = self->detected_slice_strength[0];
+    for (uint32_t wi = 1u; wi < self->detected_slices_count; ++wi) {
+      if (self->detected_slice_strength[wi] < weakest_strength) {
+        weakest_strength = self->detected_slice_strength[wi];
+        weakest          = (int)wi;
+      }
+    }
+
+    if (strength > weakest_strength) {
+      self->detected_slice_offsets[weakest]  = candidate_offset;
+      self->detected_slice_strength[weakest] = strength;
+      sc_sort_detected_markers(self);
+      update_detected_slices_port(self, self->detected_slices_count);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static void sc_finalize_detected_slices(Alo* self, const float* buf_l, const float* buf_r)
+{
+  if (!self) {
+    return;
+  }
+
+  const uint32_t min_len = sc_compute_min_slice_len(self);
+
+  sc_sort_detected_markers(self);
+
+  if (self->detected_slices_count > 1u) {
+    const uint32_t last_off = sc_last_detected_offset(self);
+    if (self->loop_samples > last_off &&
+        ((self->loop_samples - last_off) < min_len ||
+         !sc_slice_region_has_content(self, buf_l, buf_r, last_off, self->loop_samples))) {
+      self->detected_slices_count--;
+    }
+  }
+
+  if (self->detected_slices_count == 0u) {
+    sc_seed_detected_offsets(self);
+  }
+
+  update_detected_slices_port(self, self->detected_slices_count);
+}
+
 static void update_detected_slices_port(Alo* self, uint32_t count)
 {
   if (!self) {
     return;
   }
 
-  if (count > ALO_SLICE_INFO_MAX) {
-    count = ALO_SLICE_INFO_MAX;
-  }
-
-  /* Restore the old "musical floor" in transient mode so sparse detector
-     output still yields useful slice playback like the earlier sweet-spot
-     implementation. */
-  if (alo_get_use_transient_slices_b(self)) {
-    uint32_t bars   = alo_get_bars_i(self);
-    uint32_t minreq = bars * ALO_MIN_SLICES_PER_BAR;
-    if (minreq < ALO_MIN_SLICES_PER_BAR) {
-      minreq = ALO_MIN_SLICES_PER_BAR;
-    }
-
-    if (count < minreq) {
-      for (uint32_t i = 0u; i < minreq && i < ALO_SLICE_INFO_MAX; ++i) {
-        self->detected_slice_offsets[i] =
-            (uint32_t)(((uint64_t)i * (uint64_t)self->loop_samples) / (uint64_t)minreq);
-        self->detected_slice_strength[i] = 0.0f;
-      }
-      count = minreq;
-    }
+  if (count > ALO_SLICE_SAMPLER_MAX_VOICES) {
+    count = ALO_SLICE_SAMPLER_MAX_VOICES;
   }
 
   self->detected_slices_count = count;
@@ -125,12 +257,13 @@ static void update_detected_slices_port(Alo* self, uint32_t count)
 
 static void update_slice_buffers_internal(Alo* self)
 {
-  const bool use_transient = alo_get_use_transient_slices_b(self);
-  uint32_t slice_count = use_transient ? self->detected_slices_count : alo_get_slice_count_u(self);
-
   if (!self) {
     return;
   }
+
+  const bool use_transient = alo_get_use_transient_slices_b(self);
+  uint32_t slice_count =
+      use_transient ? self->detected_slices_count : alo_get_slice_count_u(self);
 
   if (slice_count > ALO_SLICE_INFO_MAX) {
     slice_count = ALO_SLICE_INFO_MAX;
@@ -231,7 +364,6 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
     bool threshold_changed   = false;
     bool split_changed       = false;
     bool transient_mode      = false;
-    bool restart_transient   = false;
 
     if (self->ports.slice_sens) {
       const float cur = *(self->ports.slice_sens);
@@ -263,16 +395,12 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
       const uint32_t slice_count = alo_get_slice_count(self);
       update_detected_slices_port(self, slice_count);
       self->detect_active = false;
-    } else {
-      restart_transient = sensitivity_changed || threshold_changed || split_changed ||
-                          (self->sampler_src_rebuild_active && self->sampler_src_pos == 0u);
-
-      if (restart_transient) {
-        self->detect_active = true;
-        self->detect_pos    = 0u;
-        sc_seed_detected_offsets(self);
-        update_detected_slices_port(self, self->detected_slices_count);
-      }
+    } else if (sensitivity_changed || threshold_changed || split_changed ||
+               (self->sampler_src_rebuild_active && self->sampler_src_pos == 0u)) {
+      self->detect_active = true;
+      self->detect_pos    = 0u;
+      sc_seed_detected_offsets(self);
+      update_detected_slices_port(self, self->detected_slices_count);
     }
   }
 
@@ -379,9 +507,8 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
         }
       }
 
-      /* Restore the older, simpler trigger-based transient slicing:
-         initialize a detector once, accept trigger positions directly,
-         and enforce only minimum distance + max voice count. */
+      /* Build transient slices chronologically, but only accept boundaries that
+         create musically useful regions with enough duration and content. */
       if (self->detect_active) {
         if (self->detect_pos == 0u) {
           float thr;
@@ -395,39 +522,10 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
 
         if (td_process_sample(&self->detect_td, ml)) {
           if (self->detect_pos > 0u) {
-            const uint32_t min_len  = sc_compute_min_slice_len(self);
-            const uint32_t last_off = sc_last_detected_offset(self);
-
-            if (self->detect_pos - last_off >= min_len) {
-              const float strength = sc_absf(ml);
-
-              if (self->detected_slices_count < ALO_SLICE_SAMPLER_MAX_VOICES) {
-                const uint32_t ins                 = self->detected_slices_count;
-                self->detected_slice_offsets[ins]  = self->detect_pos;
-                self->detected_slice_strength[ins] = strength;
-                self->detected_slices_count++;
-                qsort(self->detected_slice_offsets, self->detected_slices_count, sizeof(uint32_t),
-                      cmp_u32);
-                update_detected_slices_port(self, self->detected_slices_count);
-              } else {
-                int   weakest          = 0;
-                float weakest_strength = self->detected_slice_strength[0];
-                for (uint32_t wi = 1u; wi < self->detected_slices_count; ++wi) {
-                  if (self->detected_slice_strength[wi] < weakest_strength) {
-                    weakest_strength = self->detected_slice_strength[wi];
-                    weakest          = (int)wi;
-                  }
-                }
-
-                if (strength > weakest_strength) {
-                  self->detected_slice_offsets[weakest]  = self->detect_pos;
-                  self->detected_slice_strength[weakest] = strength;
-                  qsort(self->detected_slice_offsets, self->detected_slices_count, sizeof(uint32_t),
-                        cmp_u32);
-                  update_detected_slices_port(self, self->detected_slices_count);
-                }
-              }
-            } else {
+            const float strength = sc_absf(ml);
+            if (!sc_try_accept_detected_offset(self, self->detect_pos, strength,
+                                               self->sampler_src_buf_shadow,
+                                               self->sampler_src_buf_shadow + LOOP_SIZE)) {
               /* restart detector so the same onset cluster
                  doesn't keep refiring. */
               float thr2;
@@ -444,21 +542,9 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
         self->detect_pos++;
 
         if (self->detect_pos >= self->loop_samples) {
-          const uint32_t min_len2 = sc_compute_min_slice_len(self);
-
-          if (self->detected_slices_count > 1u) {
-            const uint32_t last_off = sc_last_detected_offset(self);
-            if (self->loop_samples > last_off && (self->loop_samples - last_off) < min_len2) {
-              self->detected_slices_count--;
-            }
-          }
-
-          if (self->detected_slices_count == 0u) {
-            sc_seed_detected_offsets(self);
-          }
-
+          sc_finalize_detected_slices(self, self->sampler_src_buf_shadow,
+                                      self->sampler_src_buf_shadow + LOOP_SIZE);
           self->detect_active = false;
-          update_detected_slices_port(self, self->detected_slices_count);
         } else {
           update_detected_slices_port(self, self->detected_slices_count);
         }
@@ -517,39 +603,8 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
         const float s = buf[cap_pos];
         if (td_process_sample(&self->detect_td, s)) {
           if (cap_pos > 0u) {
-            const uint32_t min_len  = sc_compute_min_slice_len(self);
-            const uint32_t last_off = sc_last_detected_offset(self);
-
-            if (cap_pos - last_off >= min_len) {
-              const float strength = sc_absf(s);
-
-              if (self->detected_slices_count < ALO_SLICE_SAMPLER_MAX_VOICES) {
-                const uint32_t ins                 = self->detected_slices_count;
-                self->detected_slice_offsets[ins]  = cap_pos;
-                self->detected_slice_strength[ins] = strength;
-                self->detected_slices_count++;
-                qsort(self->detected_slice_offsets, self->detected_slices_count, sizeof(uint32_t),
-                      cmp_u32);
-                update_detected_slices_port(self, self->detected_slices_count);
-              } else {
-                int   weakest          = 0;
-                float weakest_strength = self->detected_slice_strength[0];
-                for (uint32_t wi = 1u; wi < self->detected_slices_count; ++wi) {
-                  if (self->detected_slice_strength[wi] < weakest_strength) {
-                    weakest_strength = self->detected_slice_strength[wi];
-                    weakest          = (int)wi;
-                  }
-                }
-
-                if (strength > weakest_strength) {
-                  self->detected_slice_offsets[weakest]  = cap_pos;
-                  self->detected_slice_strength[weakest] = strength;
-                  qsort(self->detected_slice_offsets, self->detected_slices_count, sizeof(uint32_t),
-                        cmp_u32);
-                  update_detected_slices_port(self, self->detected_slices_count);
-                }
-              }
-            }
+            const float strength = sc_absf(s);
+            sc_try_accept_detected_offset(self, cap_pos, strength, buf, buf + LOOP_SIZE);
           }
         }
       }
@@ -559,21 +614,8 @@ void sampler_cache_process(Alo* self, uint32_t n_samples, bool any_committed_aud
     }
 
     if (cap_pos >= cap_end) {
-      const uint32_t min_len2 = sc_compute_min_slice_len(self);
-
-      if (self->detected_slices_count > 1u) {
-        const uint32_t last_off = sc_last_detected_offset(self);
-        if (self->loop_samples > last_off && (self->loop_samples - last_off) < min_len2) {
-          self->detected_slices_count--;
-        }
-      }
-
-      if (self->detected_slices_count == 0u) {
-        sc_seed_detected_offsets(self);
-      }
-
+      sc_finalize_detected_slices(self, buf, buf + LOOP_SIZE);
       self->detect_active = false;
-      update_detected_slices_port(self, self->detected_slices_count);
     }
   }
 }

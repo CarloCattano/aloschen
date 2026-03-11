@@ -37,37 +37,12 @@
 #include "lv2/time/time.h"
 #include "lv2/urid/urid.h"
 
-/* Logging */
-
-/* check environment variable to see if logging is enabled */
-static bool log_enabled(void)
-{
-  const char* v = getenv("ALO_LOG");
-  return v && (v[0] == '1' || v[0] == 'y' || v[0] == 'Y' || v[0] == 't' || v[0] == 'T');
-}
-
-/* append formatted message to log file if enabled */
-void alo_log(const char* message, ...)
-{
-  if (!log_enabled()) {
-    return;
-  }
-
-  FILE* f = fopen("/tmp/alo.log", "a");
-  if (!f) {
-    return;
-  }
-
-  char    buffer[2048];
-  va_list argumentList;
-  va_start(argumentList, message);
-  vsnprintf(buffer, sizeof(buffer), message, argumentList);
-  va_end(argumentList);
-
-  fwrite(buffer, 1, strlen(buffer), f);
-  fputc('\n', f);
-  fclose(f);
-}
+/* Logging (disabled for now)
+ *
+ * ALO_LOG / /tmp/alo.log file logging was used for manual bring-up, but is
+ * currently removed to keep plugin behavior simple and avoid filesystem I/O
+ * hooks in normal builds.
+ */
 
 /* Click waveform generation */
 
@@ -180,8 +155,6 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor, double rate,
   (void)descriptor;
   (void)bundle_path;
 
-  alo_log("Instantiate");
-
   Alo* self = (Alo*)calloc(1, sizeof(Alo));
   if (!self) {
     return NULL;
@@ -280,7 +253,11 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor, double rate,
     }
   }
 
-  // TODO: Comment this logic
+  /* Choose the preallocated RT scratch capacity from host-provided LV2
+     buffer-size options when available. Prefer maxBlockLength because it is
+     the hard upper bound; otherwise fall back to nominalBlockLength. Finally,
+     clamp to the project-wide compile-time ceiling so instantiate() never
+     allocates more than the engine is designed to support. */
   uint32_t cap = ALO_RT_BLOCK_CAP;
   if (opt_max != 0u) {
     cap = opt_max;
@@ -502,14 +479,12 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
 static void activate(LV2_Handle instance)
 {
   Alo* self = (Alo*)instance;
-  alo_log("Activate");
   reset(self);
 }
 
 static void deactivate(LV2_Handle instance)
 {
   (void)instance;
-  alo_log("Deactivate");
 }
 
 /* ------------------------------------------------------------------------
@@ -577,7 +552,8 @@ static void run(LV2_Handle instance, uint32_t n_samples)
 
 static void cleanup(LV2_Handle instance)
 {
-  alo_log("Cleanup");
+  Alo* self = (Alo*)instance;
+  free_instance(self);
 }
 
 /* ------------------------------------------------------------------------
