@@ -1,24 +1,16 @@
 #include <assert.h>
 #include <math.h>
-#include <stdio.h>
+#include <stddef.h>
 #include <stdint.h>
 #include "transport.h"
-#include "alo_util.h"  /* bring in shared constants such as ALO_BEAT_BOUNDARY_EPS */
+#include "alo_util.h"
 
 /* small tolerances used in assertions */
 #define TEST_EPS       1e-6
 #define TEST_EPS_SMALL 1e-9
 
-/* Expanded tests for compute_transport_phase_index and
- * compute_next_cycle_start_beats covering:
- *  - wrap-around
- *  - zero and negative beats
- *  - fractional beats
- *  - single-beat loop
- *  - large loop_samples handling
- *  - multiple bpb/bars combinations
- *
- * Stubs for functions referenced by transport.c but not under test.
+/* Focused tests for compute_transport_phase_index and compute_next_cycle_start_beats.
+ * Keep this file deterministic and silent (no stdout logging).
  */
 void clear_inflight_actions_and_sync_controls(Alo* self) { (void)self; }
 void request_ui_cycle_resync(Alo* self) { (void)self; }
@@ -54,8 +46,6 @@ static uint32_t expected_phase_index(const Alo* self, double global_beats)
 
 static void test_compute_transport_phase_index_variety(void)
 {
-    printf("transport_test: compute_transport_phase_index - start\n");
-
     Alo alo = {0};
     /* Basic wrap-around and fractional tests */
     alo.loop_beats = 4u;
@@ -96,14 +86,10 @@ static void test_compute_transport_phase_index_variety(void)
         assert(idx < alo.loop_samples);
     }
 
-    printf("transport_test: compute_transport_phase_index - all checks passed\n");
 }
 
-/* Tests for compute_next_cycle_start_beats per the user's checklist */
 static void test_compute_next_cycle_start_beats_variety(void)
 {
-    printf("transport_test: compute_next_cycle_start_beats - start\n");
-
     Alo alo = {0};
 
     /* Helper to set bars via port pointer */
@@ -139,9 +125,9 @@ static void test_compute_next_cycle_start_beats_variety(void)
     {
         float bpb_vals[] = {3.0f, 5.0f};
         uint32_t bars_opts[] = {2u, 3u, 4u};
-        for (size_t i = 0; i < sizeof(bpb_vals) / sizeof(bpb_vals[0]); ++i) {
+        for (size_t i = 0; i < (sizeof(bpb_vals) / sizeof(bpb_vals[0])); ++i) {
             alo.bpb = bpb_vals[i];
-            for (size_t j = 0; j < sizeof(bars_opts) / sizeof(bars_opts[0]); ++j) {
+            for (size_t j = 0; j < (sizeof(bars_opts) / sizeof(bars_opts[0])); ++j) {
                 float bv = (float)bars_opts[j];
                 alo.ports.bars = &bv;
                 double cycle_len = (double)bv * (double)alo.bpb;
@@ -172,12 +158,10 @@ static void test_compute_next_cycle_start_beats_variety(void)
         assert(fabs(compute_next_cycle_start_beats(&alo, cur) - cur) < TEST_EPS_SMALL);
     }
 
-    printf("transport_test: compute_next_cycle_start_beats - all checks passed\n");
 }
 
 int main(void) {
     test_compute_transport_phase_index_variety();
     test_compute_next_cycle_start_beats_variety();
-    printf("transport_test: ALL TRANSPORT TESTS PASSED\n");
     return 0;
 }

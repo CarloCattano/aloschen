@@ -219,10 +219,14 @@ void run_loops(Alo* self, uint32_t n_samples)
 
     /* Process slice sampler chunk into scratch buffers (once per sub-block). */
     if (sampler_gain > 0.0f && sampler_busy) {
-      const uint32_t slices = alo_get_slices_per_bar_u(self);
-      if (slices != self->cached_slices_per_bar) {
-        self->cached_slices_per_bar   = slices;
-        self->cached_slice_gain_scale = (slices > 1u) ? (1.0f / sqrtf((float)slices)) : 1.0f;
+      if (alo_get_use_transient_slices_b(self)) {
+        self->cached_slice_gain_scale = 1.0f;
+      } else {
+        const uint32_t slices = alo_get_slices_per_bar_u(self);
+        if (slices != self->cached_slices_per_bar) {
+          self->cached_slices_per_bar   = slices;
+          self->cached_slice_gain_scale = (slices > 1u) ? (1.0f / sqrtf((float)slices)) : 1.0f;
+        }
       }
       alo_slice_sampler_process_chunk(&self->slice_sampler, self, block_base, blk, slice_l_s,
                                       slice_r_s);
