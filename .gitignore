@@ -10,3 +10,7 @@ examples/
 x42-plugins/
 # test binaries
 /tests/run_tests
+tests/run_dsp_tests
+tests/run_engine_tests
+tests/run_transient_wav_tests
+tests/run_transport_tests
