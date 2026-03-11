@@ -7,6 +7,10 @@ aloschen/
 ├── aloschen.lv2/     ← compiled plugin bundle (built artefacts + TTL)
 └── tests/            ← unit test sources and compiled test binaries
 
+### Key Make targets added for agent workflows
+- `make analyze` — runs all static analysis in one go: `scan` + `tidy` + `cppcheck`
+- `make fullcheck` — runs the full quality gate in one go: `tests` + `analyze`
+
 > **All `make` commands must be run from the project root (`aloschen/`), not from `source/`.**
 
 ## VERIFICATION TRUTH COMMANDS
@@ -23,6 +27,14 @@ After every code change, run the following in order:
    make scan
    Expected: `scan-build: No bugs found.`
 
+### Single-command verification (agent-friendly)
+If you want one command that runs the full quality gate (tests + all static analysis) in one go:
+- `make fullcheck`
+
+This runs:
+- `make tests`
+- `make analyze` (see below)
+
 Use `git --no-pager log/diff/show/status` freely to understand history and context.
 ---
 
@@ -36,10 +48,24 @@ A useful manual workflow to confirm the plugin runs in a real host:
 2. Copy the bundle to `~/.lv2` (e.g., `cp -r aloschen.lv2 ~/.lv2/`).
 3. Run `lv2lint -E -M -I ~/.lv2/aloschen.lv2 http://ktano-studio.com/aloschen`
    to validate the bundle.
-4. launch with `jalv` using the URI.
-   Run it with `ALO_LOG=1` to enable the internal debug logger.  While the
+4. Launch with `jalv` using the URI.
+   Run it with `ALO_LOG=1` to enable the internal debug logger. While the
    plugin is running you can tail `/tmp/alo.log` to watch initialization and
-   runtime messages.  Quit the host when done.
+   runtime messages. Quit the host when done.
+
+### Transient slicing debug (known `sample.wav`)
+The transient WAV test binary includes an opt-in debug report for tuning transient slicing
+against `tests/assets/sample.wav` (intended for manual investigation, not CI baselines).
+
+- Run normal (quiet) tests:
+  - `./tests/run_transient_wav_tests`
+
+- Run with debug output enabled:
+  - `TRANSIENT_WAV_TEST_DEBUG=1 ./tests/run_transient_wav_tests`
+
+The debug report prints additional cases (Sens / threshold multiplier / slices-per-bar),
+the resulting detected split counts, and a note→slice assignment summary so you can
+cross-check behavior when testing the same asset in a host.
 
 This sequence provides additional end‑to‑end assurance beyond unit tests.
 | Binary                       | Source                      | Tests                                    |
@@ -72,6 +98,8 @@ make clean && make tests
 ### Run individual test binary
 ./tests/run_transport_tests
 ./tests/run_dsp_tests
+./tests/run_engine_tests
+./tests/run_transient_wav_tests
 
 ### Adding a new test file
 1. Create `tests/my_feature_test.c` with its own `main()`.
@@ -82,6 +110,15 @@ make clean && make tests
 3. Add the binary to `TEST_BIN` and to the `clean` rule.
 ---
 ## Static Analysis Workflow
+### Quick path (recommended)
+Run everything in one go from the **project root**:
+- `make analyze`
+
+This runs:
+1. `make scan` (scan-build / Clang analyzer)
+2. `make tidy` (clang-tidy)
+3. `make cppcheck` (cppcheck)
+
 ### 1. scan-build (Clang analyzer)
 Run from the **project root**:
 make scan
@@ -104,16 +141,18 @@ system/LV2 headers are expected in a non-installed environment — treat only
 ---
 
 ## Build Targets Reference
-| Target              | Description                                          |
-|---------------------|------------------------------------------------------|
-| `make` / `make all` | Build the plugin `.so` files and `manifest.ttl`      |
-| `make tests`        | Build test binaries then run them; fail on error     |
-| `make scan`         | Run `scan-build` static analyzer once                |
-| `make tidy`         | Run `clang-tidy` on all source files                 |
-| `make cppcheck`     | Run `cppcheck` on the whole tree                     |
-| `make safe`         | Build with `-fno-fast-math` for precision debugging  |
-| `make clean`        | Remove built artefacts including test binaries       |
-| `make install`      | Install bundle to `$(PREFIX)/lib/lv2/`               |
+| Target                | Description                                          |
+|-----------------------|------------------------------------------------------|
+| `make` / `make all`   | Build the plugin `.so` files and `manifest.ttl`      |
+| `make tests`          | Build test binaries then run them; fail on error     |
+| `make scan`           | Run `scan-build` static analyzer once                |
+| `make tidy`           | Run `clang-tidy` on all source files                 |
+| `make cppcheck`       | Run `cppcheck` on the whole tree                     |
+| `make analyze`        | Run `scan` + `tidy` + `cppcheck` in one go           |
+| `make fullcheck`      | Run `tests` + `analyze` in one go                    |
+| `make safe`           | Build with `-fno-fast-math` for precision debugging  |
+| `make clean`          | Remove built artefacts including test binaries       |
+| `make install`        | Install bundle to `$(PREFIX)/lib/lv2/`               |
 ---
 
 ## Real-Time Safety Programming Rules

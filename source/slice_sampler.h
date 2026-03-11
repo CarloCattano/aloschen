@@ -129,12 +129,16 @@ bool alo_slice_sampler_alloc_buffers(AloSliceSampler* s, uint32_t max_len, uint3
 void alo_slice_sampler_free_buffers(AloSliceSampler* s);
 
 /**
- * @brief Mark all slice buffers invalid; begins incremental clear cycle.
+ * @brief Mark all slice buffers invalid and reset clear-state bookkeeping.
  */
 void alo_slice_sampler_clear_buffers(AloSliceSampler* s);
 
 /**
- * @brief Advance an active clear job by up to @p max_samples zeros.
+ * @brief Compatibility no-op for legacy incremental clear call sites.
+ *
+ * The sampler now clears buffer metadata immediately in
+ * `alo_slice_sampler_clear_buffers()`, so this helper intentionally performs
+ * no work and only preserves the existing API surface.
  */
 void alo_slice_sampler_step_clear(AloSliceSampler* s, uint32_t max_samples);
 

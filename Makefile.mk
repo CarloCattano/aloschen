@@ -146,6 +146,14 @@ cppcheck:
 	cppcheck --enable=all --inconclusive --quiet . || true
 
 # --------------------------------------------------------------
+# Aggregated static analysis
+# Runs scan-build, clang-tidy, and cppcheck in one go for agent/CI convenience.
+
+.PHONY: analyze
+analyze: scan tidy cppcheck
+	@echo "Static analysis complete — scan-build, clang-tidy, cppcheck."
+
+# --------------------------------------------------------------
 # Set shared library CLI arg
 
 SHARED = -shared

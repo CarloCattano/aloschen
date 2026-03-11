@@ -163,8 +163,6 @@
         </div>
       </div>
       <!-- show detected slices count when in transient mode -->
-      <!-- detected count and threshold have been moved to the right-hand
-           control column to make room for the mix knob. -->
       <div class="mod-separator"></div>
 
       <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
@@ -254,20 +252,24 @@
         </div>
       </div>
 
-      <!-- transient sensitivity slider -->
+      <!-- transient threshold knob -->
       <div class="mod-knob" mod-role="icon-button" mod-button-type="knob">
         <div class="mod-knob-image-wrapper">
           <div
             class="mod-knob-image"
             mod-role="input-control-port"
-            mod-port-symbol="slice_sens"
+            mod-port-symbol="transient_threshold"
           ></div>
         </div>
       </div>
       <div class="mod-knob">
-        <div class="mod-knob-title">Sens</div>
-        <div class="mod-knob-value" mod-role="input-control-value" mod-port-symbol="slice_sens">
-          0.5
+        <div class="mod-knob-title">Thresh</div>
+        <div
+          class="mod-knob-value"
+          mod-role="input-control-value"
+          mod-port-symbol="transient_threshold"
+        >
+          4
         </div>
       </div>
 
@@ -287,7 +289,7 @@
           mod-role="input-control-value"
           mod-port-symbol="slice_env_attack"
         >
-          5.0
+          5
         </div>
       </div>
 
@@ -336,9 +338,9 @@
     <div mod-role="output-control-value" mod-port-symbol="undo2_state">0</div>
     <div mod-role="output-control-value" mod-port-symbol="undo3_state">0</div>
     <div mod-role="output-control-value" mod-port-symbol="detected_slices">0</div>
-    <div mod-role="input-control-value" mod-port-symbol="slice_sens">0.5</div>
+    <div mod-role="input-control-value" mod-port-symbol="transient_threshold">4</div>
     <div mod-role="input-control-value" mod-port-symbol="split_by_transient">0</div>
-    <div mod-role="input-control-value" mod-port-symbol="slice_env_attack">5.0</div>
+    <div mod-role="input-control-value" mod-port-symbol="slice_env_attack">5</div>
     <div mod-role="input-control-value" mod-port-symbol="slice_env_frac">0</div>
     <div mod-role="output-control-value" mod-port-symbol="bar_step">0</div>
 

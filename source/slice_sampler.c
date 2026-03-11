@@ -72,7 +72,7 @@ void alo_slice_sampler_reset(AloSliceSampler* s)
   }
 }
 
-/* mark all slice buffers invalid and begin incremental clearing */
+/* mark all slice buffers invalid and reset any pending clear-tracking state */
 void alo_slice_sampler_clear_buffers(AloSliceSampler* s)
 {
   ALO_GUARD(s);
@@ -85,12 +85,10 @@ void alo_slice_sampler_clear_buffers(AloSliceSampler* s)
   s->clear_offset      = 0u;
 }
 
-/* advance in-flight buffer clear job by up to max_samples zeros */
+/* compatibility no-op: buffer invalidation is handled elsewhere */
 void alo_slice_sampler_step_clear(AloSliceSampler* s, uint32_t max_samples)
 {
   ALO_GUARD(s);
-  /* no-op placeholder; clearing is handled by the caller's buffer management
-     logic. leaving the stub in place to preserve API. */
   (void)max_samples;
 }
 
