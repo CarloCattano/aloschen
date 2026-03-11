@@ -561,11 +561,8 @@ void run_events(Alo* self, const uint32_t n_samples)
        remains "root note + N" with N in [0..detected_slices_count). */
     uint32_t slice_count;
     if (alo_get_use_transient_slices_b(self)) {
+      /* no detected offsets yet; nothing to trigger */
       slice_count = self->detected_slices_count;
-      if (slice_count == 0u) {
-        /* no detected offsets yet; nothing to trigger */
-        slice_count = 0u;
-      }
     } else {
       slice_count = alo_get_slice_count_u(self);
     }
