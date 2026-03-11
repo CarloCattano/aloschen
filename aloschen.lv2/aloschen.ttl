@@ -307,8 +307,8 @@ lv2:port
 	lv2:symbol "transient_threshold";
 	lv2:name "Threshold";
 	lv2:default 4.0;
-	lv2:minimum 1.0;
-	lv2:maximum 20.0;
+	lv2:minimum 0.0;
+	lv2:maximum 15.0;
 	# this control now sets the amplitude threshold for transient detection
 	# (higher values make splits rarer).  range kept modest to keep CPU
 	# consumption reasonable.
@@ -567,16 +567,4 @@ lv2:port
 	] , [
 		ui:plugin <http://ktano-studio.com/aloschen> ;
 		ui:portIndex 39
-	] , [
-		ui:plugin <http://ktano-studio.com/aloschen> ;
-		ui:portIndex 40
-	] , [
-		ui:plugin <http://ktano-studio.com/aloschen> ;
-		ui:portIndex 41
-	] , [
-		ui:plugin <http://ktano-studio.com/aloschen> ;
-		ui:portIndex 42
-	] , [
-		ui:plugin <http://ktano-studio.com/aloschen> ;
-		ui:portIndex 43
 	] .
