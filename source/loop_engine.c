@@ -147,7 +147,7 @@ static void update_bar_step_out(Alo* self)
     }
 
     alo_port_write(self->ports.host_bar_phase_out, host_bar_phase);
-    alo_port_write(self->ports.cycle_phase_out,    cycle_phase);
+    alo_port_write(self->ports.cycle_phase_out, cycle_phase);
   }
 }
 
@@ -257,15 +257,16 @@ void run_clicks(Alo* self, uint32_t n_samples)
 
   const bool can_click = play_click && (*(self->ports.click) > 0.0f) && self->speed;
 
-  const double bpm              = (self->bpm > ALO_MIN_BPM) ? (double)self->bpm : (double)DEFAULT_BPM;
+  const double bpm = (self->bpm > ALO_MIN_BPM) ? (double)self->bpm : (double)DEFAULT_BPM;
   const double samples_per_beat = (double)self->rate * 60.0 / bpm;
 
   /* compute absolute beat positions at block start/end from host transport
    * information rather than relying on a drift-prone running counter.
    */
   const double beat_start = self->have_last_transport_beats ? self->last_transport_beats : 0.0;
-  const double beat_end =
-      beat_start + ((samples_per_beat > ALO_MIN_SAMPLES_PER_BEAT) ? ((double)n_samples / samples_per_beat) : 0.0);
+  const double beat_end   = beat_start + ((samples_per_beat > ALO_MIN_SAMPLES_PER_BEAT)
+                                              ? ((double)n_samples / samples_per_beat)
+                                              : 0.0);
 
   const float pos0 = (float)fmod(beat_start, (double)self->bpb);
   const float pos1 = (float)fmod(beat_end, (double)self->bpb);
@@ -286,7 +287,7 @@ void run_clicks(Alo* self, uint32_t n_samples)
   const bool  boundary_at_block_start = (frac0 >= 0.0f && frac0 <= kBeatBoundaryEps);
 
   if (boundary_at_block_start || (new_beat_i != old_beat_i)) {
-    uint32_t sample_offset  = 0;
+    uint32_t sample_offset = 0;
     double   boundary_beats;
 
     int boundary_beat_i = old_beat_i;
@@ -338,7 +339,7 @@ void run_clicks(Alo* self, uint32_t n_samples)
       if (self->ui_have_cycle_origin && !self->ui_cycle_resync_pending) {
         const double bpb = (self->bpb > 1e-6f) ? (double)self->bpb : (double)DEFAULT_BEATS_PER_BAR;
         const double cycle_len = (double)(bars_i ? bars_i : 1u) * bpb;
-        double       phase     = alo_fmod_positive(boundary_beats - self->ui_cycle_origin_beats, cycle_len);
+        double phase = alo_fmod_positive(boundary_beats - self->ui_cycle_origin_beats, cycle_len);
 
         const double kCycleEpsBeats = 1e-3;
         is_cycle_start = (phase <= kCycleEpsBeats) || ((cycle_len - phase) <= kCycleEpsBeats);
@@ -552,7 +553,7 @@ void run_events(Alo* self, const uint32_t n_samples)
       goto midi_done;
     }
 
-    const int      root           = get_slice_root_note(self);
+    const int root = get_slice_root_note(self);
 
     /* Choose the number of playable slices for MIDI triggering.
        In transient split mode, we must *not* let slices_per_bar affect the
@@ -616,10 +617,11 @@ void run_events(Alo* self, const uint32_t n_samples)
           continue;
         }
         uint32_t start = self->detected_slice_offsets[idx];
-        uint32_t end = (idx + 1u < self->detected_slices_count)
-                          ? self->detected_slice_offsets[idx + 1u]
-                          : self->loop_samples;
-        if (end <= start) continue;
+        uint32_t end   = (idx + 1u < self->detected_slices_count)
+                             ? self->detected_slice_offsets[idx + 1u]
+                             : self->loop_samples;
+        if (end <= start)
+          continue;
         phase_samples = start;
         slice_len     = end - start;
       } else {

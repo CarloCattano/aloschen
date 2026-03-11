@@ -6,15 +6,15 @@
 #ifndef ALO_ENGINE_H
 #define ALO_ENGINE_H
 
-#include <stdbool.h> /* cppcheck-suppress missingIncludeSystem */
-#include <stdint.h> /* cppcheck-suppress missingIncludeSystem */
+#include <stdbool.h>       /* cppcheck-suppress missingIncludeSystem */
+#include <stdint.h>        /* cppcheck-suppress missingIncludeSystem */
 #include <lv2/atom/atom.h> /* cppcheck-suppress missingIncludeSystem */
 #include <lv2/urid/urid.h> /* cppcheck-suppress missingIncludeSystem */
 #include <lv2/midi/midi.h> /* cppcheck-suppress missingIncludeSystem */
-#include <lv2/core/lv2.h> /* cppcheck-suppress missingIncludeSystem */
+#include <lv2/core/lv2.h>  /* cppcheck-suppress missingIncludeSystem */
 
 #include "slice_sampler.h"
-#include "transient_detector.h"  /* needed for incremental detection state */
+#include "transient_detector.h" /* needed for incremental detection state */
 
 #define ALO_URI "http://ktano-studio.com/aloschen"
 
@@ -103,10 +103,10 @@ typedef enum
   ALO_LOOP2_HAS_AUDIO = 28,
   ALO_LOOP3_HAS_AUDIO = 29,
   /* Debug/visualization outputs (MOD GUI rings). */
-  ALO_CYCLE_PHASE    = 30,
-  ALO_HOST_BAR_PHASE = 31,
-  ALO_SAMPLER_VOL    = 32,
-  ALO_SLICES_PER_BAR = 33,
+  ALO_CYCLE_PHASE        = 30,
+  ALO_HOST_BAR_PHASE     = 31,
+  ALO_SAMPLER_VOL        = 32,
+  ALO_SLICES_PER_BAR     = 33,
   ALO_SPLIT_TRANSIENTS   = 34, /* boolean toggle: split slices at detected transients */
   ALO_DETECTED_SLICES    = 35, /* output: number of slices currently active/detected */
   ALO_TRANSIENT_THRESH   = 36, /* control: detection threshold ratio */
@@ -169,16 +169,16 @@ typedef struct
   float* bars;
   /** Number of slices per bar for MIDI one-shots (integer 2..8). */
   float* slices_per_bar;
-  float* split_by_transient;   /* 0 = uniform slices, >0 = transient-based */
-  float* transient_threshold;  /* threshold multiplier for transient detection */
-  float* slice_env_frac;       /* release length percent: 0..100 of slice length */
-  float* slice_env_attack;     /* attack length in ms (hidden, not exposed via UI) */
-  float* slice_sens;           /* normalized sensitivity 0..1 */
-  float* transient_debounce;   /* detector retrigger gap in milliseconds */
-  float* transient_burst;      /* minimum burst duration in milliseconds */
-  float* transient_end_ratio;  /* candidate completion ratio */
-  float* transient_pre_ms;     /* move slice start before peak by this many ms */
-  float* detected_slices_out;  /* output count for UI */
+  float* split_by_transient;  /* 0 = uniform slices, >0 = transient-based */
+  float* transient_threshold; /* threshold multiplier for transient detection */
+  float* slice_env_frac;      /* release length percent: 0..100 of slice length */
+  float* slice_env_attack;    /* attack length in ms (hidden, not exposed via UI) */
+  float* slice_sens;          /* normalized sensitivity 0..1 */
+  float* transient_debounce;  /* detector retrigger gap in milliseconds */
+  float* transient_burst;     /* minimum burst duration in milliseconds */
+  float* transient_end_ratio; /* candidate completion ratio */
+  float* transient_pre_ms;    /* move slice start before peak by this many ms */
+  float* detected_slices_out; /* output count for UI */
   float* slice_root;
   float* click;
   float* mix;
@@ -334,27 +334,28 @@ typedef struct Alo
    * sqrtf work.
    */
   uint32_t cached_slices_per_bar;
-  float    cached_sens;        /* last-used slice sensitivity for dirty detection */
-  float    cached_threshold;   /* last-used transient threshold control */
-  float    cached_debounce_ms; /* last-used detector debounce in ms */
-  float    cached_burst_ms;    /* last-used minimum burst time in ms */
-  float    cached_end_ratio;   /* last-used candidate end ratio */
-  float    cached_pre_ms;      /* last-used transient pre-roll in ms */
-  bool     cached_split_mode;  /* previous state of split_by_transient */
+  float    cached_sens;           /* last-used slice sensitivity for dirty detection */
+  float    cached_threshold;      /* last-used transient threshold control */
+  float    cached_debounce_ms;    /* last-used detector debounce in ms */
+  float    cached_burst_ms;       /* last-used minimum burst time in ms */
+  float    cached_end_ratio;      /* last-used candidate end ratio */
+  float    cached_pre_ms;         /* last-used transient pre-roll in ms */
+  bool     cached_split_mode;     /* previous state of split_by_transient */
   uint32_t detected_slices_count; /* current number of slices after detection */
-  uint32_t detected_slice_offsets[ALO_SLICE_SAMPLER_MAX_VOICES]; /* start offsets of each slice in samples */
-  float    detected_slice_strength[ALO_SLICE_SAMPLER_MAX_VOICES]; /* strength for ranked selection */
+  uint32_t detected_slice_offsets[ALO_SLICE_SAMPLER_MAX_VOICES]; /* start offsets of each slice in
+                                                                    samples */
+  float detected_slice_strength[ALO_SLICE_SAMPLER_MAX_VOICES];   /* strength for ranked selection */
 
   /* state used by the incremental transient detector so that scanning the
    * loop buffer can be spread across many audio blocks and avoid large
    * one-shot loops that could cause xruns.  Detection is restarted whenever
    * the loop content changes, or when the threshold/split-mode values change.
    */
-  TransientDetector detect_td; /* working detector instance */
-  uint32_t          detect_pos; /* next sample index to inspect */
+  TransientDetector detect_td;     /* working detector instance */
+  uint32_t          detect_pos;    /* next sample index to inspect */
   bool              detect_active; /* true while a scan is in progress */
 
-  float    cached_slice_gain_scale;
+  float cached_slice_gain_scale;
 
   /** Track lv2:enabled state to avoid per-block resets when disabled. */
   bool have_last_enabled;

@@ -29,48 +29,51 @@
 #define TD_DEFAULT_MIN_BURST_MS 20.0f
 #define TD_DEFAULT_END_RATIO 1.1f
 
-typedef struct {
-    uint32_t start_sample;
-    uint32_t peak_sample;
-    uint32_t end_sample;
-    float peak_amplitude;
-    float peak_ratio;
-    bool active;
-    bool complete;
+typedef struct
+{
+  uint32_t start_sample;
+  uint32_t peak_sample;
+  uint32_t end_sample;
+  float    peak_amplitude;
+  float    peak_ratio;
+  bool     active;
+  bool     complete;
 } TransientCandidate;
 
-typedef struct {
-    bool triggered;
-    bool candidate_complete;
-    float amplitude;
-    float onset_ratio;
-    uint32_t sample_index;
-    TransientCandidate candidate;
+typedef struct
+{
+  bool               triggered;
+  bool               candidate_complete;
+  float              amplitude;
+  float              onset_ratio;
+  uint32_t           sample_index;
+  TransientCandidate candidate;
 } TransientDetectorEvent;
 
-typedef struct {
-    float fast_env;
-    float slow_env;
+typedef struct
+{
+  float fast_env;
+  float slow_env;
 
-    /* precomputed filter coefficients */
-    float fast_coeff;
-    float slow_coeff;
+  /* precomputed filter coefficients */
+  float fast_coeff;
+  float slow_coeff;
 
-    /* when fast_env > slow_env * threshold_ratio ⇒ trigger */
-    float threshold_ratio;
-    float end_ratio;
+  /* when fast_env > slow_env * threshold_ratio ⇒ trigger */
+  float threshold_ratio;
+  float end_ratio;
 
-    /* simple sample-based debounce */
-    uint32_t debounce_counter;
-    uint32_t debounce_samples;
+  /* simple sample-based debounce */
+  uint32_t debounce_counter;
+  uint32_t debounce_samples;
 
-    /* candidate tracking */
-    uint32_t sample_index;
-    uint32_t min_burst_samples;
-    float current_amplitude;
-    float current_ratio;
-    TransientCandidate candidate;
-    TransientCandidate last_completed_candidate;
+  /* candidate tracking */
+  uint32_t           sample_index;
+  uint32_t           min_burst_samples;
+  float              current_amplitude;
+  float              current_ratio;
+  TransientCandidate candidate;
+  TransientCandidate last_completed_candidate;
 } TransientDetector;
 
 /*
@@ -80,9 +83,7 @@ typedef struct {
  * the slow_env to fire). "debounce_time_ms" is the minimum allowed time
  * between triggers in milliseconds.
  */
-void td_init(TransientDetector* td,
-             float sample_rate,
-             float threshold_ratio,
+void td_init(TransientDetector* td, float sample_rate, float threshold_ratio,
              float debounce_time_ms);
 
 /*
@@ -91,12 +92,8 @@ void td_init(TransientDetector* td,
  * usable onset regions. "end_ratio" is the ratio below which an active onset
  * candidate is considered finished.
  */
-void td_init_ex(TransientDetector* td,
-                float sample_rate,
-                float threshold_ratio,
-                float debounce_time_ms,
-                float min_burst_time_ms,
-                float end_ratio);
+void td_init_ex(TransientDetector* td, float sample_rate, float threshold_ratio,
+                float debounce_time_ms, float min_burst_time_ms, float end_ratio);
 
 /*
  * Process a single sample. Returns true if a transient was detected on this
@@ -115,7 +112,7 @@ TransientDetectorEvent td_process_sample_ex(TransientDetector* td, float sample)
 /* Accessors for the most recent completed onset candidate and live metrics. */
 const TransientCandidate* td_last_completed_candidate(const TransientDetector* td);
 const TransientCandidate* td_current_candidate(const TransientDetector* td);
-float td_current_onset_ratio(const TransientDetector* td);
-float td_current_amplitude(const TransientDetector* td);
+float                     td_current_onset_ratio(const TransientDetector* td);
+float                     td_current_amplitude(const TransientDetector* td);
 
 #endif /* TRANSIENT_DETECTOR_H */

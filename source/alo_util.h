@@ -3,8 +3,8 @@
 
 #include "alo_engine.h"
 #include <stdbool.h> /* cppcheck-suppress missingIncludeSystem */
-#include <stdint.h> /* cppcheck-suppress missingIncludeSystem */
-#include <math.h> /* cppcheck-suppress missingIncludeSystem */
+#include <stdint.h>  /* cppcheck-suppress missingIncludeSystem */
+#include <math.h>    /* cppcheck-suppress missingIncludeSystem */
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,62 +51,74 @@ uint32_t alo_get_slices_per_bar_u(const Alo* self);
  */
 
 /* convenience guards used across modules */
-#define ALO_GUARD_VOID(ptr) do { if (!(ptr)) return; } while (0)
-#define ALO_GUARD_BOOL(ptr) do { if (!(ptr)) return false; } while (0)
-#define ALO_GUARD_NULL(ptr) do { if (!(ptr)) return NULL; } while (0)
+#define ALO_GUARD_VOID(ptr)                                                                        \
+  do {                                                                                             \
+    if (!(ptr))                                                                                    \
+      return;                                                                                      \
+  } while (0)
+#define ALO_GUARD_BOOL(ptr)                                                                        \
+  do {                                                                                             \
+    if (!(ptr))                                                                                    \
+      return false;                                                                                \
+  } while (0)
+#define ALO_GUARD_NULL(ptr)                                                                        \
+  do {                                                                                             \
+    if (!(ptr))                                                                                    \
+      return NULL;                                                                                 \
+  } while (0)
 
 /* magic-number constants */
-#define ALO_SPLIT_THRESHOLD 0.5f             /* split toggle threshold value */
-#define ALO_SENS_THRESH_MIN_RATIO 1.05f      /* most permissive detector ratio */
-#define ALO_SENS_THRESH_MAX_RATIO 4.50f      /* most strict detector ratio */
-#define ALO_TRANSIENT_THRESHOLD_DEFAULT 4.0f /* explicit threshold multiplier control default */
-#define ALO_TRANSIENT_DEBOUNCE_DEFAULT_MS 2.0f  /* retrigger gap for dense slicing */
+#define ALO_SPLIT_THRESHOLD 0.5f               /* split toggle threshold value */
+#define ALO_SENS_THRESH_MIN_RATIO 1.05f        /* most permissive detector ratio */
+#define ALO_SENS_THRESH_MAX_RATIO 4.50f        /* most strict detector ratio */
+#define ALO_TRANSIENT_THRESHOLD_DEFAULT 4.0f   /* explicit threshold multiplier control default */
+#define ALO_TRANSIENT_DEBOUNCE_DEFAULT_MS 2.0f /* retrigger gap for dense slicing */
 #define ALO_TRANSIENT_DEBOUNCE_MIN_MS 0.0f
 #define ALO_TRANSIENT_DEBOUNCE_MAX_MS 40.0f
-#define ALO_TRANSIENT_BURST_DEFAULT_MS 3.0f     /* shortest onset burst to accept */
+#define ALO_TRANSIENT_BURST_DEFAULT_MS 3.0f /* shortest onset burst to accept */
 #define ALO_TRANSIENT_BURST_MIN_MS 0.0f
 #define ALO_TRANSIENT_BURST_MAX_MS 40.0f
-#define ALO_TRANSIENT_END_RATIO_DEFAULT 1.02f   /* lower = candidate closes sooner */
+#define ALO_TRANSIENT_END_RATIO_DEFAULT 1.02f /* lower = candidate closes sooner */
 #define ALO_TRANSIENT_END_RATIO_MIN 1.001f
 #define ALO_TRANSIENT_END_RATIO_MAX 1.50f
-#define ALO_TRANSIENT_PRE_DEFAULT_MS 2.0f       /* pre-roll before peak for boundary */
+#define ALO_TRANSIENT_PRE_DEFAULT_MS 2.0f /* pre-roll before peak for boundary */
 #define ALO_TRANSIENT_PRE_MIN_MS 0.0f
 #define ALO_TRANSIENT_PRE_MAX_MS 20.0f
-#define ALO_MIN_SLICES_PER_BAR 4u               /* floor in transient mode */
-#define ALO_SLICE_ENV_ATTACK_DEFAULT_MS 5.0f    /* default attack time for slice envelopes */
+#define ALO_MIN_SLICES_PER_BAR 4u            /* floor in transient mode */
+#define ALO_SLICE_ENV_ATTACK_DEFAULT_MS 5.0f /* default attack time for slice envelopes */
 
 /* user-visible control ranges */
-#define ALO_BARS_MIN_F 1.0f                /* min value for Bars slider */
-#define ALO_BARS_MAX_F 16.0f               /* max value for Bars slider */
-#define ALO_SLICES_PER_BAR_MIN_U 2u        /* min slices-per-bar slider value */
-#define ALO_SLICES_PER_BAR_MAX_U 8u        /* max slices-per-bar slider value */
-#define ALO_SLICE_ENV_FRAC_MAX 100.0f      /* percent */
+#define ALO_BARS_MIN_F 1.0f           /* min value for Bars slider */
+#define ALO_BARS_MAX_F 16.0f          /* max value for Bars slider */
+#define ALO_SLICES_PER_BAR_MIN_U 2u   /* min slices-per-bar slider value */
+#define ALO_SLICES_PER_BAR_MAX_U 8u   /* max slices-per-bar slider value */
+#define ALO_SLICE_ENV_FRAC_MAX 100.0f /* percent */
 
 /* timing / transport constants */
-#define ALO_MIN_BPM 1e-6f                  /* beat-rate safety floor */
-#define ALO_MIN_SAMPLES_PER_BEAT 1e-9f     /* prevent division-by-zero */
-#define ALO_BEAT_BOUNDARY_EPS 1e-3f        /* small epsilon in beat units (~0.5ms) */
-#define ALO_PARAM_CHANGE_EPS 0.01f         /* threshold for parameter change notifications */
+#define ALO_MIN_BPM 1e-6f              /* beat-rate safety floor */
+#define ALO_MIN_SAMPLES_PER_BEAT 1e-9f /* prevent division-by-zero */
+#define ALO_BEAT_BOUNDARY_EPS 1e-3f    /* small epsilon in beat units (~0.5ms) */
+#define ALO_PARAM_CHANGE_EPS 0.01f     /* threshold for parameter change notifications */
 
 /* looper behaviour constants */
-#define ALO_LOOP_BTN_HOLD_FRAMES 8u        /* frames required to treat toggle as held */
-#define ALO_CLICK_AMP_SCALE 0.1f           /* multiplier for click samples */
-#define ALO_DOWNBEAT_GRACE_BEATS 0.25f     /* grace window for downbeat edge detection */
-#define ALO_RATE_EPS 1e-6f                 /* small epsilon used when testing sample rate */
+#define ALO_LOOP_BTN_HOLD_FRAMES 8u    /* frames required to treat toggle as held */
+#define ALO_CLICK_AMP_SCALE 0.1f       /* multiplier for click samples */
+#define ALO_DOWNBEAT_GRACE_BEATS 0.25f /* grace window for downbeat edge detection */
+#define ALO_RATE_EPS 1e-6f             /* small epsilon used when testing sample rate */
 
 /* constants used by alo_edge_fade_samples_u32() */
-#define ALO_EDGE_FADE_SAMPLES_MIN 16u       /* lower clamp for fade size */
-#define ALO_EDGE_FADE_SAMPLES_MAX 512u      /* upper clamp for fade size */
-#define ALO_EDGE_FADE_DEFAULT_SAMPLES 64u   /* return value when input invalid */
+#define ALO_EDGE_FADE_SAMPLES_MIN 16u     /* lower clamp for fade size */
+#define ALO_EDGE_FADE_SAMPLES_MAX 512u    /* upper clamp for fade size */
+#define ALO_EDGE_FADE_DEFAULT_SAMPLES 64u /* return value when input invalid */
 
 /* MIDI / slice constants */
-#define ALO_DEFAULT_SLICE_ROOT_NOTE 36     /* default root when port missing */
+#define ALO_DEFAULT_SLICE_ROOT_NOTE 36 /* default root when port missing */
 #define ALO_SLICE_ROOT_MIN 0
 #define ALO_SLICE_ROOT_MAX 127
 
 /* geometry constants used by UI code (usage suggested but not required) */
-#define ALO_UI_TITLE_TEXT     "ALOSCHEN"
-#define ALO_UI_SUBTITLE_TEXT  "LOOPER"
+#define ALO_UI_TITLE_TEXT "ALOSCHEN"
+#define ALO_UI_SUBTITLE_TEXT "LOOPER"
 
 bool alo_get_use_transient_slices_b(const Alo* self);
 
@@ -117,12 +129,14 @@ bool alo_get_use_transient_slices_b(const Alo* self);
  */
 static inline uint32_t alo_get_slice_count_u(const Alo* self)
 {
-    uint32_t bars = alo_get_bars_i(self);
-    uint32_t spb  = alo_get_slices_per_bar_u(self);
-    uint32_t count = bars * spb;
-    if (count < 1u) count = 1u;
-    if (count > ALO_SLICE_INFO_MAX) count = ALO_SLICE_INFO_MAX;
-    return count;
+  uint32_t bars  = alo_get_bars_i(self);
+  uint32_t spb   = alo_get_slices_per_bar_u(self);
+  uint32_t count = bars * spb;
+  if (count < 1u)
+    count = 1u;
+  if (count > ALO_SLICE_INFO_MAX)
+    count = ALO_SLICE_INFO_MAX;
+  return count;
 }
 
 /**
@@ -232,13 +246,15 @@ uint32_t alo_edge_fade_samples_u32(const Alo* self);
  */
 static inline float alo_get_slice_env_frac(const Alo* self)
 {
-    if (!self || !self->ports.slice_env_frac) {
-        return 0.0f;
-    }
-    float v = *(self->ports.slice_env_frac);
-    if (v < 0.0f) v = 0.0f;
-    if (v > 100.0f) v = 100.0f;
-    return v;
+  if (!self || !self->ports.slice_env_frac) {
+    return 0.0f;
+  }
+  float v = *(self->ports.slice_env_frac);
+  if (v < 0.0f)
+    v = 0.0f;
+  if (v > 100.0f)
+    v = 100.0f;
+  return v;
 }
 
 /** Return the effective transient detector threshold ratio derived from both
@@ -250,52 +266,60 @@ float alo_get_transient_threshold_ratio(const Alo* self);
  * retriggering and generally produce more slices. */
 static inline float alo_get_transient_debounce_ms(const Alo* self)
 {
-    float v = ALO_TRANSIENT_DEBOUNCE_DEFAULT_MS;
-    if (self && self->ports.transient_debounce) {
-        v = *(self->ports.transient_debounce);
-    }
-    if (v < ALO_TRANSIENT_DEBOUNCE_MIN_MS) v = ALO_TRANSIENT_DEBOUNCE_MIN_MS;
-    if (v > ALO_TRANSIENT_DEBOUNCE_MAX_MS) v = ALO_TRANSIENT_DEBOUNCE_MAX_MS;
-    return v;
+  float v = ALO_TRANSIENT_DEBOUNCE_DEFAULT_MS;
+  if (self && self->ports.transient_debounce) {
+    v = *(self->ports.transient_debounce);
+  }
+  if (v < ALO_TRANSIENT_DEBOUNCE_MIN_MS)
+    v = ALO_TRANSIENT_DEBOUNCE_MIN_MS;
+  if (v > ALO_TRANSIENT_DEBOUNCE_MAX_MS)
+    v = ALO_TRANSIENT_DEBOUNCE_MAX_MS;
+  return v;
 }
 
 /** Read transient minimum burst duration in milliseconds. Lower values accept
  * shorter onsets and generally produce more slices. */
 static inline float alo_get_transient_burst_ms(const Alo* self)
 {
-    float v = ALO_TRANSIENT_BURST_DEFAULT_MS;
-    if (self && self->ports.transient_burst) {
-        v = *(self->ports.transient_burst);
-    }
-    if (v < ALO_TRANSIENT_BURST_MIN_MS) v = ALO_TRANSIENT_BURST_MIN_MS;
-    if (v > ALO_TRANSIENT_BURST_MAX_MS) v = ALO_TRANSIENT_BURST_MAX_MS;
-    return v;
+  float v = ALO_TRANSIENT_BURST_DEFAULT_MS;
+  if (self && self->ports.transient_burst) {
+    v = *(self->ports.transient_burst);
+  }
+  if (v < ALO_TRANSIENT_BURST_MIN_MS)
+    v = ALO_TRANSIENT_BURST_MIN_MS;
+  if (v > ALO_TRANSIENT_BURST_MAX_MS)
+    v = ALO_TRANSIENT_BURST_MAX_MS;
+  return v;
 }
 
 /** Read transient candidate end ratio. Lower values end candidates sooner and
  * can increase slice count on dense material. */
 static inline float alo_get_transient_end_ratio(const Alo* self)
 {
-    float v = ALO_TRANSIENT_END_RATIO_DEFAULT;
-    if (self && self->ports.transient_end_ratio) {
-        v = *(self->ports.transient_end_ratio);
-    }
-    if (v < ALO_TRANSIENT_END_RATIO_MIN) v = ALO_TRANSIENT_END_RATIO_MIN;
-    if (v > ALO_TRANSIENT_END_RATIO_MAX) v = ALO_TRANSIENT_END_RATIO_MAX;
-    return v;
+  float v = ALO_TRANSIENT_END_RATIO_DEFAULT;
+  if (self && self->ports.transient_end_ratio) {
+    v = *(self->ports.transient_end_ratio);
+  }
+  if (v < ALO_TRANSIENT_END_RATIO_MIN)
+    v = ALO_TRANSIENT_END_RATIO_MIN;
+  if (v > ALO_TRANSIENT_END_RATIO_MAX)
+    v = ALO_TRANSIENT_END_RATIO_MAX;
+  return v;
 }
 
 /** Read pre-roll before transient peak in milliseconds. Smaller values place
  * boundaries closer to the transient peak. */
 static inline float alo_get_transient_pre_ms(const Alo* self)
 {
-    float v = ALO_TRANSIENT_PRE_DEFAULT_MS;
-    if (self && self->ports.transient_pre_ms) {
-        v = *(self->ports.transient_pre_ms);
-    }
-    if (v < ALO_TRANSIENT_PRE_MIN_MS) v = ALO_TRANSIENT_PRE_MIN_MS;
-    if (v > ALO_TRANSIENT_PRE_MAX_MS) v = ALO_TRANSIENT_PRE_MAX_MS;
-    return v;
+  float v = ALO_TRANSIENT_PRE_DEFAULT_MS;
+  if (self && self->ports.transient_pre_ms) {
+    v = *(self->ports.transient_pre_ms);
+  }
+  if (v < ALO_TRANSIENT_PRE_MIN_MS)
+    v = ALO_TRANSIENT_PRE_MIN_MS;
+  if (v > ALO_TRANSIENT_PRE_MAX_MS)
+    v = ALO_TRANSIENT_PRE_MAX_MS;
+  return v;
 }
 
 /** Compute a short anti-click fade length at slice boundaries / slice end. */
@@ -314,13 +338,15 @@ uint32_t alo_get_slice_env_attack_samples(const Alo* self);
 
 static inline float alo_get_slice_sensitivity(const Alo* self)
 {
-    if (!self || !self->ports.slice_sens) {
-        return 0.0f;
-    }
-    float v = *(self->ports.slice_sens);
-    if (v < 0.0f) v = 0.0f;
-    if (v > 1.0f) v = 1.0f;
-    return v;
+  if (!self || !self->ports.slice_sens) {
+    return 0.0f;
+  }
+  float v = *(self->ports.slice_sens);
+  if (v < 0.0f)
+    v = 0.0f;
+  if (v > 1.0f)
+    v = 1.0f;
+  return v;
 }
 
 /** Map the user-facing 0..1 sensitivity control to a permissive detector

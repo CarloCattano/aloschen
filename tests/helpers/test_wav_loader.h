@@ -7,12 +7,13 @@
 extern "C" {
 #endif
 
-typedef struct TestWavData {
-    float* left;
-    float* right;
-    size_t frames;
-    unsigned sample_rate;
-    unsigned channels;
+typedef struct TestWavData
+{
+  float*   left;
+  float*   right;
+  size_t   frames;
+  unsigned sample_rate;
+  unsigned channels;
 } TestWavData;
 
 /* Load a little-endian RIFF/WAVE PCM file for unit tests.

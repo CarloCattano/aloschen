@@ -444,9 +444,9 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
   case ALO_TRANSIENT_PRE_MS:
     self->ports.transient_pre_ms = (float*)data;
     break;
-  /* slice_offset ports follow; they are output so plugin does not assign them */
-  /* the port index values are contiguous so we can handle them generically */
-  /* handled in the final default label below */
+    /* slice_offset ports follow; they are output so plugin does not assign them */
+    /* the port index values are contiguous so we can handle them generically */
+    /* handled in the final default label below */
 
   case ALO_LOOP1_STATE:
     self->ports.loop_state_out[0] = (float*)data;

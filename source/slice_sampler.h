@@ -10,7 +10,7 @@
 #define ALO_SLICE_SAMPLER_H
 
 #include <stdbool.h> /* cppcheck-suppress missingIncludeSystem */
-#include <stdint.h> /* cppcheck-suppress missingIncludeSystem */
+#include <stdint.h>  /* cppcheck-suppress missingIncludeSystem */
 
 #ifndef ALO_SLICE_INFO_MAX
 #define ALO_SLICE_INFO_MAX 64
@@ -62,7 +62,7 @@ typedef struct
   /* MIDI identity is retained only for trigger provenance/debugging.
    * Slice playback is intentionally one-shot and does not depend on note-off.
    */
-  uint8_t     midi_note;
+  uint8_t midi_note;
 
   // Per-slice buffer assignment
   const float* slice_buf_l;   // Pointer to left channel buffer
@@ -84,14 +84,14 @@ typedef struct
   /* MIDI identity is carried through pending triggers only so the eventual
    * voice can retain information about which note created it.
    */
-  uint8_t  midi_note;
+  uint8_t midi_note;
 } AloSlicePending;
 
 typedef struct
 {
   AloSliceVoice   voices[ALO_SLICE_SAMPLER_MAX_VOICES];
   AloSlicePending pending[ALO_SLICE_SAMPLER_MAX_PENDING];
-  float           rate; // Sample rate for envelope generator
+  float           rate;       // Sample rate for envelope generator
   uint32_t        next_voice; /* index for round‑robin voice selection */
 
   /* Active and shadow slice maps. Each entry borrows pointers into the current
@@ -157,9 +157,6 @@ bool alo_slice_sampler_is_busy(const AloSliceSampler* s);
 void alo_slice_sampler_process_chunk(AloSliceSampler* s, const struct Alo* alo,
                                      const uint32_t block_offset_samples, const uint32_t n_samples,
                                      float* out_l, float* out_r);
-
-
-
 
 #ifdef __cplusplus
 }

@@ -115,7 +115,7 @@ void update_loop_state_ports(Alo* self)
   for (int t = 0; t < NUM_TRACKS; ++t) {
     alo_port_write(self->ports.loop_state_out[t], loop_state_value(self, t, transport_stopped));
     alo_port_write(self->ports.undo_state_out[t], undo_state_value(self, t));
-    alo_port_write(self->ports.has_audio_out[t],  has_audio_value(self, t));
+    alo_port_write(self->ports.has_audio_out[t], has_audio_value(self, t));
   }
 }
 
@@ -277,8 +277,8 @@ void reset(Alo* self)
   self->ui_have_prev_bar_beat    = false;
 
   /* Immediately clear UI phase outputs. */
-  alo_port_write(self->ports.bar_step_out,       0.0f);
-  alo_port_write(self->ports.cycle_phase_out,    0.0f);
+  alo_port_write(self->ports.bar_step_out, 0.0f);
+  alo_port_write(self->ports.cycle_phase_out, 0.0f);
   alo_port_write(self->ports.host_bar_phase_out, 0.0f);
 
   update_loop_state_ports(self);

@@ -2,7 +2,7 @@
 #define BUTTON_LOGIC_H
 
 #include "alo_engine.h"
-#include "alo_util.h" 
+#include "alo_util.h"
 
 /**
  * @brief Notify engine that UI cycle should resynchronize on next update.

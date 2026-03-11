@@ -28,7 +28,7 @@
 /* Reuse the DSP's canonical port indices + plugin URI. */
 #include "alo_engine.h"
 #include "alo_ui_util.h"
-#include "alo_util.h"  /* bring in shared constants like slider limits and text */
+#include "alo_util.h" /* bring in shared constants like slider limits and text */
 
 /*
  * UI scaling (integer geometry only).
@@ -177,9 +177,11 @@ static const Control kControls[] = {
     CTL_SLIDER_INT_(ALO_MIX, "Mix", 0.0f, 100.0f),
     CTL_SLIDER_INT_(ALO_SLICE_ROOT, "Root", 0.0f, 127.0f),
     CTL_TOGGLE_(ALO_SPLIT_TRANSIENTS, "Split"),
-    CTL_SLIDER_INT_(ALO_SLICES_PER_BAR, "Slices", (float)ALO_SLICES_PER_BAR_MIN_U, (float)ALO_SLICES_PER_BAR_MAX_U),
+    CTL_SLIDER_INT_(ALO_SLICES_PER_BAR, "Slices", (float)ALO_SLICES_PER_BAR_MIN_U,
+                    (float)ALO_SLICES_PER_BAR_MAX_U),
     CTL_SLIDER_FLOAT_(ALO_SLICE_SENS, "Sens", 0.0f, 10.0f),
-    CTL_SLIDER_FLOAT_(ALO_SLICE_ENV_FRAC, "Decay%", 0.0f, 100.0f),};
+    CTL_SLIDER_FLOAT_(ALO_SLICE_ENV_FRAC, "Decay%", 0.0f, 100.0f),
+};
 
 typedef enum
 {
@@ -196,24 +198,24 @@ typedef struct
   Window   win;
   GC       gc;
 
-  Colormap      cmap;
+  Colormap cmap;
 
-  unsigned long col_fg;      /* primary foreground (text, outlines) */
-  unsigned long col_bg;      /* window background */
-  unsigned long col_grey;    /* disabled / accent colour */
-  unsigned long col_cycle;   /* cycle/slider active colour */
+  unsigned long col_fg;         /* primary foreground (text, outlines) */
+  unsigned long col_bg;         /* window background */
+  unsigned long col_grey;       /* disabled / accent colour */
+  unsigned long col_cycle;      /* cycle/slider active colour */
   unsigned long col_cycle_past; /* cycle progress (past) */
-  unsigned long col_host;    /* host-sync indicator */
-  unsigned long col_active;  /* generic "on" colour for controls */
+  unsigned long col_host;       /* host-sync indicator */
+  unsigned long col_active;     /* generic "on" colour for controls */
   /* transport-bar ring colours */
   unsigned long col_ring_rec;
   unsigned long col_ring_arm;
   unsigned long col_ring_play;
 
   /* generic control-specific colours (new for UX refactor) */
-  unsigned long col_btn_on;       /* fill colour for a pressed/active button */
-  unsigned long col_btn_off;      /* text colour for an unpressed button */
-  unsigned long col_slider_fill;  /* colour used when filling sliders */
+  unsigned long col_btn_on;      /* fill colour for a pressed/active button */
+  unsigned long col_btn_off;     /* text colour for an unpressed button */
+  unsigned long col_slider_fill; /* colour used when filling sliders */
 
   unsigned int width;
   unsigned int height;
@@ -264,15 +266,15 @@ typedef struct
   int btn_gap;
 
   /* computed grid info */
-  int btn_rows;      /* number of rows needed for toggles/triggers */
-  int btn_cell_w;    /* width of one cell including padding */
-  int btn_cell_h;    /* height of one cell including padding */
+  int btn_rows;   /* number of rows needed for toggles/triggers */
+  int btn_cell_w; /* width of one cell including padding */
+  int btn_cell_h; /* height of one cell including padding */
 
   int slider_h;
   int row_h;
   /* vertical origins for slider groups */
-  int slider_y0_vol;     /* volume faders start here */
-  int slider_y0_ctrl;    /* all other sliders start here */
+  int slider_y0_vol;  /* volume faders start here */
+  int slider_y0_ctrl; /* all other sliders start here */
 } UILayout;
 
 static UILayout ui_layout(const AloUI* ui)
@@ -286,7 +288,7 @@ static UILayout ui_layout(const AloUI* ui)
   l.rings_y0 = l.pad + l.header_h + UI_SI(6);
   /* make the circular timing UI a little larger now that buttons are
      pulled away from the left edge */
-  l.rings_d  = UI_SI(140);
+  l.rings_d = UI_SI(140);
 
   l.buttons_x0 = l.rings_x0 + l.rings_d + l.pad;
   l.buttons_y0 = l.rings_y0;
@@ -300,8 +302,8 @@ static UILayout ui_layout(const AloUI* ui)
   /* determine how many toggle/trigger controls we have; we arrange them in
      a fixed number of columns to prevent overlap, letting the layout expand
      vertically as needed. */
-  const int cols = 3;
-  int toggle_count = 0;
+  const int cols         = 3;
+  int       toggle_count = 0;
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     const Control* c = &kControls[i];
     if (c->type == CTL_TOGGLE || c->type == CTL_TRIGGER) {
@@ -327,8 +329,7 @@ static UILayout ui_layout(const AloUI* ui)
   int vol_count = 0;
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     uint32_t p = kControls[i].port_index;
-    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL ||
-        p == ALO_SAMPLER_VOL) {
+    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL || p == ALO_SAMPLER_VOL) {
       vol_count++;
     }
   }
@@ -365,7 +366,7 @@ static void ui_draw_bar_steps(AloUI* ui, int x, int y)
   const int box_max = UI_SI(14);
   const int box_min = 1;
   int       gap     = UI_SI(4);
-      /* gap always >=1 at current scale; no need to clamp */
+  /* gap always >=1 at current scale; no need to clamp */
   int box = box_max;
   if (avail_w > 0) {
     const int denom = steps;
@@ -813,8 +814,8 @@ static void ui_redraw(AloUI* ui)
   ui_draw_transport_rings(ui, &l);
 
   /* Trigger buttons row */
-  const int btn_w   = l.btn_w;
-  const int btn_h   = l.btn_h;
+  const int btn_w = l.btn_w;
+  const int btn_h = l.btn_h;
 
   /* Reusable coordinates for later blocks */
   int x;
@@ -828,8 +829,8 @@ static void ui_redraw(AloUI* ui)
   const int cell_h = l.btn_cell_h;
 
   /* precompute undo1 position for later mute-all placement */
-  const int lx_gap = UI_SI(8);
-  const int ly_gap = UI_SI(24);
+  const int lx_gap  = UI_SI(8);
+  const int ly_gap  = UI_SI(24);
   const int undo_bw = UI_SI(64);
   const int undo_bh = UI_SI(64);
   const int bx_undo = l.buttons_x0 + 0 * (undo_bw + lx_gap);
@@ -844,8 +845,8 @@ static void ui_redraw(AloUI* ui)
       continue;
     }
 
-    int col = 0;
-    int row = 0;
+    int  col     = 0;
+    int  row     = 0;
     bool is_loop = false;
     if (ui_trigger_grid_pos(c, &col, &row)) {
       is_loop = true; /* loop1/2/3 and undo1/2/3 occupy the grid */
@@ -902,8 +903,7 @@ static void ui_redraw(AloUI* ui)
      helpful for debugging/tweaking the threshold. */
   {
     char info[48];
-    snprintf(info, sizeof(info), "detected: %d",
-             (int)ui->port_values[ALO_DETECTED_SLICES]);
+    snprintf(info, sizeof(info), "detected: %d", (int)ui->port_values[ALO_DETECTED_SLICES]);
     draw_string(ui, x, l.pad + UI_SI(4), info);
   }
 
@@ -911,13 +911,12 @@ static void ui_redraw(AloUI* ui)
   int vol_count = 0;
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
     uint32_t p = kControls[i].port_index;
-    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL ||
-        p == ALO_SAMPLER_VOL) {
+    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL || p == ALO_SAMPLER_VOL) {
       vol_count++;
     }
   }
 
-  int vol_index = 0;
+  int vol_index  = 0;
   int ctrl_index = 0;
 
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
@@ -931,11 +930,10 @@ static void ui_redraw(AloUI* ui)
     int slider_h = base_slider_h;
     int row_h    = base_row_h;
 
-    if (c->port_index == ALO_BARS || c->port_index == ALO_CLICK ||
-        c->port_index == ALO_MIX ||
+    if (c->port_index == ALO_BARS || c->port_index == ALO_CLICK || c->port_index == ALO_MIX ||
         c->port_index == ALO_SLICE_ROOT || c->port_index == ALO_SLICES_PER_BAR ||
         c->port_index == ALO_SLICE_ENV_FRAC) {
-            /* compact sliders for simpler slice controls */
+      /* compact sliders for simpler slice controls */
       slider_w = (int)((float)ui->width * 0.25f);
     }
     if (c->port_index == ALO_LOOP1_VOL || c->port_index == ALO_LOOP2_VOL ||
@@ -956,9 +954,9 @@ static void ui_redraw(AloUI* ui)
     }
 
     char        label[128];
-    float display_val = ui->port_values[c->port_index];
-    const float det_val = ui->port_values[ALO_DETECTED_SLICES];
-    const bool split_on  = ui->port_values[ALO_SPLIT_TRANSIENTS] > 0.5f;
+    float       display_val = ui->port_values[c->port_index];
+    const float det_val     = ui->port_values[ALO_DETECTED_SLICES];
+    const bool  split_on    = ui->port_values[ALO_SPLIT_TRANSIENTS] > 0.5f;
 
     /* if split mode is active then the slices slider becomes read‑only and
        reflects the number of detected regions */
@@ -971,11 +969,9 @@ static void ui_redraw(AloUI* ui)
        "round‑robin" at a glance. */
     if (c->port_index == ALO_SLICES_PER_BAR && !split_on) {
       if (c->type == CTL_SLIDER_FLOAT) {
-        snprintf(label, sizeof(label), "%s: %.2f (det %.0f)", c->label,
-                 display_val, det_val);
+        snprintf(label, sizeof(label), "%s: %.2f (det %.0f)", c->label, display_val, det_val);
       } else {
-        snprintf(label, sizeof(label), "%s: %.0f (det %.0f)", c->label,
-                 display_val, det_val);
+        snprintf(label, sizeof(label), "%s: %.0f (det %.0f)", c->label, display_val, det_val);
       }
     } else {
       if (c->type == CTL_SLIDER_FLOAT) {
@@ -992,9 +988,7 @@ static void ui_redraw(AloUI* ui)
 
     /* `v` was undefined; use the displayed value instead so that the
        slider graphic matches the label (and respects detected-slices override). */
-    const float norm   = (c->max > c->min)
-                           ? ((display_val - c->min) / (c->max - c->min))
-                           : 0.0f;
+    const float norm   = (c->max > c->min) ? ((display_val - c->min) / (c->max - c->min)) : 0.0f;
     const int   fill_w = (int)(clampf(norm, 0.0f, 1.0f) * (float)(slider_w - 2));
 
     ui_set_fg(ui, ui->col_cycle);
@@ -1026,17 +1020,17 @@ static int hit_test(const AloUI* ui, const int px, const int py, HitType* out_ty
   const UILayout l = ui_layout(ui);
   int            x;
 
-  const int btn_w   = l.btn_w;
-  const int btn_h   = l.btn_h;
+  const int btn_w = l.btn_w;
+  const int btn_h = l.btn_h;
 
   /* Toggles */
-  int fallback_i = 0;
-  const int cell_w = l.btn_cell_w;
-  const int cell_h = l.btn_cell_h;
+  int       fallback_i = 0;
+  const int cell_w     = l.btn_cell_w;
+  const int cell_h     = l.btn_cell_h;
 
   /* compute undo1 position for mute-all check later */
-  const int lx_gap = UI_SI(8);
-  const int ly_gap = UI_SI(24);
+  const int lx_gap  = UI_SI(8);
+  const int ly_gap  = UI_SI(24);
   const int undo_bw = UI_SI(64);
   const int undo_bh = UI_SI(64);
   const int bx_undo = l.buttons_x0 + 0 * (undo_bw + lx_gap);
@@ -1051,8 +1045,8 @@ static int hit_test(const AloUI* ui, const int px, const int py, HitType* out_ty
       continue;
     }
 
-    int col = 0;
-    int row = 0;
+    int  col     = 0;
+    int  row     = 0;
     bool is_loop = false;
     if (ui_trigger_grid_pos(c, &col, &row)) {
       is_loop = true;
@@ -1110,13 +1104,12 @@ static int hit_test(const AloUI* ui, const int px, const int py, HitType* out_ty
   int vol_count = 0;
   for (int j = 0; j < ARRAY_LEN(kControls); ++j) {
     uint32_t p = kControls[j].port_index;
-    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL ||
-        p == ALO_SAMPLER_VOL) {
+    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL || p == ALO_SAMPLER_VOL) {
       vol_count++;
     }
   }
 
-  int vol_index = 0;
+  int vol_index  = 0;
   int ctrl_index = 0;
 
   for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
@@ -1130,8 +1123,7 @@ static int hit_test(const AloUI* ui, const int px, const int py, HitType* out_ty
     int slider_h = base_slider_h;
     int row_h    = base_row_h;
 
-    if (c->port_index == ALO_BARS || c->port_index == ALO_CLICK ||
-        c->port_index == ALO_MIX ||
+    if (c->port_index == ALO_BARS || c->port_index == ALO_CLICK || c->port_index == ALO_MIX ||
         c->port_index == ALO_SLICE_ROOT || c->port_index == ALO_SLICES_PER_BAR) {
       slider_w = (int)((float)ui->width * 0.25f);
     }
@@ -1157,7 +1149,6 @@ static int hit_test(const AloUI* ui, const int px, const int py, HitType* out_ty
       *out_type = HIT_SLIDER;
       return i;
     }
-
   }
 
   *out_type = HIT_NONE;
@@ -1302,7 +1293,7 @@ static void handle_configure(AloUI* ui, const XConfigureEvent* e)
    the cycle colour so they stand out against the background. */
 static void ui_draw_slice_markers(AloUI* ui)
 {
-    (void)ui;
+  (void)ui;
 }
 
 static bool ui_any_armed_waiting(const AloUI* ui)
@@ -1558,24 +1549,25 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor, const cha
   ui->port_values[ALO_LOOP2_VOL]      = 1.0f;
   ui->port_values[ALO_LOOP3_VOL]      = 1.0f;
   ui->port_values[ALO_SAMPLER_VOL]    = 1.0f;
-  ui->port_values[ALO_BARS]                = 2.0f;
-  ui->port_values[ALO_CLICK]               = 1.0f;
-  ui->port_values[ALO_SLICE_ENV_FRAC]      = 0.0f;
-  ui->port_values[ALO_SLICE_ENV_ATTACK]    = ALO_SLICE_ENV_ATTACK_DEFAULT_MS; /* hidden parameter default */
-  ui->port_values[ALO_SLICE_SENS]          = 5.0f;
-  ui->port_values[ALO_TRANSIENT_DEBOUNCE]  = ALO_TRANSIENT_DEBOUNCE_DEFAULT_MS;
-  ui->port_values[ALO_TRANSIENT_BURST]     = ALO_TRANSIENT_BURST_DEFAULT_MS;
-  ui->port_values[ALO_TRANSIENT_END]       = ALO_TRANSIENT_END_RATIO_DEFAULT;
-  ui->port_values[ALO_TRANSIENT_PRE_MS]    = ALO_TRANSIENT_PRE_DEFAULT_MS;
-  ui->port_values[ALO_MIX]                 = 50.0f;
-  ui->port_values[ALO_SLICE_ROOT]     = 36.0f;
-  ui->port_values[ALO_SPLIT_TRANSIENTS] = 0.0f;
-  ui->port_values[ALO_SLICES_PER_BAR] = 4.0f;
-  ui->port_values[ALO_TRANSIENT_THRESH] = 2.0f; /* default detection threshold */
-  ui->port_values[ALO_DETECTED_SLICES] = 0.0f;
-  ui->port_values[ALO_BAR_STEP]       = 0.0f;
-  ui->port_values[ALO_CYCLE_PHASE]    = 0.0f;
-  ui->port_values[ALO_HOST_BAR_PHASE] = 0.0f;
+  ui->port_values[ALO_BARS]           = 2.0f;
+  ui->port_values[ALO_CLICK]          = 1.0f;
+  ui->port_values[ALO_SLICE_ENV_FRAC] = 0.0f;
+  ui->port_values[ALO_SLICE_ENV_ATTACK] =
+      ALO_SLICE_ENV_ATTACK_DEFAULT_MS; /* hidden parameter default */
+  ui->port_values[ALO_SLICE_SENS]         = 5.0f;
+  ui->port_values[ALO_TRANSIENT_DEBOUNCE] = ALO_TRANSIENT_DEBOUNCE_DEFAULT_MS;
+  ui->port_values[ALO_TRANSIENT_BURST]    = ALO_TRANSIENT_BURST_DEFAULT_MS;
+  ui->port_values[ALO_TRANSIENT_END]      = ALO_TRANSIENT_END_RATIO_DEFAULT;
+  ui->port_values[ALO_TRANSIENT_PRE_MS]   = ALO_TRANSIENT_PRE_DEFAULT_MS;
+  ui->port_values[ALO_MIX]                = 50.0f;
+  ui->port_values[ALO_SLICE_ROOT]         = 36.0f;
+  ui->port_values[ALO_SPLIT_TRANSIENTS]   = 0.0f;
+  ui->port_values[ALO_SLICES_PER_BAR]     = 4.0f;
+  ui->port_values[ALO_TRANSIENT_THRESH]   = 2.0f; /* default detection threshold */
+  ui->port_values[ALO_DETECTED_SLICES]    = 0.0f;
+  ui->port_values[ALO_BAR_STEP]           = 0.0f;
+  ui->port_values[ALO_CYCLE_PHASE]        = 0.0f;
+  ui->port_values[ALO_HOST_BAR_PHASE]     = 0.0f;
 
   ui->needs_redraw = true;
 
