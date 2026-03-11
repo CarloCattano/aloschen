@@ -23,7 +23,7 @@ TEST_SRCS_TRANSPORT := tests/transport_test.c
 TEST_SRCS_DSP := tests/dsp_test.c
 TEST_SRCS_TRANSIENT_WAV := tests/transient_wav_test.c
 
-.PHONY: tests check
+.PHONY: tests check fullcheck
 # build separate test executables for transport and DSP helpers
 tests: $(TEST_BIN)
 	@echo "Tests are up-to-date (binaries built). To force rebuild, use 'make -B tests' or 'make clean && make tests'."
@@ -49,8 +49,8 @@ tests/run_transport_tests: $(TEST_SRCS_TRANSPORT) source/transport.c source/tran
 	$(CC) -Isource $^ $(BUILD_C_FLAGS) -DUNIT_TESTS -UNDEBUG $(LINK_FLAGS) -lm -o $@
 	chmod +x $@
 
-tests/run_dsp_tests: $(TEST_SRCS_DSP) source/alo_util.c source/sampler_cache.c source/slice_sampler.c source/transient_detector.c
-	$(CC) -Isource $^ $(BUILD_C_FLAGS) -DUNIT_TESTS -UNDEBUG $(LINK_FLAGS) -lm -o $@
+tests/run_dsp_tests: $(TEST_SRCS_DSP) tests/helpers/test_wav_loader.c source/alo_util.c source/sampler_cache.c source/slice_sampler.c source/transient_detector.c
+	$(CC) -Isource -Itests $^ $(BUILD_C_FLAGS) -DUNIT_TESTS -UNDEBUG $(LINK_FLAGS) -lm -o $@
 	chmod +x $@
 
 tests/run_engine_tests: tests/engine_test.c source/button_logic.c source/alo_util.c source/loop_state.c source/transport.c source/slice_sampler.c source/sampler_cache.c source/transient_detector.c
@@ -63,6 +63,10 @@ tests/run_transient_wav_tests: $(TEST_SRCS_TRANSIENT_WAV) tests/helpers/test_wav
 
 check: tests scan
 	@echo "CI check complete — all tests passed, no analyzer bugs."
+
+# Run the full quality gate in one command (tests + all static analysis).
+fullcheck: tests analyze
+	@echo "Full check complete — tests + scan-build + clang-tidy + cppcheck."
 
 safe:
 	$(MAKE) SAFE_MATH=true
