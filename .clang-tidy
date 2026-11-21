@@ -1,0 +1,5 @@
+# clang-tidy >= 21 refuses to run with only the implicit clang-diagnostic-*
+# set ("no checks enabled"), which broke `make tidy`. Analyzer checks mirror
+# the scan-build gate; widen deliberately, one check family per change.
+Checks: 'clang-analyzer-*,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-clang-analyzer-optin.performance.Padding'
+WarningsAsErrors: ''

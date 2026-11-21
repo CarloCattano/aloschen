@@ -121,16 +121,16 @@ scan:
 	@echo "Running scan-build once on the build rules..."
 	# run analyzer over a single invocation of make to avoid recursive targets
 	scan-build $(SCAN_OPTS) $(MAKE) all || true
-SRCS := $(shell find source -name '*.c' -o -name '*.cpp')
+SRCS := $(shell find source vst3 -name '*.c')
 
 .PHONY: tidy
 tidy:
 	@command -v clang-tidy >/dev/null 2>&1 || { echo "clang-tidy not found, skipping"; exit 0; }
 	@echo "Running clang-tidy on $(SRCS)..."
 	@if [ -f compile_commands.json ]; then \
-		exec clang-tidy -p . $(SRCS) -- -I. ; \
+		exec clang-tidy -p . $(SRCS) -- -I. -Isource -Ivst3 ; \
 	else \
-		exec clang-tidy $(SRCS) -- -I.; \
+		exec clang-tidy $(SRCS) -- -I. -Isource -Ivst3; \
 	fi || true
 
 # --------------------------------------------------------------
@@ -143,7 +143,7 @@ tidy:
 cppcheck:
 	@command -v cppcheck >/dev/null 2>&1 || { echo "cppcheck not found, skipping"; exit 0; }
 	@echo "Running cppcheck on source tree..."
-	cppcheck --enable=all --inconclusive --quiet . || true
+	cppcheck --enable=all --inconclusive --quiet -i deps -i build . || true
 
 # --------------------------------------------------------------
 # Aggregated static analysis

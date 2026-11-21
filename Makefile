@@ -18,7 +18,7 @@ all: build
 # --------------------------------------------------------------
 # unit test harness
 
-TEST_BIN := tests/run_transport_tests tests/run_dsp_tests tests/run_engine_tests tests/run_transient_wav_tests
+TEST_BIN := tests/run_transport_tests tests/run_dsp_tests tests/run_engine_tests tests/run_transient_wav_tests tests/run_vst3_bridge_tests
 TEST_SRCS_TRANSPORT := tests/transport_test.c
 TEST_SRCS_DSP := tests/dsp_test.c
 TEST_SRCS_TRANSIENT_WAV := tests/transient_wav_test.c
@@ -43,6 +43,10 @@ tests: $(TEST_BIN)
 	@./tests/run_transient_wav_tests; rc4=$$?; \
 	if [ $$rc4 -ne 0 ]; then echo "ERROR: transient WAV tests FAILED (rc=$$rc4)"; exit $$rc4; fi; \
 	echo "transient WAV tests PASSED"
+	@echo "Running vst3 bridge tests..."
+	@./tests/run_vst3_bridge_tests; rc5=$?; \
+	if [ $rc5 -ne 0 ]; then echo "ERROR: vst3 bridge tests FAILED (rc=$rc5)"; exit $rc5; fi; \
+	echo "vst3 bridge tests PASSED"
 	@echo "All tests completed successfully."
 
 tests/run_transport_tests: $(TEST_SRCS_TRANSPORT) source/transport.c source/transport.h source/alo_util.c
@@ -60,6 +64,18 @@ tests/run_engine_tests: tests/engine_test.c source/button_logic.c source/alo_uti
 tests/run_transient_wav_tests: $(TEST_SRCS_TRANSIENT_WAV) tests/helpers/test_wav_loader.c source/alo_util.c source/sampler_cache.c source/slice_sampler.c source/transient_detector.c
 	$(CC) -Isource -Itests $^ $(BUILD_C_FLAGS) -DUNIT_TESTS -UNDEBUG $(LINK_FLAGS) -lm -o $@
 	chmod +x $@
+
+ENGINE_SRCS := source/aloschen.c source/loop_engine.c source/loop_state.c source/loop_playback.c source/alo_util.c source/slice_sampler.c source/transport.c source/sampler_cache.c source/button_logic.c source/transient_detector.c
+
+tests/run_vst3_bridge_tests: tests/vst3_bridge_test.c vst3/alo_bridge.c vst3/alo_bridge.h $(ENGINE_SRCS)
+	$(CC) -Isource -Ivst3 $(filter %.c,$^) $(BUILD_C_FLAGS) -UNDEBUG $(LINK_FLAGS) -lm -o $@
+	chmod +x $@
+
+# VST3 build via DPF (deps/DPF, gitignored; see vst3/README.md).
+vst3:
+	$(MAKE) -C vst3
+
+.PHONY: vst3
 
 check: tests scan
 	@echo "CI check complete — all tests passed, no analyzer bugs."
@@ -89,7 +105,7 @@ aloschen.lv2/manifest.ttl: aloschen.lv2/manifest.ttl.in
 # --------------------------------------------------------------
 
 clean:
-	rm -f aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/aloschen_ui$(LIB_EXT) aloschen.lv2/manifest.ttl tests/run_transport_tests tests/run_dsp_tests tests/run_engine_tests tests/run_transient_wav_tests
+	rm -f aloschen.lv2/aloschen$(LIB_EXT) aloschen.lv2/aloschen_ui$(LIB_EXT) aloschen.lv2/manifest.ttl tests/run_transport_tests tests/run_dsp_tests tests/run_engine_tests tests/run_transient_wav_tests tests/run_vst3_bridge_tests
 
 # --------------------------------------------------------------
 

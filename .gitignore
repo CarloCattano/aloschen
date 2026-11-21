@@ -14,3 +14,6 @@ tests/run_dsp_tests
 tests/run_engine_tests
 tests/run_transient_wav_tests
 tests/run_transport_tests
+deps/
+tests/run_vst3_bridge_tests
+build/

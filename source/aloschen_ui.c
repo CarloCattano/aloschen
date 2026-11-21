@@ -907,15 +907,6 @@ static void ui_redraw(AloUI* ui)
     draw_string(ui, x, l.pad + UI_SI(4), info);
   }
 
-  /* count volume sliders to know where group boundary lies */
-  int vol_count = 0;
-  for (int i = 0; i < ARRAY_LEN(kControls); ++i) {
-    uint32_t p = kControls[i].port_index;
-    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL || p == ALO_SAMPLER_VOL) {
-      vol_count++;
-    }
-  }
-
   int vol_index  = 0;
   int ctrl_index = 0;
 
@@ -1099,15 +1090,6 @@ static int hit_test(const AloUI* ui, const int px, const int py, HitType* out_ty
   const int base_slider_w = (int)ui->width - 2 * l.pad;
   const int base_slider_h = l.slider_h;
   const int base_row_h    = l.row_h;
-
-  /* count volume sliders so we can split groups */
-  int vol_count = 0;
-  for (int j = 0; j < ARRAY_LEN(kControls); ++j) {
-    uint32_t p = kControls[j].port_index;
-    if (p == ALO_LOOP1_VOL || p == ALO_LOOP2_VOL || p == ALO_LOOP3_VOL || p == ALO_SAMPLER_VOL) {
-      vol_count++;
-    }
-  }
 
   int vol_index  = 0;
   int ctrl_index = 0;
