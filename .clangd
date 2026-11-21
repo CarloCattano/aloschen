@@ -3,3 +3,18 @@ CompileFlags:
     - -Isource
     - -std=gnu99
     - -DNDEBUG
+---
+# Paths are relative to vst3/ (clangd uses the file directory).
+# C++ sources of the DPF VST3 wrapper (vst3/README.md).
+If:
+  PathMatch: vst3/.*\.(cpp|hpp|h)
+CompileFlags:
+  Remove: [-std=gnu99]
+  Add:
+    - -xc++
+    - -std=gnu++17
+    - -I.
+    - -I../source
+    - -I../deps/DPF/distrho
+    - -I../deps/DPF/dgl
+    - -DDISTRHO_NAMESPACE=DISTRHO

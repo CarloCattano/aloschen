@@ -6,6 +6,7 @@ Aloschen output peak must stay non-silent. Usage: python3 carla_vst3_loop.py INP
 Exit 0 on pass.
 """
 
+import os
 import sys
 import time
 
@@ -25,12 +26,17 @@ wav, vst3 = sys.argv[1], sys.argv[2]
 host = CarlaHostDLL("/usr/lib/carla/libcarla_standalone2.so", False)
 drivers = [host.get_engine_driver_name(i) for i in range(host.get_engine_driver_count())]
 print("drivers", drivers)
-driver = next(d for d in ("Dummy", "PulseAudio", "ALSA") if d in drivers)
+driver = os.environ.get("ALO_CARLA_DRIVER") or next(
+    d for d in ("Dummy", "PulseAudio", "ALSA") if d in drivers
+)
 host.set_engine_option(ENGINE_OPTION_PROCESS_MODE, ENGINE_PROCESS_MODE_CONTINUOUS_RACK, "")
 host.set_engine_option(ENGINE_OPTION_TRANSPORT_MODE, ENGINE_TRANSPORT_MODE_INTERNAL, "")
 assert host.engine_init(driver, "aloschen-test"), host.get_last_error()
 print("driver", driver, "rate", host.get_sample_rate())
 assert host.add_plugin(BINARY_NATIVE, PLUGIN_INTERNAL, "", "", "audiofile", 0, None, 0)
+for i in range(host.get_parameter_count(0)):
+    if host.get_parameter_info(0, i)["name"].lower().startswith("loop"):
+        host.set_parameter_value(0, i, 0.0)  # play the file once
 host.set_custom_data(0, "http://kxstudio.sf.net/ns/carla/string", "file", wav)
 assert host.add_plugin(BINARY_NATIVE, PLUGIN_VST3, vst3, "", "", 0, None, 0), host.get_last_error()
 names = {}
