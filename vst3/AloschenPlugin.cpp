@@ -115,25 +115,35 @@ protected:
       }
     }
 
-    const AloTransport transport = hostTransport(getTimePosition());
+    const AloTransport transport = hostTransport(getTimePosition(), getSampleRate());
     alo_bridge_run(bridge, &transport, inputs[0], inputs[1], outputs[0], outputs[1], frames, midi,
                    nmidi);
   }
 
 private:
   /* DPF bar/beat are 1-based; absolute beats = whole bars + beat + tick fraction. */
-  static AloTransport hostTransport(const TimePosition& pos)
+  static AloTransport hostTransport(const TimePosition& pos, double rate)
   {
     AloTransport t{};
-    t.playing       = pos.playing;
-    t.bpm           = pos.bbt.valid ? pos.bbt.beatsPerMinute : 120.0;
-    t.beats_per_bar = pos.bbt.valid ? pos.bbt.beatsPerBar : 4.0;
-    t.valid         = pos.bbt.valid;
+    t.playing = pos.playing;
     if (pos.bbt.valid) {
       const double tick_frac =
           pos.bbt.ticksPerBeat > 0.0 ? pos.bbt.tick / pos.bbt.ticksPerBeat : 0.0;
-      t.beat = (double)(pos.bbt.bar - 1) * (double)pos.bbt.beatsPerBar +
-               (double)(pos.bbt.beat - 1) + tick_frac;
+      t.valid         = true;
+      t.bpm           = pos.bbt.beatsPerMinute;
+      t.beats_per_bar = pos.bbt.beatsPerBar;
+      t.beat          = (double)(pos.bbt.bar - 1) * (double)pos.bbt.beatsPerBar +
+                        (double)(pos.bbt.beat - 1) + tick_frac;
+    } else if (pos.playing && rate > 0.0) {
+      /* Host runs but sends no musical time (e.g. Carla's VST3 host without
+       * JACK): derive beats from the sample position at the 120 BPM, 4/4 default. */
+      t.valid         = true;
+      t.bpm           = 120.0;
+      t.beats_per_bar = 4.0;
+      t.beat          = (double)pos.frame * t.bpm / (60.0 * rate);
+    } else {
+      t.bpm           = 120.0;
+      t.beats_per_bar = 4.0;
     }
     return t;
   }
