@@ -81,7 +81,7 @@ static void update_bar_step_out(Alo* self)
     if (self->ui_cycle_resync_pending || !self->ui_have_cycle_origin) {
       step = 0;
     } else {
-      const uint32_t steps_u = bars_i * (uint32_t)DEFAULT_BEATS_PER_BAR;
+      const uint32_t steps_u = bars_i * alo_get_bpb_i(self);
       if (steps_u > 0) {
         double phase = self->last_transport_beats - self->ui_cycle_origin_beats;
         if (phase < 0.0) {
@@ -129,8 +129,7 @@ static void update_bar_step_out(Alo* self)
       }
 
       /* Bars-cycle phase: based on the same origin used for bar_step. */
-      const uint32_t bars_i2  = alo_get_bars_i(self);
-      const uint32_t steps_u2 = bars_i2 * (uint32_t)DEFAULT_BEATS_PER_BAR;
+      const uint32_t steps_u2 = compute_loop_beats(self);
       if (steps_u2 > 0 && self->ui_have_cycle_origin && !self->ui_cycle_resync_pending) {
         double phase_beats = self->last_transport_beats - self->ui_cycle_origin_beats;
         if (phase_beats < 0.0) {
@@ -227,178 +226,71 @@ static void click_mix(Alo* self, uint32_t begin, uint32_t end)
   }
 }
 
+/* Select the same accents used by the loop cycle indicator. */
+static void start_click(Alo* self, double boundary)
+{
+  const uint32_t bpb         = alo_get_bpb_i(self);
+  const uint32_t bars        = alo_get_bars_i(self);
+  const bool     downbeat    = alo_fmod_positive(boundary, bpb) == 0.0;
+  bool           cycle_start = false;
+
+  if (downbeat) {
+    if (self->ui_cycle_resync_pending && !self->ui_have_cycle_origin) {
+      self->ui_cycle_origin_beats   = boundary;
+      self->ui_have_cycle_origin    = true;
+      self->ui_cycle_resync_pending = false;
+    }
+    if (self->ui_have_cycle_origin) {
+      const double cycle = (double)bars * bpb;
+      const double phase = alo_fmod_positive(boundary - self->ui_cycle_origin_beats, cycle);
+      cycle_start        = phase < 1e-3 || cycle - phase < 1e-3;
+    } else {
+      cycle_start              = self->click_bar_in_cycle == 0;
+      self->click_bar_in_cycle = (self->click_bar_in_cycle + 1u) % bars;
+    }
+  }
+
+  self->start_beat_offset = cycle_start ? 0 : self->beat_len;
+  self->high_beat_offset  = downbeat && !cycle_start ? 0 : self->beat_len;
+  self->low_beat_offset   = downbeat ? self->beat_len : 0;
+}
+
 void run_clicks(Alo* self, uint32_t n_samples)
 {
-  if (!self) {
+  if (!self || !self->ports.click || !self->ports.output_l || !self->ports.output_r) {
     return;
   }
 
-  if (!self->ports.click || !self->ports.output_l || !self->ports.output_r) {
-    return;
-  }
-
-  /* This plugin is transport-synced: do not free-run without host position. */
-  if (!self->have_transport || !self->have_last_transport_beats) {
-    return;
-  }
-
-  /* With host transport: do not advance click/beat state while stopped. */
-  if (self->have_speed && self->speed == 0.0f) {
-    return;
-  }
-
-  bool play_click = true;
+  bool audible = *self->ports.click > 0.0f;
   for (uint32_t t = 0; t < NUM_TRACKS; ++t) {
-    if (self->have_loop[t]) {
-      play_click = false;
+    audible = audible && !self->have_loop[t];
+  }
+
+  const double spb = transport_samples_per_beat(self);
+  if (!self->have_last_transport_beats || self->speed <= 0.0f || !audible || !(spb >= 1.0)) {
+    self->start_beat_offset = self->high_beat_offset = self->low_beat_offset = self->beat_len;
+    return;
+  }
+
+  /* Every boundary belongs to the first sample at/after it. A boundary
+   * fractionally before block start can still belong to sample zero.
+   * A boundary at n_samples belongs only to the next block. */
+  const double start    = self->last_transport_beats;
+  double       boundary = floor(start);
+  uint32_t     mixed    = 0;
+  for (;;) {
+    const double offset = transport_grid_offset(boundary - start, spb);
+    if (offset >= n_samples) {
       break;
     }
+    if (offset >= 0.0) {
+      click_mix(self, mixed, (uint32_t)offset);
+      start_click(self, boundary);
+      mixed = (uint32_t)offset;
+    }
+    boundary += 1.0;
   }
-
-  const bool can_click = play_click && (*(self->ports.click) > 0.0f) && self->speed;
-
-  const double bpm = (self->bpm > ALO_MIN_BPM) ? (double)self->bpm : (double)DEFAULT_BPM;
-  const double samples_per_beat = (double)self->rate * 60.0 / bpm;
-
-  /* compute absolute beat positions at block start/end from host transport
-   * information rather than relying on a drift-prone running counter.
-   */
-  const double beat_start = self->have_last_transport_beats ? self->last_transport_beats : 0.0;
-  const double beat_end   = beat_start + ((samples_per_beat > ALO_MIN_SAMPLES_PER_BEAT)
-                                              ? ((double)n_samples / samples_per_beat)
-                                              : 0.0);
-
-  const float pos0 = (float)fmod(beat_start, (double)self->bpb);
-  const float pos1 = (float)fmod(beat_end, (double)self->bpb);
-
-  const int old_beat_i = (int)floorf(pos0);
-  const int new_beat_i = (int)floorf(pos1);
-
-  if (self->have_last_transport_beats) {
-    self->current_position = pos1;
-  }
-
-  /* If a beat boundary lands exactly at the start of the block, the
-   * "crossing" test won't catch it (old_beat_i==new_beat_i), which caused us
-   * to miss the START click when the downbeat aligns to block boundaries.
-   */
-  const float frac0                   = pos0 - floorf(pos0);
-  const float kBeatBoundaryEps        = ALO_BEAT_BOUNDARY_EPS; /* beats (~0.5ms at 120 BPM) */
-  const bool  boundary_at_block_start = (frac0 >= 0.0f && frac0 <= kBeatBoundaryEps);
-
-  if (boundary_at_block_start || (new_beat_i != old_beat_i)) {
-    uint32_t sample_offset = 0;
-    double   boundary_beats;
-
-    int boundary_beat_i = old_beat_i;
-    if (!boundary_at_block_start) {
-      /* Compute the beat boundary inside this block (first integer beat crossed). */
-      double beats_to_boundary = (double)(old_beat_i + 1) - (double)pos0;
-      if (beats_to_boundary < 0.0) {
-        beats_to_boundary = 0.0;
-      }
-
-      if (samples_per_beat > 1e-9) {
-        /* Never fire early: ceil to the first sample at/after the boundary. */
-        const double samples_until = beats_to_boundary * samples_per_beat;
-        uint64_t     off           = (uint64_t)ceil(samples_until - 1e-9);
-        if (off > (uint64_t)n_samples) {
-          off = (uint64_t)n_samples;
-        }
-        sample_offset = (uint32_t)off;
-      }
-
-      /* Absolute transport beat position exactly at the beat boundary. */
-      boundary_beats  = self->last_transport_beats + beats_to_boundary;
-      boundary_beat_i = old_beat_i + 1;
-    } else {
-      /* Boundary at block start: snap boundary_beats to the integer beat. */
-      boundary_beats = self->last_transport_beats - (double)frac0;
-      if (boundary_beats < 0.0) {
-        boundary_beats = 0.0;
-      }
-      sample_offset = 0;
-    }
-
-    const uint32_t bars_i         = alo_get_bars_i(self);
-    bool           is_cycle_start = false;
-
-    /* Which beat-in-bar is this boundary? (0 = downbeat). */
-    const int beat_in_bar = boundary_beat_i % (int)alo_get_bpb_i(self);
-
-    if (beat_in_bar == 0) {
-      /* If resync is pending and the downbeat occurs within this block, lock
-       * the Bars-cycle origin to this exact boundary.
-       */
-      if (self->ui_cycle_resync_pending && !self->ui_have_cycle_origin) {
-        self->ui_cycle_origin_beats   = boundary_beats;
-        self->ui_have_cycle_origin    = true;
-        self->ui_cycle_resync_pending = false;
-      }
-
-      if (self->ui_have_cycle_origin && !self->ui_cycle_resync_pending) {
-        const double bpb = (self->bpb > 1e-6f) ? (double)self->bpb : (double)DEFAULT_BEATS_PER_BAR;
-        const double cycle_len = (double)(bars_i ? bars_i : 1u) * bpb;
-        double phase = alo_fmod_positive(boundary_beats - self->ui_cycle_origin_beats, cycle_len);
-
-        const double kCycleEpsBeats = 1e-3;
-        is_cycle_start = (phase <= kCycleEpsBeats) || ((cycle_len - phase) <= kCycleEpsBeats);
-
-        /* Keep click_bar_in_cycle consistent with the same origin. */
-        uint32_t bar_in_cycle = 0;
-        if (bpb > 1e-9) {
-          const double bar_phase = floor(phase / bpb);
-          if (bar_phase >= 0.0) {
-            bar_in_cycle = (uint32_t)bar_phase;
-          }
-        }
-        if (bar_in_cycle >= bars_i) {
-          bar_in_cycle = 0;
-        }
-        self->click_bar_in_cycle = bar_in_cycle;
-      } else {
-        /* Fallback before origin is established. */
-        if (self->click_bar_in_cycle >= bars_i) {
-          self->click_bar_in_cycle = 0;
-        }
-        is_cycle_start = (self->click_bar_in_cycle == 0u);
-      }
-    }
-
-    if (can_click) {
-      click_mix(self, 0, sample_offset);
-
-      if (beat_in_bar == 0) {
-        /* Downbeat: start click only on cycle start, otherwise normal accent. */
-        self->high_beat_offset  = is_cycle_start ? self->beat_len : 0;
-        self->low_beat_offset   = self->beat_len;
-        self->start_beat_offset = is_cycle_start ? 0 : self->beat_len;
-      } else {
-        /* Other beats: low click only. */
-        self->low_beat_offset   = 0;
-        self->high_beat_offset  = self->beat_len;
-        self->start_beat_offset = self->beat_len;
-      }
-
-      click_mix(self, sample_offset, n_samples);
-    }
-
-    if (beat_in_bar == 0) {
-      /* When the origin isn't locked yet, advance the fallback counter on
-       * downbeats.
-       */
-      if (!self->ui_have_cycle_origin || self->ui_cycle_resync_pending) {
-        self->click_bar_in_cycle++;
-        if (self->click_bar_in_cycle >= bars_i) {
-          self->click_bar_in_cycle = 0;
-        }
-      }
-    }
-  } else {
-    if (can_click) {
-      click_mix(self, 0, n_samples);
-    }
-  }
+  click_mix(self, mixed, n_samples);
 }
 
 /* -------------------------------------------------------------------------
@@ -446,7 +338,8 @@ void run_events(Alo* self, const uint32_t n_samples)
       double samples_per_beat = (double)self->rate * 60.0 /
                                 ((self->bpm > 1e-6f) ? (double)self->bpm : (double)DEFAULT_BPM);
       if (samples_per_beat > 0.0) {
-        self->last_transport_beats += ((double)n_samples * (double)self->speed) / samples_per_beat;
+        self->last_transport_beats +=
+            ((double)self->transport_previous_frames * self->speed) / samples_per_beat;
       }
       self->transport_blocks_without_update = 0;
     } else {
@@ -455,6 +348,8 @@ void run_events(Alo* self, const uint32_t n_samples)
       }
     }
   }
+
+  self->transport_previous_frames = n_samples;
 
   /* Transport stop/start resync: make the next downbeat be cycle start. */
   /* Consider the transport "stopped" when host speed is non-positive.  This
@@ -516,6 +411,7 @@ void run_events(Alo* self, const uint32_t n_samples)
       self->transport_moving                = moving;
       self->transport_blocks_without_update = blocks_wo;
       self->transport_updated_this_cycle    = transport_updated;
+      self->transport_previous_frames       = n_samples;
 
       if (have_pos) {
         self->have_transport            = true;
@@ -523,7 +419,7 @@ void run_events(Alo* self, const uint32_t n_samples)
         self->last_transport_beats      = global_beats;
 
         const float bpb        = (self->bpb > 1e-6f) ? self->bpb : (float)DEFAULT_BEATS_PER_BAR;
-        self->current_position = (bpb > 0.0f) ? fmodf((float)global_beats, bpb) : 0.0f;
+        self->current_position = (bpb > 0.0f) ? (float)alo_fmod_positive(global_beats, bpb) : 0.0f;
         update_transport_phase(self, global_beats);
       }
     }

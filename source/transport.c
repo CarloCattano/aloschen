@@ -9,6 +9,17 @@
 /* cppcheck-suppress missingInclude */
 #include "lv2/atom/util.h"
 
+double transport_samples_per_beat(const Alo* self)
+{
+  const double bpm = self->bpm > ALO_MIN_BPM ? self->bpm : DEFAULT_BPM;
+  return self->rate * 60.0 / bpm;
+}
+
+double transport_grid_offset(double beat_delta, double samples_per_beat)
+{
+  return ceil(beat_delta * samples_per_beat - ALO_GRID_EPS_SAMPLES);
+}
+
 /* compute phase index from host beat position */
 bool compute_transport_phase_index(const Alo* self, double global_beats,
                                    uint32_t* out_phase_samples)
@@ -27,7 +38,7 @@ bool compute_transport_phase_index(const Alo* self, double global_beats,
   double phase_samples_d = phase_beats * (double)loop_samples / (double)loop_beats;
   if (phase_samples_d < 0.0)
     phase_samples_d = 0.0;
-  uint32_t phase_samples = (uint32_t)floor(phase_samples_d);
+  uint32_t phase_samples = (uint32_t)floor(phase_samples_d + ALO_GRID_EPS_SAMPLES);
   if (phase_samples >= loop_samples)
     phase_samples = loop_samples - 1;
 
@@ -73,17 +84,13 @@ double compute_next_cycle_start_beats(const Alo* self, double global_beats0)
     return global_beats0;
   }
 
-  /* Phase within the Bars-length cycle: [0, cycle_len_beats). */
-  double phase = alo_fmod_positive(global_beats0, cycle_len_beats);
-
-  /* If we're effectively on the boundary, start now (avoid drifting a cycle). */
-  const double kCycleEpsBeats = (double)ALO_BEAT_BOUNDARY_EPS; /* ~0.5ms at 120 BPM */
-  if (phase <= kCycleEpsBeats || (cycle_len_beats - phase) <= kCycleEpsBeats) {
-    return global_beats0;
+  const double previous = floor(global_beats0 / cycle_len_beats) * cycle_len_beats;
+  const double spb      = transport_samples_per_beat(self);
+  if (global_beats0 == previous ||
+      (spb > 0.0 && transport_grid_offset(previous - global_beats0, spb) == 0.0)) {
+    return previous;
   }
-
-  /* Next cycle start. */
-  return global_beats0 + (cycle_len_beats - phase);
+  return previous + cycle_len_beats;
 }
 
 /* update transport phase index from beat value */
@@ -103,51 +110,24 @@ void update_transport_phase(Alo* self, double global_beats)
 /* Transport beats update */
 
 /* helper for new transport beat notifications */
-static void update_transport_beats(Alo* self, double global_beats)
+static void update_transport_beats(Alo* self, double global_beats, double expected_beat)
 {
   if (!self)
     return;
 
-  /* True if any slot has committed loop audio. */
-  bool any_audio = false;
-  for (int t = 0; t < NUM_TRACKS; ++t) {
-    if (self->have_loop[t]) {
-      any_audio = true;
-      break;
-    }
-  }
+  self->have_transport   = true;
+  self->transport_moving = self->have_speed ? self->speed > 0.0f
+                                            : self->have_last_transport_beats &&
+                                                  global_beats != self->last_transport_beats;
 
-  self->have_transport = true;
-
-  if (self->have_last_transport_beats) {
-    if (global_beats > self->last_transport_beats + 1e-6) {
-      self->transport_moving = true;
-    } else {
-      self->transport_moving = false;
-    }
-  } else {
-    self->transport_moving = (self->have_speed && self->speed != 0.0f);
-  }
-
-  if (self->have_speed && self->speed == 0.0f) {
-    self->transport_moving = false;
-  }
-
-  if (self->have_last_transport_beats && global_beats < self->last_transport_beats - 0.5) {
+  /* Preserve the original loop grid on both forward and backward seeks.
+   * Ignore negligible host clock error and tempo-ramp integration error;
+   * clear click tails and unfinished work on a locate, not committed audio. */
+  if (self->have_last_transport_beats && fabs(global_beats - expected_beat) > 0.02) {
     clear_inflight_actions_and_sync_controls(self);
     request_ui_cycle_resync(self);
     alo_slice_sampler_reset(&self->slice_sampler);
-    if (any_audio) {
-      self->loop_origin_beats            = global_beats;
-      self->have_loop_origin             = true;
-      self->transport_loop_index         = 0;
-      self->transport_loop_index_pending = true;
-      self->loop_phase                   = 0;
-      self->loop_playhead                = (double)self->loop_start;
-    } else {
-      self->have_loop_origin  = false;
-      self->loop_origin_beats = 0.0;
-    }
+    self->start_beat_offset = self->high_beat_offset = self->low_beat_offset = self->beat_len;
   }
 
   self->last_transport_beats      = global_beats;
@@ -163,6 +143,11 @@ void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj)
   /* Mark that we saw transport info this cycle (used for stop detection). */
   self->transport_updated_this_cycle = true;
 
+  const double previous_spb = transport_samples_per_beat(self);
+  const double expected_beat =
+      self->last_transport_beats +
+      (previous_spb > 0.0 ? self->transport_previous_frames * (double)self->speed / previous_spb
+                          : 0.0);
   AloURIs* const uris = &self->uris;
 
   LV2_Atom *abs_beat = NULL, *beat = NULL, *bar = NULL;
@@ -174,7 +159,7 @@ void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj)
 
   if (bpb && bpb->type == uris->atom_Float) {
     const float new_bpb = ((LV2_Atom_Float*)bpb)->body;
-    if (fabsf(self->bpb - new_bpb) > ALO_PARAM_CHANGE_EPS) {
+    if (new_bpb >= 1.0f && new_bpb <= 64.0f && fabsf(self->bpb - new_bpb) > ALO_PARAM_CHANGE_EPS) {
       self->bpb = new_bpb;
       reset_timing(self);
     }
@@ -184,9 +169,10 @@ void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj)
     reset_timing(self);
   }
 
-  if (bpm && bpm->type == uris->atom_Float) {
-    const float new_bpm = ((LV2_Atom_Float*)bpm)->body;
-    if (fabsf(self->bpm - new_bpm) > ALO_PARAM_CHANGE_EPS) {
+  if (bpm && (bpm->type == uris->atom_Float || bpm->type == uris->atom_Double)) {
+    const double new_bpm = bpm->type == uris->atom_Double ? ((const LV2_Atom_Double*)bpm)->body
+                                                          : ((const LV2_Atom_Float*)bpm)->body;
+    if (new_bpm > ALO_MIN_BPM && new_bpm <= 10000.0 && new_bpm != self->bpm) {
       self->bpm = new_bpm;
       reset_timing(self);
     }
@@ -197,12 +183,18 @@ void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj)
     self->speed      = ((LV2_Atom_Float*)speed)->body;
   }
 
-  if (abs_beat && abs_beat->type == uris->atom_Float) {
-    const double global_beats = (double)((LV2_Atom_Float*)abs_beat)->body;
+  if (abs_beat && (abs_beat->type == uris->atom_Double || abs_beat->type == uris->atom_Float)) {
+    const double global_beats = abs_beat->type == uris->atom_Double
+                                    ? ((const LV2_Atom_Double*)abs_beat)->body
+                                    : ((const LV2_Atom_Float*)abs_beat)->body;
 
-    update_transport_beats(self, global_beats);
+    if (!(global_beats >= -2e8 && global_beats <= 2e8)) {
+      return;
+    }
+    update_transport_beats(self, global_beats, expected_beat);
 
-    const float bar_beat   = (self->bpb > 0.0f) ? fmodf((float)global_beats, self->bpb) : 0.0f;
+    const float bar_beat =
+        (self->bpb > 0.0f) ? (float)alo_fmod_positive(global_beats, self->bpb) : 0.0f;
     self->current_position = bar_beat;
 
     update_transport_phase(self, global_beats);
@@ -223,7 +215,7 @@ void update_position_from_atom(Alo* self, const LV2_Atom_Object* obj)
       global_beats   = bar_val * bpb_val + (double)beat_val;
     }
     /* Update transport state even when we don't have an absolute beat atom. */
-    update_transport_beats(self, global_beats);
+    update_transport_beats(self, global_beats, expected_beat);
     update_transport_phase(self, global_beats);
   }
 }

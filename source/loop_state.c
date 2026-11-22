@@ -34,6 +34,7 @@ void clear_inflight_actions_and_sync_controls(Alo* self)
   }
 
   /* Reset pending actions. */
+  self->pending_arm_track = -1;
   for (int t = 0; t < NUM_TRACKS; ++t) {
     clear_track_state(self, t);
     self->pending_undo[t]      = 0;
@@ -129,12 +130,13 @@ static uint32_t compute_loop_samples(const Alo* self, uint32_t loop_beats)
   if (!self) {
     return LOOP_SIZE;
   }
-  const float  bpm       = (self->bpm > 1e-6f) ? self->bpm : (float)DEFAULT_BPM;
-  const double samples_d = (double)loop_beats * (double)self->rate * 60.0 / (double)bpm;
+  const double samples_d = (double)loop_beats * transport_samples_per_beat(self);
   if (!(samples_d > 0.0)) {
     return LOOP_SIZE;
   }
-  uint64_t s = (uint64_t)llround(samples_d);
+  /* Store the samples common to every cycle. Fractional host periods can
+   * have one extra sample; playback holds the faded last sample there. */
+  uint64_t s = (uint64_t)floor(samples_d + ALO_GRID_EPS_SAMPLES);
   if (s < 1u) {
     s = 1u;
   }
@@ -151,11 +153,29 @@ void reset_timing(Alo* self)
     return;
   }
 
-  const uint32_t new_loop_beats   = compute_loop_beats(self);
-  const uint32_t new_loop_samples = compute_loop_samples(self, new_loop_beats);
-
-  self->loop_beats   = new_loop_beats;
-  self->loop_samples = new_loop_samples ? new_loop_samples : 1u;
+  const uint32_t new_loop_beats = compute_loop_beats(self);
+  const double   spb            = transport_samples_per_beat(self);
+  bool           has_audio      = false;
+  for (int t = 0; t < NUM_TRACKS; ++t) {
+    has_audio |= self->have_loop[t];
+  }
+  if (self->loop_storage_spb != spb || self->loop_beats != new_loop_beats) {
+    /* Changing the clock mid-record would leave holes in the capture. Do
+     * not reinterpret committed storage as the new (longer/shorter) loop. */
+    clear_inflight_actions_and_sync_controls(self);
+  }
+  if (!has_audio || self->loop_beats != new_loop_beats) {
+    if (has_audio) {
+      for (int t = 0; t < NUM_TRACKS; ++t) {
+        clear_track_audio(self, t);
+      }
+      self->have_loop_origin  = false;
+      self->loop_origin_beats = 0.0;
+    }
+    self->loop_samples     = compute_loop_samples(self, new_loop_beats);
+    self->loop_storage_spb = spb;
+  }
+  self->loop_beats = new_loop_beats;
 
   if (self->loop_samples > LOOP_SIZE) {
     self->loop_samples = LOOP_SIZE;
@@ -183,10 +203,6 @@ void reset_timing(Alo* self)
 
   /* Flag UI cycle resync after timing change. */
   request_ui_cycle_resync(self);
-  /* Reset click envelope. */
-  self->high_beat_offset  = self->beat_len;
-  self->low_beat_offset   = self->beat_len;
-  self->start_beat_offset = self->beat_len;
 
   update_loop_state_ports(self);
 }
@@ -232,8 +248,9 @@ void reset(Alo* self)
     self->loop_btn_high_frames[t] = 0;
   }
 
-  self->loop_beats   = compute_loop_beats(self);
-  self->loop_samples = compute_loop_samples(self, self->loop_beats);
+  self->loop_beats       = compute_loop_beats(self);
+  self->loop_samples     = compute_loop_samples(self, self->loop_beats);
+  self->loop_storage_spb = transport_samples_per_beat(self);
   if (!self->loop_samples) {
     self->loop_samples = 1u;
   }
@@ -255,6 +272,7 @@ void reset(Alo* self)
   self->last_bar_beat        = 0.0f;
   self->bar_counter_fallback = 0;
 
+  self->transport_previous_frames = 0;
   self->last_transport_beats      = 0.0;
   self->have_last_transport_beats = false;
 

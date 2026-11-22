@@ -13,6 +13,34 @@
  */
 #define ALO_ANTI_DENORM 1e-15f
 
+/* Sample positions for one beat grid, relative to the current host block.
+ * Keep the unrounded next boundary so fractional periods never accumulate
+ * a rounded sample of drift when a block spans consecutive boundaries. */
+typedef struct
+{
+  double   next;
+  double   period;
+  uint32_t elapsed;
+} FrameGrid;
+
+static FrameGrid frame_grid(double beat, double beats, double spb)
+{
+  const double phase = alo_fmod_positive(beat, beats);
+  return (FrameGrid){(beats - phase) * spb, beats * spb,
+                     (uint32_t)-transport_grid_offset(-phase, spb)};
+}
+
+static bool advance_grid(FrameGrid* grid, double* next_sample, uint32_t sample)
+{
+  const bool edge = *next_sample == sample;
+  if (edge) {
+    grid->next += grid->period;
+    *next_sample  = ceil(grid->next - ALO_GRID_EPS_SAMPLES);
+    grid->elapsed = 0;
+  }
+  return grid->elapsed++ == 0;
+}
+
 /* Main loop playback engine: recording, overdub, and unified per-sample DSP. */
 
 void run_loops(Alo* self, uint32_t n_samples)
@@ -20,7 +48,7 @@ void run_loops(Alo* self, uint32_t n_samples)
   ALO_GUARD_VOID(self);
 
   // Discharge any queued arm now that we've recomputed transport state
-  if (self->pending_arm_track >= 0) {
+  if (self->pending_arm_track >= 0 && self->pending_arm_track < NUM_TRACKS) {
     bool other_busy = false;
     for (int u = 0; u < NUM_TRACKS; ++u) {
       if (u == self->pending_arm_track)
@@ -143,24 +171,16 @@ void run_loops(Alo* self, uint32_t n_samples)
   }
 
   if (!self->have_loop_origin && self->have_last_transport_beats) {
-    const double bpm              = (self->bpm > 1e-6f) ? (double)self->bpm : (double)DEFAULT_BPM;
-    const double samples_per_beat = (double)self->rate * 60.0 / bpm;
+    const double samples_per_beat = transport_samples_per_beat(self);
     const double global_beats0    = self->last_transport_beats;
 
     /* Quantize the very first base recording to the next Bars-cycle start. */
     const double target_beats = compute_next_cycle_start_beats(self, global_beats0);
-    const double beats_until  = target_beats - global_beats0;
-    uint64_t     offset_s     = 0;
-    if (beats_until > 0.0) {
-      /* normal quantization path */
-      const double samples_until = beats_until * samples_per_beat;
-      offset_s                   = (uint64_t)ceil(samples_until - 1e-9);
-    }
-    /* if we just resumed, keep offset_s=0 for immediate start */
+    const double offset_s = transport_grid_offset(target_beats - global_beats0, samples_per_beat);
 
     for (int t = 0; t < NUM_TRACKS; ++t) {
       if (self->track_state[t] == TRACK_ARM_BASE) {
-        if (offset_s < (uint64_t)n_samples) {
+        if (offset_s >= 0.0 && offset_s < n_samples) {
           first_base_start_offset[t] = (uint32_t)offset_s;
           first_base_target_beats[t] = target_beats;
 
@@ -179,7 +199,23 @@ void run_loops(Alo* self, uint32_t n_samples)
     }
   }
 
-  /* Compute bar length in samples for quantized undo (bar downbeats). */
+  /* Known transport + a loop that fits in storage: drive wrap and undo
+   * directly from the host grid, not a rounded loop-length counter. */
+  const double spb           = transport_samples_per_beat(self);
+  const double storage_spb   = self->loop_storage_spb;
+  const double playback_step = storage_spb > 0.0 ? storage_spb / spb : 1.0;
+  const bool   host_grid     = transport_running && self->loop_beats && spb >= 1.0 &&
+                               spb * self->loop_beats < UINT32_MAX &&
+                               storage_spb * self->loop_beats <= LOOP_SIZE;
+  FrameGrid    bar_grid = {0}, cycle_grid = {0};
+  double       next_bar = 0.0, next_cycle = 0.0;
+  if (host_grid) {
+    const double beat = self->last_transport_beats - self->loop_origin_beats;
+    bar_grid          = frame_grid(beat, alo_get_bpb_i(self), spb);
+    cycle_grid        = frame_grid(beat, self->loop_beats, spb);
+    next_bar          = ceil(bar_grid.next - ALO_GRID_EPS_SAMPLES);
+    next_cycle        = ceil(cycle_grid.next - ALO_GRID_EPS_SAMPLES);
+  }
   const uint32_t bar_len = alo_get_bar_len_samples(self);
 
   const float inmix   = self->inmix;
@@ -257,6 +293,16 @@ void run_loops(Alo* self, uint32_t n_samples)
     for (uint32_t pos = 0; pos < blk; ++pos) {
       const uint32_t pos_in_block = block_base + pos;
 
+      bool at_cycle = phase_loc == 0;
+      bool at_bar   = bar_len > 0u && bar_phase == 0u;
+      if (host_grid) {
+        at_cycle = advance_grid(&cycle_grid, &next_cycle, pos_in_block);
+        at_bar   = advance_grid(&bar_grid, &next_bar, pos_in_block);
+        const double source_frame =
+            fmin((cycle_grid.elapsed - 1u) * playback_step, self->loop_samples - 1u);
+        phase_loc    = (uint32_t)source_frame;
+        playhead_loc = (double)self->loop_start + source_frame;
+      }
       uint32_t idx   = self->loop_start + phase_loc;
       uint32_t idx_r = idx + LOOP_SIZE;
 
@@ -310,7 +356,6 @@ void run_loops(Alo* self, uint32_t n_samples)
       /* At-bar detection: apply pending undos AFTER reading playback so
        * the undo takes clean effect from the next sub-block onward.
        */
-      const bool at_bar = (bar_len > 0u && bar_phase == 0u);
       if (at_bar) {
         if (apply_pending_undo_at_bar(self)) {
           self->sampler_src_dirty = true;
@@ -353,12 +398,13 @@ void run_loops(Alo* self, uint32_t n_samples)
                * the UI cycle origin matches exactly so the step indicator shows
                * 0 at the same moment the audio begins.
                */
-              self->loop_origin_beats            = first_base_target_beats[t];
-              self->have_loop_origin             = true;
-              self->transport_loop_index         = 0;
-              self->transport_loop_index_pending = true;
-              phase_loc                          = 0;
-              playhead_loc                       = (double)self->loop_start;
+              self->loop_origin_beats = first_base_target_beats[t];
+              self->have_loop_origin  = true;
+              phase_loc               = 0;
+              bar_phase               = 0;
+              playhead_loc            = (double)self->loop_start;
+              idx                     = self->loop_start;
+              idx_r                   = idx + LOOP_SIZE;
 
               /* sync UI now that origin is definite */
               self->ui_cycle_origin_beats   = self->loop_origin_beats;
@@ -375,7 +421,7 @@ void run_loops(Alo* self, uint32_t n_samples)
             }
           } else {
             /* Start base on next loop boundary. */
-            if (phase_loc == 0) {
+            if (at_cycle) {
               /* Recording always starts on a loop boundary; make sure the UI
                * origin is still correct (bars may have changed during arm).
                */
@@ -393,7 +439,7 @@ void run_loops(Alo* self, uint32_t n_samples)
             }
           }
         } else if (self->track_state[t] == TRACK_ARM_OVERDUB) {
-          if (self->have_loop[t] && phase_loc == 0) {
+          if (self->have_loop[t] && at_cycle) {
             /* Only start an overdub if we have a free layer to record into.
              * Never overwrite an active layer in-place (aborts would corrupt
              * playback).
@@ -429,6 +475,7 @@ void run_loops(Alo* self, uint32_t n_samples)
                                        alo_edge_fade_samples_u32(self));
             self->have_loop[t]      = true;
             self->sampler_src_dirty = true;
+            any_play                = !skip_loops;
           }
         } else if (self->track_state[t] == TRACK_REC_OVERDUB) {
           const uint8_t rec_layer = self->rec_od_layer[t];

@@ -1,45 +1,73 @@
-# Aloschen VST3 (Linux)
+# Aloschen VST3 for Linux
 
-A VST3 build of the unchanged Aloschen LV2 engine (`source/`), wrapped with
-[DPF](https://github.com/DISTRHO/DPF) and a NanoVG editor.
+A DPF VST3 wrapper around the shared Aloschen looper/slice engine.
 
-## Why DPF
-The iPlug3 marketplace installed here ships validator skills only; no public
-iPlug3 framework release exists. DPF builds VST3 natively on Linux with no
-Steinberg SDK at build time, has an OpenGL/NanoVG UI and a small C++ surface.
+## Build and install on Marvin
 
-## Build
+Install a C/C++ toolchain, Git, Make, LV2 headers, and X11/OpenGL development
+libraries. From the repository root:
 
 ```sh
-git clone --depth 1 --recursive https://github.com/DISTRHO/DPF deps/DPF
-make vst3            # -> build/vst3/aloschen.vst3
+git clone https://github.com/DISTRHO/DPF.git deps/DPF
+git -C deps/DPF checkout 4238e1c7f0351bbe488d79f0899c540543ac7583
+git -C deps/DPF submodule update --init --recursive
+make vst3-package
 ```
-Install: link or copy `build/vst3/aloschen.vst3` into `~/.vst3/`.
 
-## Layers
-- `alo_bridge.{h,c}`: in-process host for the LV2 descriptor (URID map, buf-size
-  options, one `time:Position` atom per block from host bar/beat/tempo/playing,
-  MIDI note atoms, peak meters). Single parameter table; `tests/vst3_bridge_test.c`
-  checks it against `aloschen.lv2/aloschen.ttl` and proves bar-synced looping.
-- `AloschenPlugin.cpp`: DPF adapter (parameters, MIDI in, `TimePosition`).
-- `AloschenUI.cpp`: editor (rings per slot, state colours, playhead, step strip,
-  meters, one control per engine input).
+The build applies the tracked DPF transport patch to that checkout and refuses
+an unexpected DPF revision. Keep `deps/DPF` dedicated to this checkout.
 
-## Contracts and known limits
-- Loop buttons are `lv2:toggled`: one press = one flip; flips closer than
-  `ALO_LOOP_BTN_HOLD_FRAMES` (8) process calls apart merge. Undo needs a rising edge;
-  the UI pulses it for 80 ms.
-- `ENABLED` is a 0/1 toggle (the TTL's 0.15..2.5 range is a MOD-host quirk).
-- Loop audio is not saved with the project (same as the LV2 build: no state
-  extension). A sample-rate change re-creates the engine and clears loops.
-- DPF exposes 2048 MIDI-CC proxy parameters plus buffer-size/sample-rate
-  parameters; the engine ignores CC.
-- `time:beat` is sent as Float (the engine's parsed type): precision drops for
-  very long sessions.
+`build/vst3/` contains the `aloschen.vst3` bundle, the
+`aloschen-linux-$(uname -m).tar.gz` archive, and a SHA-256 file. Check the
+archive by running `sha256sum -c aloschen-linux-$(uname -m).tar.gz.sha256`
+from the directory containing it. Copy or extract the bundle into `~/.vst3/`
+and rescan in your host. If another build of Aloschen is already installed,
+replace it rather than installing a second copy with the same plugin ID.
 
-## Checks
-- `make tests` (includes the bridge test)
-- `deps/vst3sdk/build/bin/Release/validator -e build/vst3/aloschen.vst3`
-- `deps/pluginval/pluginval --strictness-level 10 --validate build/vst3/aloschen.vst3`
-- `tests/host/run_reaper.sh OUTDIR`: Reaper renders with transport running; prints
-  per-bar peaks of the rendered output.
+## Timing contract
+
+1. Prefer the host's musical position and tempo. DPF converts VST3 quarter
+   notes to denominator-note beats without rounding odd meters to whole
+   quarter notes. The bridge preserves double precision through to the DSP.
+2. A beat boundary belongs to the first sample at or after it. A boundary
+   at the end of a host buffer belongs to the next buffer. Clicks, loop wraps,
+   and quantized edits use that same rule, including fractional beat lengths.
+3. At a fixed meter, locating preserves the recorded loop origin. Existing
+   loops follow tempo changes by resampling (pitch follows tempo). A tempo
+   change cancels in-flight recording; return to the original tempo to add
+   layers or new slots alongside committed loops.
+4. When the host omits musical time, the sample-clock fallback assumes
+   constant tempo and 4/4. It cannot reconstruct tempo maps. Meter changes
+   within a project are not supported for committed loops; changing the meter
+   clears the slots. Very slow/long loops beyond the fixed audio storage
+   capacity cannot span their full host cycle.
+5. **Click is a count-in:** it is intentionally silent while any loop slot
+   contains audio, and when the host is stopped. A sample-rate change
+   recreates the engine. Loop audio is not stored in the DAW project.
+
+References: [VST3 ProcessContext][vst-context], [LV2 Time][lv2-time].
+The adapter keeps host clock policy in `AloschenPlugin.cpp` and port/Atom
+translation in `alo_bridge.c`; the engine owns audio scheduling. No plugin ID
+or parameter ID changes are needed for this fix.
+
+## Verify
+
+- `make tests`: bridge renders exercise varying buffer sizes, split blocks,
+  late PPQ, fractional tempos, stopping, seeking, and loop replay. Loop
+  markers and click onsets are checked at exact samples.
+- Steinberg validator: `validator -e build/vst3/aloschen.vst3`
+- pluginval: `pluginval --strictness-level 10 --validate build/vst3/aloschen.vst3`
+- REAPER: with the bundle installed, run
+  `tests/host/run_reaper.sh build/reaper-check click-7-8`. Once
+  `build/reaper-check/reaper-log.txt` says `render done`, run
+  `python3 tests/host/analyze_loop_wav.py build/reaper-check/render.wav click-7-8`.
+  Repeat with modes `loop`, `click`, and `click-tempo` in separate output
+  directories. The script leaves a private REAPER window open with the VST3
+  editor visible and the master muted. Close it before the next run.
+
+On Marvin, also try start/stop, mid-bar seeks, and low buffers in your normal
+DAW/audio setup. Offline render tests do not establish physical latency or
+real-time performance on different hardware.
+
+[vst-context]: https://steinbergmedia.github.io/vst3_doc/vstinterfaces/structSteinberg_1_1Vst_1_1ProcessContext.html
+[lv2-time]: https://lv2plug.in/ns/ext/time

@@ -17,7 +17,9 @@ static inline bool any_other_track_busy(const Alo* self, int exclude)
 /* handle loop button press for track t; arms/records/overdubs/cancels */
 void handle_loop_press(Alo* self, int t)
 {
-  ALO_GUARD_VOID(self);
+  if (!self || t < 0 || t >= NUM_TRACKS) {
+    return;
+  }
   /* Cancel queued arm if pressing same track */
   if (self->pending_arm_track == t) {
     self->pending_arm_track = -1;
@@ -25,7 +27,7 @@ void handle_loop_press(Alo* self, int t)
     return;
   }
   // If another track is recording, queue this press instead of ignoring it
-  if (self && any_other_track_busy(self, t)) {
+  if (any_other_track_busy(self, t)) {
     if (self->pending_arm_track < 0) {
       self->pending_arm_track = t;
       self->pending_arm_type  = self->have_loop[t] ? TRACK_ARM_OVERDUB : TRACK_ARM_BASE;
@@ -34,9 +36,6 @@ void handle_loop_press(Alo* self, int t)
     return;
   }
 
-  if (!self || !track_is_active(self, t))
-    return;
-
   /* If the user presses while armed/recording, treat it as cancel/abort. */
   if (track_is_busy(self, t)) {
     clear_track_state(self, t);
@@ -44,6 +43,15 @@ void handle_loop_press(Alo* self, int t)
     return;
   }
 
+  /* Retimed loops can play, but layers must be captured on the same
+   * sample clock. With no audio left, adopt the host's current tempo. */
+  const double spb = transport_samples_per_beat(self);
+  if (self->loop_storage_spb > 0.0 && self->loop_storage_spb != spb) {
+    reset_timing(self);
+    if (self->loop_storage_spb != spb) {
+      return;
+    }
+  }
   if (!self->have_loop[t]) {
     /* First-ever base recording defines the loop origin. */
     if (!self->have_loop_origin) {

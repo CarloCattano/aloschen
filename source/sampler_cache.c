@@ -2,10 +2,8 @@
 #include "alo_util.h"
 #include "transient_detector.h"
 
-
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 /* ------------------------------------------------------------------------- */
 /* Local constants                                                            */
@@ -29,23 +27,6 @@ void alo_log(const char* message, ...)
 /* ------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* ------------------------------------------------------------------------- */
-
-typedef struct
-{
-  uint32_t offset;
-  float    strength;
-} ScSliceMarker;
-
-static int cmp_marker_offset(const void* a, const void* b)
-{
-  const ScSliceMarker* const ma = (const ScSliceMarker*)a;
-  const ScSliceMarker* const mb = (const ScSliceMarker*)b;
-  if (ma->offset < mb->offset)
-    return -1;
-  if (ma->offset > mb->offset)
-    return 1;
-  return 0;
-}
 
 static float sc_absf(float x)
 {
@@ -106,22 +87,21 @@ static void sc_sort_detected_markers(Alo* self)
     return;
   }
 
-  ScSliceMarker markers[ALO_SLICE_SAMPLER_MAX_VOICES];
-  uint32_t      count = self->detected_slices_count;
-  if (count > ALO_SLICE_SAMPLER_MAX_VOICES) {
-    count = ALO_SLICE_SAMPLER_MAX_VOICES;
-  }
-
-  for (uint32_t i = 0u; i < count; ++i) {
-    markers[i].offset   = self->detected_slice_offsets[i];
-    markers[i].strength = self->detected_slice_strength[i];
-  }
-
-  qsort(markers, count, sizeof(markers[0]), cmp_marker_offset);
-
-  for (uint32_t i = 0u; i < count; ++i) {
-    self->detected_slice_offsets[i]  = markers[i].offset;
-    self->detected_slice_strength[i] = markers[i].strength;
+  /* The marker buffer is small and fixed; sorting inline avoids libc
+   * qsort's implementation-dependent allocation on the audio thread. */
+  const uint32_t count = self->detected_slices_count < ALO_SLICE_SAMPLER_MAX_VOICES
+                             ? self->detected_slices_count
+                             : ALO_SLICE_SAMPLER_MAX_VOICES;
+  for (uint32_t i = 1; i < count; ++i) {
+    const uint32_t offset   = self->detected_slice_offsets[i];
+    const float    strength = self->detected_slice_strength[i];
+    uint32_t       j        = i;
+    for (; j > 0 && self->detected_slice_offsets[j - 1] > offset; --j) {
+      self->detected_slice_offsets[j]  = self->detected_slice_offsets[j - 1];
+      self->detected_slice_strength[j] = self->detected_slice_strength[j - 1];
+    }
+    self->detected_slice_offsets[j]  = offset;
+    self->detected_slice_strength[j] = strength;
   }
 }
 
@@ -150,8 +130,9 @@ static bool sc_slice_region_has_content(const Alo* self, const float* buf_l, con
     sum_abs += a;
   }
 
-  const float avg_abs   = sum_abs / (float)len;
-  const float loop_peak = (self->sampler_src_peak_abs > 1.0e-9f) ? self->sampler_src_peak_abs : 1.0f;
+  const float avg_abs = sum_abs / (float)len;
+  const float loop_peak =
+      (self->sampler_src_peak_abs > 1.0e-9f) ? self->sampler_src_peak_abs : 1.0f;
 
   if (peak_abs < (loop_peak * SC_MIN_SLICE_PEAK_RATIO)) {
     return false;
@@ -262,8 +243,7 @@ static void update_slice_buffers_internal(Alo* self)
   }
 
   const bool use_transient = alo_get_use_transient_slices_b(self);
-  uint32_t slice_count =
-      use_transient ? self->detected_slices_count : alo_get_slice_count_u(self);
+  uint32_t slice_count = use_transient ? self->detected_slices_count : alo_get_slice_count_u(self);
 
   if (slice_count > ALO_SLICE_INFO_MAX) {
     slice_count = ALO_SLICE_INFO_MAX;

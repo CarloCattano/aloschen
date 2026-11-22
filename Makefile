@@ -44,8 +44,8 @@ tests: $(TEST_BIN)
 	if [ $$rc4 -ne 0 ]; then echo "ERROR: transient WAV tests FAILED (rc=$$rc4)"; exit $$rc4; fi; \
 	echo "transient WAV tests PASSED"
 	@echo "Running vst3 bridge tests..."
-	@./tests/run_vst3_bridge_tests; rc5=$?; \
-	if [ $rc5 -ne 0 ]; then echo "ERROR: vst3 bridge tests FAILED (rc=$rc5)"; exit $rc5; fi; \
+	@./tests/run_vst3_bridge_tests; rc5=$$?; \
+	if [ $$rc5 -ne 0 ]; then echo "ERROR: vst3 bridge tests FAILED (rc=$$rc5)"; exit $$rc5; fi; \
 	echo "vst3 bridge tests PASSED"
 	@echo "All tests completed successfully."
 
@@ -68,14 +68,19 @@ tests/run_transient_wav_tests: $(TEST_SRCS_TRANSIENT_WAV) tests/helpers/test_wav
 ENGINE_SRCS := source/aloschen.c source/loop_engine.c source/loop_state.c source/loop_playback.c source/alo_util.c source/slice_sampler.c source/transport.c source/sampler_cache.c source/button_logic.c source/transient_detector.c
 
 tests/run_vst3_bridge_tests: tests/vst3_bridge_test.c vst3/alo_bridge.c vst3/alo_bridge.h $(ENGINE_SRCS)
-	$(CC) -Isource -Ivst3 $(filter %.c,$^) $(BUILD_C_FLAGS) -UNDEBUG $(LINK_FLAGS) -lm -o $@
+	$(CC) -Isource -Ivst3 $(filter %.c,$^) $(BUILD_C_FLAGS) -fno-fast-math -UNDEBUG $(LINK_FLAGS) -lm -o $@
 	chmod +x $@
 
-# VST3 build via DPF (deps/DPF, gitignored; see vst3/README.md).
+# VST3 build and Linux bundle archive (see vst3/README.md).
+VST3_PACKAGE := build/vst3/aloschen-linux-$(shell uname -m).tar.gz
+vst3-package: vst3
+	install -Dm644 LICENSE build/vst3/aloschen.vst3/Contents/Resources/LICENSE-Aloschen
+	tar -C build/vst3 -czf $(VST3_PACKAGE) aloschen.vst3
+	cd build/vst3 && sha256sum $(notdir $(VST3_PACKAGE)) > $(notdir $(VST3_PACKAGE)).sha256
 vst3:
 	$(MAKE) -C vst3
 
-.PHONY: vst3
+.PHONY: vst3 vst3-package
 
 check: tests scan
 	@echo "CI check complete — all tests passed, no analyzer bugs."

@@ -8,6 +8,13 @@
 
 #include "alo_engine.h"
 
+/* A grid point at the end of a block belongs to the next block. This
+ * tolerance only absorbs floating-point noise; it is not a beat window. */
+#define ALO_GRID_EPS_SAMPLES 1e-5
+
+double transport_samples_per_beat(const Alo* self);
+double transport_grid_offset(double beat_delta, double samples_per_beat);
+
 /**
  * @brief Compute the current phase index (in samples) for the looper based on
  *        the host's absolute beat position.

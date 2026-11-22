@@ -1,13 +1,20 @@
+If:
+  PathMatch: (source|tests|vst3)/.*\.(c|h)
 CompileFlags:
   Add:
-    - -Isource
+    - -xc
     - -std=gnu99
     - -DNDEBUG
+---
+If:
+  PathMatch: (tests|vst3)/[^/]+\.(c|h)
+CompileFlags:
+  Add: [-I../source, -I../vst3]
 ---
 # Paths are relative to vst3/ (clangd uses the file directory).
 # C++ sources of the DPF VST3 wrapper (vst3/README.md).
 If:
-  PathMatch: vst3/.*\.(cpp|hpp|h)
+  PathMatch: vst3/.*\.(cpp|hpp)
 CompileFlags:
   Remove: [-std=gnu99]
   Add:

@@ -181,6 +181,130 @@ static void test_records_and_loops_synced_to_transport(void)
   alo_bridge_free(b);
 }
 
+/* The pulse starts at zero, so its first nonzero sample is boundary + 1.
+ * Large PPQ exposes precision loss; the small chunks straddle a fractional
+ * grid line and must not retrigger the pulse at their next block start. */
+static void test_click_sample_grid(double bpm, uint32_t max_block)
+{
+  AloBridge* b = alo_bridge_new(RATE, max_block);
+  CHECK(b != NULL, "bridge creation failed");
+  if (!b) {
+    return;
+  }
+  const double   spb     = RATE * 60.0 / bpm;
+  const double   origin  = 65536.0;
+  const uint32_t sizes[] = {1, 7, 257, 4096, 13, 256};
+  float          left[4096], right[4096];
+  uint32_t       rendered = 0, step = 0, beats = 0, mismatches = 0;
+  AloTransport   t = {true, true, bpm, 4.0, origin};
+  while (rendered < 4.0 * spb + 1000.0) {
+    const uint32_t n = sizes[step++ % (sizeof sizes / sizeof sizes[0])];
+    t.beat           = origin + (double)rendered / spb;
+    alo_bridge_run(b, &t, NULL, NULL, left, right, n, NULL, 0);
+    for (uint32_t i = 0; i < n; ++i) {
+      const uint32_t f           = rendered + i;
+      const uint32_t pulse_start = (uint32_t)ceil((double)beats * spb);
+      /* Check onset against the independent grid, and enforce silence
+       * outside the 20 ms pulse (the rest of the signal is denormal bias). */
+      if (f == pulse_start + 1u && fabsf(left[i]) <= 1e-7f) {
+        ++mismatches;
+      }
+      if ((f <= pulse_start || f >= pulse_start + (uint32_t)(0.02f * RATE)) &&
+          fabsf(left[i]) > 1e-7f) {
+        ++mismatches;
+      }
+      if (f == pulse_start + (uint32_t)(0.02f * RATE)) {
+        ++beats;
+      }
+    }
+    rendered += n;
+  }
+  CHECK(beats >= 5 && mismatches == 0, "%.6f BPM, max block %u: %u off-grid click samples", bpm,
+        max_block, mismatches);
+  /* Stop during a pulse, then seek backward and resume halfway to a beat:
+   * the old click tail must not leak into either render. */
+  t.beat = origin + 64.0 / spb;
+  alo_bridge_run(b, &t, NULL, NULL, left, right, 32, NULL, 0);
+  t.playing = false;
+  alo_bridge_run(b, &t, NULL, NULL, left, right, 32, NULL, 0);
+  CHECK(fabsf(left[4]) < 1e-7f, "click audible while stopped");
+  t.beat    = origin + 0.5;
+  t.playing = true;
+  alo_bridge_run(b, &t, NULL, NULL, left, right, 32, NULL, 0);
+  CHECK(fabsf(left[4]) < 1e-7f, "stale click tail on resume");
+  alo_bridge_free(b);
+}
+
+/* A single-sample stereo marker, beyond the edge fade, must return at
+ * exactly the same offset from each quantized cycle boundary. */
+static void test_loop_sample_grid(double bpm)
+{
+  AloBridge* b = alo_bridge_new(RATE, BLOCK);
+  CHECK(b != NULL, "bridge creation failed");
+  if (!b) {
+    return;
+  }
+  const double   spb         = RATE * 60.0 / bpm;
+  const double   start_beat  = 65536.0;
+  const double   bar         = 4.0 * spb;
+  const uint32_t marker      = ((uint32_t)bar - 513u) & ~1u;
+  const uint32_t recorded_at = (uint32_t)ceil(bar) + marker;
+  const uint32_t total       = (uint32_t)ceil(7.0 * bar);
+  const uint32_t sizes[]     = {257, 71, 19, 512, 1, 243};
+  const uint32_t loop1       = param_index("loop1");
+  float          in_l[512], in_r[512], out_l[512], out_r[512];
+  alo_bridge_set_param(b, param_index("click"), 0);
+  alo_bridge_set_param(b, param_index("bars"), 1);
+  alo_bridge_set_param(b, param_index("mix"), 100);
+
+  AloTransport t  = {true, true, bpm, 4.0, start_beat};
+  uint32_t     at = 0, block = 0, expected = 2, actual = 0, mismatches = 0;
+  while (at < total) {
+    uint32_t       n      = sizes[block++ % (sizeof sizes / sizeof sizes[0])];
+    const uint32_t window = (uint32_t)ceil(expected * bar) + marker;
+    if (at + n > window - 8u && at <= window + 8u) {
+      n = at < window - 8u ? window - 8u - at : 1u;
+    }
+    const uint32_t begin_playback = (uint32_t)ceil(2.0 * bar);
+    t.beat                        = start_beat + at / spb;
+    alo_bridge_set_param(b, loop1, at > 4096u ? 1.0f : 0.0f);
+    for (uint32_t i = 0; i < n; i++) {
+      in_l[i] = at + i == recorded_at ? 0.8f : 0.0f;
+      in_r[i] = -in_l[i];
+    }
+    alo_bridge_run(b, &t, in_l, in_r, out_l, out_r, n, NULL, 0);
+    for (uint32_t i = 0; i < n && at + i < total; i++) {
+      const uint32_t frame = at + i;
+      if (frame >= begin_playback) {
+        const bool on_grid = frame == (uint32_t)ceil(expected * bar) + marker;
+        if (on_grid) {
+          ++expected;
+        }
+        const bool has_marker = out_l[i] > 0.7f && out_r[i] < -0.7f;
+        actual += has_marker;
+        mismatches += has_marker != on_grid;
+      }
+    }
+    at += n;
+  }
+  CHECK(actual == 5 && mismatches == 0, "%.6f BPM: %u loop markers, %u sample mismatches", bpm,
+        actual, mismatches);
+  if (bpm == 120.0) {
+    /* A backward seek to a non-boundary at double tempo must retain the
+     * recorded buffer and rephase it against the original origin. */
+    t.bpm                 = 240.0;
+    t.beat                = start_beat - 3.75;
+    const uint32_t target = marker / 2u - 3000u;
+    t.beat += (target - 23u) / 12000.0;
+    alo_bridge_run(b, &t, NULL, NULL, out_l, out_r, 64, NULL, 0);
+    for (uint32_t i = 0; i < 64u; ++i) {
+      CHECK((out_l[i] > 0.7f && out_r[i] < -0.7f) == (i == 23u),
+            "retimed loop seek: unexpected audio at frame %u", i);
+    }
+  }
+  alo_bridge_free(b);
+}
+
 static void test_param_clamping(void)
 {
   AloBridge* b = alo_bridge_new(RATE, BLOCK);
@@ -201,6 +325,11 @@ int main(void)
   test_param_table_matches_ttl();
   test_param_clamping();
   test_records_and_loops_synced_to_transport();
+  test_click_sample_grid(120.0, 1);
+  test_click_sample_grid(137.125987, 113);
+  test_loop_sample_grid(120.0);
+  test_loop_sample_grid(137.125987);
+  test_loop_sample_grid(131.0);
   if (failures) {
     fprintf(stderr, "vst3 bridge tests: %d failure(s)\n", failures);
     return 1;

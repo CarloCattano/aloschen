@@ -48,11 +48,11 @@ protected:
   }
   const char* getLicense() const override
   {
-    return "ISC";
+    return "MIT";
   }
   uint32_t getVersion() const override
   {
-    return d_version(0, 1, 0);
+    return d_version(0, 1, 1);
   }
 
   void initParameter(uint32_t index, Parameter& parameter) override
@@ -81,11 +81,8 @@ protected:
     alo_bridge_set_param(bridge, index, value);
   }
 
-  void activate() override
-  {
-    alo_bridge_activate(bridge);
-  }
-
+  // DPF may deactivate for a device/block-size change. The bridge is already
+  // initialized; only a sample-rate change needs to recreate the engine.
   /* Buffer-size changes need no action: the bridge splits larger blocks. */
   void sampleRateChanged(double newSampleRate) override
   {
@@ -130,7 +127,7 @@ private:
       const double tick_frac =
           pos.bbt.ticksPerBeat > 0.0 ? pos.bbt.tick / pos.bbt.ticksPerBeat : 0.0;
       t.valid         = true;
-      t.bpm           = pos.bbt.beatsPerMinute;
+      t.bpm           = pos.bbt.beatsPerMinute * pos.bbt.beatType / 4.0;
       t.beats_per_bar = pos.bbt.beatsPerBar;
       t.beat          = (double)(pos.bbt.bar - 1) * (double)pos.bbt.beatsPerBar +
                         (double)(pos.bbt.beat - 1) + tick_frac;
@@ -138,7 +135,7 @@ private:
       /* Host runs but sends no musical time (e.g. Carla's VST3 host without
        * JACK): derive beats from the sample position at the 120 BPM, 4/4 default. */
       t.valid         = true;
-      t.bpm           = 120.0;
+      t.bpm           = pos.bbt.beatsPerMinute > 0.0 ? pos.bbt.beatsPerMinute : 120.0;
       t.beats_per_bar = 4.0;
       t.beat          = (double)pos.frame * t.bpm / (60.0 * rate);
     } else {

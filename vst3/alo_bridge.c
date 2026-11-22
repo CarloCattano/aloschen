@@ -90,7 +90,7 @@ struct AloBridge
   AloUridTable          urids;
   LV2_URID_Map          map;
   LV2_Atom_Forge        forge;
-  LV2_URID              u_position, u_beat, u_bar_beat, u_bar, u_bpm, u_bpb, u_speed, u_midi;
+  LV2_URID              u_position, u_beat, u_bpm, u_bpb, u_speed, u_midi;
 
   float    values[ALO_BRIDGE_NPARAMS];
   float    port_values[ALO_PORT_COUNT];
@@ -160,8 +160,6 @@ AloBridge* alo_bridge_new(double sample_rate, uint32_t max_block)
   lv2_atom_forge_init(&b->forge, &b->map);
   b->u_position = urid_map(&b->urids, LV2_TIME__Position);
   b->u_beat     = urid_map(&b->urids, LV2_TIME__beat);
-  b->u_bar_beat = urid_map(&b->urids, LV2_TIME__barBeat);
-  b->u_bar      = urid_map(&b->urids, LV2_TIME__bar);
   b->u_bpm      = urid_map(&b->urids, LV2_TIME__beatsPerMinute);
   b->u_bpb      = urid_map(&b->urids, LV2_TIME__beatsPerBar);
   b->u_speed    = urid_map(&b->urids, LV2_TIME__speed);
@@ -262,8 +260,8 @@ static float block_peak(const float* x, uint32_t n)
   return peak;
 }
 
-/* One time:Position per block, typed as the engine parses it (Float beats,
- * Long bar). Without a host position only tempo and speed=0 are sent. */
+/* Preserve VST3 clock precision. The shared engine also accepts the
+ * legacy LV2 float tempo/beat atoms. */
 static void forge_transport(AloBridge* b, const AloTransport* t)
 {
   LV2_Atom_Forge*      f = &b->forge;
@@ -273,21 +271,15 @@ static void forge_transport(AloBridge* b, const AloTransport* t)
   if (t) {
     lv2_atom_forge_frame_time(f, 0);
     lv2_atom_forge_object(f, &obj_frame, 0, b->u_position);
-    const double bpb = t->beats_per_bar > 0.0 ? t->beats_per_bar : 4.0;
     lv2_atom_forge_key(f, b->u_bpm);
-    lv2_atom_forge_float(f, (float)(t->bpm > 0.0 ? t->bpm : 120.0));
+    lv2_atom_forge_double(f, t->bpm);
     lv2_atom_forge_key(f, b->u_bpb);
-    lv2_atom_forge_float(f, (float)bpb);
+    lv2_atom_forge_float(f, (float)t->beats_per_bar);
     lv2_atom_forge_key(f, b->u_speed);
     lv2_atom_forge_float(f, (t->valid && t->playing) ? 1.0f : 0.0f);
     if (t->valid) {
-      const double bar = floor(t->beat / bpb);
       lv2_atom_forge_key(f, b->u_beat);
-      lv2_atom_forge_float(f, (float)t->beat);
-      lv2_atom_forge_key(f, b->u_bar);
-      lv2_atom_forge_long(f, (int64_t)bar);
-      lv2_atom_forge_key(f, b->u_bar_beat);
-      lv2_atom_forge_float(f, (float)(t->beat - bar * bpb));
+      lv2_atom_forge_double(f, t->beat);
     }
     lv2_atom_forge_pop(f, &obj_frame);
   }
@@ -306,12 +298,16 @@ static void forge_midi(AloBridge* b, const AloMidiEvent* midi, uint32_t n_midi, 
     if (ev->frame < begin || ev->frame >= end || ev->size == 0u || ev->size > 3u) {
       continue;
     }
-    if (!lv2_atom_forge_frame_time(f, ev->frame - begin) ||
-        !lv2_atom_forge_atom(f, ev->size, b->u_midi) ||
-        !lv2_atom_forge_write(f, ev->data, ev->size)) {
+    /* Reserve a whole event before writing anything: a partial event would
+     * leave a sequence header with a dangling frame or payload. */
+    const uint32_t event_bytes = sizeof(LV2_Atom_Event) + lv2_atom_pad_size(ev->size);
+    if (event_bytes > f->size - f->offset) {
       b->dropped_midi++;
-      break;
+      continue;
     }
+    lv2_atom_forge_frame_time(f, ev->frame - begin);
+    lv2_atom_forge_atom(f, ev->size, b->u_midi);
+    lv2_atom_forge_write(f, ev->data, ev->size);
   }
   lv2_atom_forge_pop(f, &seq_frame);
 }
@@ -325,6 +321,16 @@ void alo_bridge_run(AloBridge* b, const AloTransport* transport, const float* in
   }
   float        in_peak[2] = {0.0f, 0.0f}, out_peak[2] = {0.0f, 0.0f};
   AloTransport t = transport ? *transport : (AloTransport){false, false, 120.0, 4.0, 0.0};
+
+  if (!(t.bpm >= 1.0 && t.bpm <= 10000.0)) {
+    t.bpm = 120.0;
+  }
+  if (!(t.beats_per_bar >= 1.0 && t.beats_per_bar <= 64.0)) {
+    t.beats_per_bar = 4.0;
+  }
+  t.valid                      = t.valid && t.beat >= -2e8 && t.beat <= 2e8;
+  const double beat0           = t.valid ? t.beat : 0.0;
+  const double beats_per_frame = t.valid && t.playing ? t.bpm / (60.0 * b->rate) : 0.0;
 
   for (uint32_t begin = 0; begin < n_frames;) {
     const uint32_t n = (n_frames - begin) < b->max_block ? (n_frames - begin) : b->max_block;
@@ -345,7 +351,8 @@ void alo_bridge_run(AloBridge* b, const AloTransport* transport, const float* in
     b->desc->connect_port(b->engine, ALO_OUTPUT_L, out_l + begin);
     b->desc->connect_port(b->engine, ALO_OUTPUT_R, out_r + begin);
 
-    forge_transport(b, transport ? &t : NULL);
+    t.beat = beat0 + begin * beats_per_frame;
+    forge_transport(b, &t);
     forge_midi(b, midi, n_midi, begin, begin + n);
     b->desc->run(b->engine, n);
 
@@ -354,10 +361,6 @@ void alo_bridge_run(AloBridge* b, const AloTransport* transport, const float* in
     out_peak[0] = fmaxf(out_peak[0], block_peak(out_l + begin, n));
     out_peak[1] = fmaxf(out_peak[1], block_peak(out_r + begin, n));
 
-    if (t.valid && t.playing && t.bpm > 0.0) {
-      /* Sub-block positions advance at host tempo (only matters for oversize blocks). */
-      t.beat += (double)n * t.bpm / (60.0 * b->rate);
-    }
     begin += n;
   }
 

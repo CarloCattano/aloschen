@@ -53,19 +53,18 @@
 /* generate sine-based click pulse into target */
 static void sine_pulse(float* target, double frequency, double sample_rate, uint32_t num_samples)
 {
-  const uint32_t half_length     = (uint32_t)(num_samples * 0.5f);
-  const float    amplitude_step  = 1.0f / (float)half_length;
-  const double   sample_sin_step = 2.0 * M_PI * frequency / sample_rate;
-  float          amplitude       = 0.0f;
-
-  for (uint32_t i = 0; i < half_length; ++i) {
-    amplitude = fminf(amplitude + amplitude_step, 1.0f);
-    target[i] = 0.5f * amplitude * (float)sin(i * sample_sin_step);
+  const uint32_t half_length = num_samples / 2u;
+  if (half_length == 0u) {
+    return;
   }
+  const float  amplitude_step = 1.0f / (float)half_length;
+  const double phase_step     = 2.0 * M_PI * frequency / sample_rate;
+  float        amplitude      = 0.0f;
 
-  for (uint32_t i = half_length; i < num_samples; ++i) {
-    amplitude = fmaxf(amplitude - amplitude_step, 0.0f);
-    target[i] = 0.5f * amplitude * (float)sin(i * sample_sin_step);
+  for (uint32_t i = 0; i < num_samples; ++i) {
+    amplitude = i < half_length ? fminf(amplitude + amplitude_step, 1.0f)
+                                : fmaxf(amplitude - amplitude_step, 0.0f);
+    target[i] = 0.5f * amplitude * (float)sin(i * phase_step);
   }
 }
 
@@ -155,6 +154,10 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor, double rate,
   (void)descriptor;
   (void)bundle_path;
 
+  if (!(rate >= 1000.0 && rate <= 768000.0) || !features) {
+    return NULL;
+  }
+
   Alo* self = (Alo*)calloc(1, sizeof(Alo));
   if (!self) {
     return NULL;
@@ -197,6 +200,7 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor, double rate,
 
   AloURIs* const uris       = &self->uris;
   uris->atom_Blank          = map->map(map->handle, LV2_ATOM__Blank);
+  uris->atom_Double         = map->map(map->handle, LV2_ATOM__Double);
   uris->atom_Float          = map->map(map->handle, LV2_ATOM__Float);
   uris->atom_Int            = map->map(map->handle, LV2_ATOM__Int);
   uris->atom_Long           = map->map(map->handle, LV2_ATOM__Long);

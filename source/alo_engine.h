@@ -126,6 +126,7 @@ typedef struct
 {
   LV2_URID atom_Blank;
   LV2_URID atom_Float;
+  LV2_URID atom_Double;
   LV2_URID atom_Int;
   LV2_URID atom_Long;
   LV2_URID atom_Object;
@@ -207,7 +208,7 @@ typedef struct Alo
   AloPorts      ports;
 
   double   rate;
-  float    bpm;
+  double   bpm;
   float    bpb;
   float    speed;
   bool     have_speed;
@@ -226,11 +227,13 @@ typedef struct Alo
   float    last_bar_beat;
   bool     have_last_bar_beat;
   int64_t  bar_counter_fallback;
+  uint32_t transport_previous_frames;
   double   last_transport_beats;
   bool     have_last_transport_beats;
 
   // Loop phase origin in host beats (set when the first base recording starts).
   double loop_origin_beats;
+  double loop_storage_spb; /* Samples per beat represented by the loop buffers. */
   bool   have_loop_origin;
 
   AloSliceSampler slice_sampler;

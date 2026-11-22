@@ -1,0 +1,101 @@
+diff --git a/distrho/src/DistrhoPluginVST3.cpp b/distrho/src/DistrhoPluginVST3.cpp
+--- a/distrho/src/DistrhoPluginVST3.cpp
++++ b/distrho/src/DistrhoPluginVST3.cpp
+@@ -1401,56 +1401,42 @@
+-       #if DISTRHO_PLUGIN_WANT_TIMEPOS
+-        if (v3_process_context* const ctx = data->ctx)
+-        {
+-            fTimePosition.playing = ctx->state & V3_PROCESS_CTX_PLAYING;
+-
+-            // ticksPerBeat is not possible with VST3
+-            fTimePosition.bbt.ticksPerBeat = 1920.0;
+-
+-            if (ctx->state & V3_PROCESS_CTX_PROJECT_TIME_VALID)
+-                fTimePosition.frame = ctx->project_time_in_samples;
+-            else if (ctx->state & V3_PROCESS_CTX_CONT_TIME_VALID)
+-                fTimePosition.frame = ctx->continuous_time_in_samples;
+-
+-            if (ctx->state & V3_PROCESS_CTX_TEMPO_VALID)
+-                fTimePosition.bbt.beatsPerMinute = ctx->bpm;
+-            else
+-                fTimePosition.bbt.beatsPerMinute = 120.0;
+-
+-            if ((ctx->state & (V3_PROCESS_CTX_PROJECT_TIME_VALID|V3_PROCESS_CTX_TIME_SIG_VALID)) == (V3_PROCESS_CTX_PROJECT_TIME_VALID|V3_PROCESS_CTX_TIME_SIG_VALID))
+-            {
+-                const double ppqPos    = std::abs(ctx->project_time_quarters);
+-                const int    ppqPerBar = ctx->time_sig_numerator * 4 / ctx->time_sig_denom;
+-                const double barBeats  = (std::fmod(ppqPos, ppqPerBar) / ppqPerBar) * ctx->time_sig_numerator;
+-                const double rest      =  std::fmod(barBeats, 1.0);
+-
+-                fTimePosition.bbt.valid       = true;
+-                fTimePosition.bbt.bar         = static_cast<int32_t>(ppqPos) / ppqPerBar + 1;
+-                fTimePosition.bbt.beat        = static_cast<int32_t>(barBeats - rest) + 1;
+-                fTimePosition.bbt.tick        = rest * fTimePosition.bbt.ticksPerBeat;
+-                fTimePosition.bbt.beatsPerBar = ctx->time_sig_numerator;
+-                fTimePosition.bbt.beatType    = ctx->time_sig_denom;
+-
+-                if (ctx->project_time_quarters < 0.0)
+-                {
+-                    --fTimePosition.bbt.bar;
+-                    fTimePosition.bbt.beat = ctx->time_sig_numerator - fTimePosition.bbt.beat + 1;
+-                    fTimePosition.bbt.tick = fTimePosition.bbt.ticksPerBeat - fTimePosition.bbt.tick - 1;
+-                }
+-            }
+-            else
+-            {
+-                fTimePosition.bbt.valid       = false;
+-                fTimePosition.bbt.bar         = 1;
+-                fTimePosition.bbt.beat        = 1;
+-                fTimePosition.bbt.tick        = 0.0;
+-                fTimePosition.bbt.beatsPerBar = 4.0f;
+-                fTimePosition.bbt.beatType    = 4.0f;
+-            }
+-
+-            fTimePosition.bbt.barStartTick = fTimePosition.bbt.ticksPerBeat*
+-                                             fTimePosition.bbt.beatsPerBar*
+-                                             (fTimePosition.bbt.bar-1);
+-
+-            fPlugin.setTimePosition(fTimePosition);
+-        }
++       #if DISTRHO_PLUGIN_WANT_TIMEPOS
++        fTimePosition.clear();
++        if (const v3_process_context* const ctx = data->ctx)
++        {
++            fTimePosition.playing = ctx->state & V3_PROCESS_CTX_PLAYING;
++            // The validity bit guards PPQ, not the mandatory project sample index.
++            if (ctx->project_time_in_samples >= 0)
++                fTimePosition.frame = static_cast<uint64_t>(ctx->project_time_in_samples);
++
++            if ((ctx->state & V3_PROCESS_CTX_TEMPO_VALID) &&
++                ctx->bpm > 0.0 && ctx->bpm <= 10000.0)
++                fTimePosition.bbt.beatsPerMinute = ctx->bpm;
++            else
++                fTimePosition.bbt.beatsPerMinute = 120.0;
++
++            const bool hasSignature = (ctx->state & V3_PROCESS_CTX_TIME_SIG_VALID) &&
++                                      ctx->time_sig_numerator > 0 && ctx->time_sig_numerator <= 64 &&
++                                      ctx->time_sig_denom > 0 && ctx->time_sig_denom <= 64;
++            const int32_t numerator = hasSignature ? ctx->time_sig_numerator : 4;
++            const int32_t denominator = hasSignature ? ctx->time_sig_denom : 4;
++            const double quarters = ctx->project_time_quarters;
++            if ((ctx->state & V3_PROCESS_CTX_PROJECT_TIME_VALID) &&
++                quarters >= -1e7 && quarters <= 1e7)
++            {
++                // BBT uses denominator-note beats; don't truncate PPQ per bar.
++                const double beats = quarters * (denominator / 4.0);
++                const double bar   = std::floor(beats / numerator);
++                const double inBar = beats - bar * numerator;
++                const double beat  = std::floor(inBar);
++
++                fTimePosition.bbt.valid        = true;
++                fTimePosition.bbt.bar          = static_cast<int32_t>(bar) + 1;
++                fTimePosition.bbt.beat         = static_cast<int32_t>(beat) + 1;
++                fTimePosition.bbt.ticksPerBeat = 1920.0;
++                fTimePosition.bbt.tick         = (inBar - beat) * fTimePosition.bbt.ticksPerBeat;
++                fTimePosition.bbt.beatsPerBar  = static_cast<float>(numerator);
++                fTimePosition.bbt.beatType     = static_cast<float>(denominator);
++                fTimePosition.bbt.barStartTick = bar * numerator * fTimePosition.bbt.ticksPerBeat;
++            }
++        }
++        fPlugin.setTimePosition(fTimePosition);
+        #endif
